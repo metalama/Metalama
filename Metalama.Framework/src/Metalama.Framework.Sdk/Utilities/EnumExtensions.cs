@@ -14,7 +14,10 @@ public static class EnumExtensions
 {
     // Per-type cache of value-to-deterministic-name mappings. The diagnostic formatter is a hot path,
     // so a lookup beats re-enumerating Enum.GetNames + Enum.Parse on every call.
+    // This cache is keyed by an enumeration type, and its values do not depend on the compilation.
+#pragma warning disable LAMA0890
     private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<Enum, string>> _cache = new();
+#pragma warning restore LAMA0890
 
     /// <summary>
     /// Returns a deterministic string representation of an enum value. For enums with alias members

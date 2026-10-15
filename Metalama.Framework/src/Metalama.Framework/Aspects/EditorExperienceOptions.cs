@@ -40,6 +40,7 @@ namespace Metalama.Framework.Aspects;
 /// <seealso href="@building-ide-interactions"/>
 [Durable]
 [CompileTime]
+[ImmutableType]
 public sealed record EditorExperienceOptions(
     bool? SuggestAsAddAttribute = null,
     string? AddAttributeSuggestionTitle = null,

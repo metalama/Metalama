@@ -36,7 +36,7 @@ namespace Metalama.Framework.Analyzers.Immutability
         private const string _because =
             "'{0}' must be written in an immutable style because it is an aspect, a fabric, a validator, or another type bound by the [ImmutableType] contract";
 
-        // Range: 0880-0889.
+        // Range: 0880-0899.
 
         /// <remarks>
         /// Reported only when the field is writeable from outside the type that declares it. A private field that is
@@ -120,7 +120,10 @@ namespace Metalama.Framework.Analyzers.Immutability
                 UnknownDeclaredTypeName,
                 MemberIsWrittenOutsideConstructor,
                 MemberIsPassedByReference,
-                RedundantImmutableTypeAttribute );
+                RedundantImmutableTypeAttribute,
+                StaticFieldIsNotReadOnly,
+                StaticFieldIsNotImmutable,
+                StaticFieldMustBeRunTime );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -153,6 +156,10 @@ namespace Metalama.Framework.Analyzers.Immutability
         private static void AnalyzeNamedType( SymbolAnalysisContext context, ImmutabilityContext immutabilityContext )
         {
             var type = (INamedTypeSymbol) context.Symbol;
+
+            // The rule on static members applies to every compile-time and run-time-or-compile-time type, whether or not
+            // the type is bound by the contract.
+            AnalyzeStaticMembers( context, immutabilityContext, type );
 
             if ( !immutabilityContext.IsSubjectToContract( type ) )
             {

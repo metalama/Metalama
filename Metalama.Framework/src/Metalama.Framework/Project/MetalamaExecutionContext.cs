@@ -14,7 +14,10 @@ namespace Metalama.Framework.Project
     [CompileTime]
     public static class MetalamaExecutionContext
     {
+        // The engine sets the execution context for the duration of each call to user code.
+#pragma warning disable LAMA0890
         private static readonly AsyncLocal<IExecutionContextInternal?> _current = new();
+#pragma warning restore LAMA0890
 
         /// <summary>
         /// Gets the current execution context, or throws an exception if there no execution context.

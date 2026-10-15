@@ -84,7 +84,7 @@ public abstract class ImmutableAnalyzerTestBase
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
         return diagnostics
-            .Where( d => d.Id.StartsWith( "LAMA088", StringComparison.Ordinal ) )
+            .Where( d => d.Id.StartsWith( "LAMA088", StringComparison.Ordinal ) || d.Id.StartsWith( "LAMA089", StringComparison.Ordinal ) )
             .OrderBy( d => d.Location.SourceSpan.Start )
             .ToImmutableArray();
     }

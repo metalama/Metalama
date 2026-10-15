@@ -12,8 +12,14 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 /// </summary>
 internal static class MetalamaSdkExecutionContext
 {
+    // The engine assigns its services once, when it is initialized.
+#pragma warning disable LAMA0889
     private static IMetalamaEngineServices? _current;
+#pragma warning restore LAMA0889
+    // This object is used only as a lock and holds no state.
+#pragma warning disable LAMA0890
     private static readonly object _lock = new();
+#pragma warning restore LAMA0890
 
     /// <summary>
     /// Gets the current execution context. Throws if the context has not been initialized.

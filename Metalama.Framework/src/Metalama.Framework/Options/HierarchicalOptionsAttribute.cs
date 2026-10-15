@@ -33,7 +33,10 @@ namespace Metalama.Framework.Options;
 [AttributeUsage( AttributeTargets.Class )]
 public sealed class HierarchicalOptionsAttribute : Attribute
 {
+    // This internal instance is never modified after it is constructed.
+#pragma warning disable LAMA0891
     internal static HierarchicalOptionsAttribute Default { get; } = new();
+#pragma warning restore LAMA0891
 
     /// <summary>
     /// Gets or sets a value indicating whether the options are inherited from the base type to derived types.

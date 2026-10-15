@@ -60,7 +60,10 @@ internal static class StackLimits
     /// be determined.
     /// </summary>
     [ThreadStatic]
+    // The stack limit of the current thread does not depend on the compilation.
+#pragma warning disable LAMA0889
     private static ulong _limitAddress;
+#pragma warning restore LAMA0889
 
     /// <summary>
     /// Gets the number of bytes of stack that the current thread can use below the frame of the caller before

@@ -53,7 +53,10 @@ namespace Metalama.Framework.Engine.Formatting
         /// </summary>
         internal static string GeneratedCodeAnnotationKind => MetalamaCompilerAnnotations.GeneratedCodeAnnotationKind;
 
+        // The engine assigns the Roslyn simplifier annotation once, when it is initialized.
+#pragma warning disable LAMA0889
         private static SyntaxAnnotation[]? _simplifier;
+#pragma warning restore LAMA0889
 
         /// <summary>
         /// Gets an annotation that means that the syntax stems from source code. This can be added to a child node of a node annotated

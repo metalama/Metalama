@@ -197,6 +197,12 @@ namespace Metalama.Framework.Analyzers.Immutability
             Immutable( "Metalama.Framework.Code.IDurableRef" );
             Immutable( "Metalama.Framework.Code.IDurableRef`1" );
 
+            // DiagnosticDefinition<T> carries [ImmutableType] and declares no field of type T: the type argument only
+            // types the arguments of the message. A compilation that references Metalama.Framework cannot see the
+            // private fields of the type, so the analyzer would otherwise assume that T is stored, and would report
+            // every diagnostic definition whose argument is a declaration, which is the usual case.
+            Immutable( "Metalama.Framework.Diagnostics.DiagnosticDefinition`1" );
+
             // ----------------------------------------------------------------------------------------------------
             // Types that are named as mutable rather than left to fall through, so that the message explains itself.
             // ----------------------------------------------------------------------------------------------------
@@ -257,6 +263,13 @@ namespace Metalama.Framework.Analyzers.Immutability
             Immutable( "Microsoft.CodeAnalysis.ISymbol" );
             Immutable( "Microsoft.CodeAnalysis.Location" );
             Immutable( "Microsoft.CodeAnalysis.Text.SourceText" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxAnnotation" );
+
+            // The symbol visitors declare no instance field, so a stateless visitor that derives from one can be marked
+            // [ImmutableType] without reporting its base type.
+            Immutable( "Microsoft.CodeAnalysis.SymbolVisitor", "SymbolVisitor declares no instance field" );
+            Immutable( "Microsoft.CodeAnalysis.SymbolVisitor`1", "SymbolVisitor declares no instance field" );
+            Immutable( "Microsoft.CodeAnalysis.SymbolVisitor`2", "SymbolVisitor declares no instance field" );
 
             return table;
         }

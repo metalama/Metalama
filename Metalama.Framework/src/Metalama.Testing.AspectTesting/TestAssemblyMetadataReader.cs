@@ -17,7 +17,10 @@ namespace Metalama.Testing.AspectTesting
     /// </summary>
     internal sealed class TestAssemblyMetadataReader : ITestAssemblyMetadataReader
     {
+        // This cache is keyed by the location of the test assembly, and its values do not depend on the compilation.
+#pragma warning disable LAMA0890
         private static readonly ConcurrentDictionary<string, TestAssemblyMetadata> _projectOptionsCache = new();
+#pragma warning restore LAMA0890
 
         public TestAssemblyMetadata GetMetadata( Assembly assembly )
         {

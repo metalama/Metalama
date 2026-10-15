@@ -13,7 +13,10 @@ namespace Metalama.Framework.Engine.Utilities;
 /// </summary>
 public abstract class MetalamaStringFormatter : CultureInfo, ICustomFormatter
 {
+    // The engine assigns the formatter once, when it is initialized.
+#pragma warning disable LAMA0889
     private static MetalamaStringFormatter? _instance;
+#pragma warning restore LAMA0889
 
     [PublicAPI]
     public static MetalamaStringFormatter Instance => _instance ?? throw new InvalidOperationException( "The class has not been initialized." );

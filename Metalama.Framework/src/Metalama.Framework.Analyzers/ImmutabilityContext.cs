@@ -35,7 +35,7 @@ namespace Metalama.Framework.Analyzers.Immutability
     /// <c>MetadataImportOptions.Public</c> does not expose at all.
     /// </para>
     /// </remarks>
-    internal sealed class ImmutabilityContext
+    internal sealed partial class ImmutabilityContext
     {
         private const int _maxDepth = 20;
 

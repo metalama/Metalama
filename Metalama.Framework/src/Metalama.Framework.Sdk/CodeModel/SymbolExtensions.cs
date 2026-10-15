@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using SpecialType = Microsoft.CodeAnalysis.SpecialType;
@@ -259,6 +260,7 @@ namespace Metalama.Framework.Engine.CodeModel
         public static bool IsDefinitionSafe( this ISymbol symbol )
             => symbol.Equals( symbol.OriginalDefinition ) || symbol is INamedTypeSymbol { IsTupleType: true };
 
+        [ImmutableType]
         private sealed class ExpressionTypeVisitor : SymbolVisitor<ITypeSymbol>
         {
             public static ExpressionTypeVisitor Instance { get; } = new();

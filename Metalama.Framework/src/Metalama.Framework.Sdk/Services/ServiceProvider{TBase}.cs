@@ -25,7 +25,10 @@ public sealed partial class ServiceProvider<TBase> : ServiceProvider, IServicePr
     where TBase : class
 {
     // ReSharper disable once StaticMemberInGenericType
+    // This cache is keyed by a type of the compiler process, and its values do not depend on the compilation.
+#pragma warning disable LAMA0890
     private static readonly ConcurrentDictionary<Type, ImmutableArray<Type>> _interfaceImplementationCache = new();
+#pragma warning restore LAMA0890
 
     // A collection of services that is shared by all instances derived from a root instance.
     // That is, adding a shared service to any instance of the same family will add the service to all instances of the family.
