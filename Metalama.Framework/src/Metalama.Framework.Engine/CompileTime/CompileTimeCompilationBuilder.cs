@@ -1024,7 +1024,10 @@ internal sealed partial class CompileTimeCompilationBuilder
 
             if ( diagnostics?.Any() == true )
             {
-                var sourceTreesForDiagnostics = sourceTreesWithCompileTimeCode.OrderBy( t => t.FilePath ).ToArray();
+                // The trees are sorted by mapped path, which is the order in which the indexes were assigned. See issue #2249.
+                var sourceTreesForDiagnostics = sourceTreesWithCompileTimeCode
+                    .OrderBy( t => GetMappedSourcePath( runTimeCompilation, t.FilePath ) )
+                    .ToArray();
 
                 diagnosticSink.Report( diagnostics.SelectAsReadOnlyList( d => d.ToDiagnostic( sourceTreesForDiagnostics ) ) );
             }
@@ -1273,10 +1276,14 @@ internal sealed partial class CompileTimeCompilationBuilder
                             // this index only has to give each path a number. This does not disturb the order, and
                             // therefore does not disturb the indexes, of a compilation that has no duplicate. See issue
                             // #1742.
+                            // The paths are sorted by mapped path because the cache key is computed from the mapped
+                            // paths. A cached manifest can therefore be read by a compilation whose sources are in
+                            // another directory. When the compilation has no path map, the mapped path is equal to the
+                            // path, so the order does not change. See issue #2249.
                             var distinctSourceFilePaths = sourceTreesWithCompileTimeCode
                                 .SelectAsArray( x => x.FilePath )
                                 .Distinct()
-                                .OrderBy( x => x );
+                                .OrderBy( x => GetMappedSourcePath( runTimeCompilation, x ) );
 
                             foreach ( var filePath in distinctSourceFilePaths )
                             {
