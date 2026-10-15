@@ -3,10 +3,18 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Compiler;
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
+using Metalama.Framework.Options;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -85,41 +93,113 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
                     $"[{_aspectNames[i % _aspectNames.Length]}] public interface IContract{i:00} {{ }} public class Contract{i:00} : IContract{i:00} {{ }}" ) );
         }
 
-        async Task<IReadOnlyDictionary<string, byte[]>> GetResourcesAsync( IEnumerable<KeyValuePair<string, string>> orderedFiles )
-        {
-            var compilation = testContext.CreateCSharpCompilation( orderedFiles.ToDictionary( x => x.Key, x => x.Value ), assemblyName: "Producer" );
+        var forward = await GetResourcesAsync( testContext, files );
+        var backward = await GetResourcesAsync( testContext, Enumerable.Reverse( files ) );
 
-            var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
-            var diagnostics = new DiagnosticBag();
-
-            var result = await pipeline.ExecuteAsync( diagnostics.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
-
-            Assert.True( result.IsSuccessful, string.Join( "\n", diagnostics.ToImmutableArray() ) );
-
-            var peStream = new MemoryStream();
-
-            var emitResult = result.Value.ResultingCompilation.Compilation.Emit(
-                peStream,
-                manifestResources: result.Value.AdditionalResources.Select( x => x.Resource ) );
-
-            Assert.True( emitResult.Success );
-
-            return ReadManagedResources( peStream.ToArray() );
-        }
-
-        var forward = await GetResourcesAsync( files );
-        var backward = await GetResourcesAsync( Enumerable.Reverse( files ) );
-
-        Assert.Contains( forward.Keys, name => name.Contains( "Inheritable" ) );
-        Assert.Equal( forward.Keys.OrderBy( x => x ), backward.Keys.OrderBy( x => x ) );
-
-        foreach ( var name in forward.Keys )
-        {
-            Assert.True( forward[name].SequenceEqual( backward[name] ), $"The bytes of the resource '{name}' differ." );
-        }
+        AssertSameResources( forward, backward );
 
         var payload = Inflate( forward[CompileTimeConstants.InheritableAspectManifestResourceName] );
         Assert.Equal( _expectedInheritableAspectPayloadHash, ComputeHash( payload ) );
+    }
+
+    /// <summary>
+    /// Verifies that the serialized manifest does not depend on the order of several instances of one aspect class that share a
+    /// target declaration.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A type can inherit several instances of one aspect class, for example one from each of two base interfaces, and these
+    /// instances can have different values. Their target declarations have the same identifier, so a sort by target identifier
+    /// alone keeps the order of the input, and the pipeline does not produce these instances in a defined order.
+    /// </para>
+    /// <para>
+    /// The design-time pipeline keeps a single instance for each target declaration, so the test moves the instance of
+    /// <c>ISecond</c> to the target declaration of the instance of <c>IFirst</c>. It then builds the manifest from the two
+    /// instances in both orders.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void InheritableAspectManifest_InstancesSharingATarget_DoNotDependOnInputOrder()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        const string code = """
+                            using Metalama.Framework.Aspects;
+
+                            [Inheritable]
+                            public class TaggedAttribute : TypeAspect
+                            {
+                                public TaggedAttribute( string tag )
+                                {
+                                    this.Tag = tag;
+                                }
+
+                                public string Tag { get; }
+                            }
+
+                            [Tagged( "First" )]
+                            public interface IFirst { }
+
+                            [Tagged( "Second" )]
+                            public interface ISecond { }
+                            """;
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var result ) );
+
+        var serviceProvider = result.Result.Configuration!.ServiceProvider;
+        var instances = result.Result.GetInheritableAspects( "TaggedAttribute" ).ToList();
+
+        var first = Assert.Single( instances, i => i.TargetDeclaration.ToSerializableId().Id == "Y:global::IFirst!" );
+        var second = Assert.Single( instances, i => i.TargetDeclaration.ToSerializableId().Id == "Y:global::ISecond!" );
+        var secondOnFirst = new InheritableAspectInstance( new RetargetedAspectInstance( second, first.TargetDeclaration ) );
+
+        byte[] Serialize( params InheritableAspectInstance[] orderedInstances )
+            => TransitiveAspectsManifest.Create(
+                    orderedInstances.ToImmutableArray(),
+                    ImmutableArray<ITransitiveAspectsManifestExtension>.Empty,
+                    ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>.Empty,
+                    ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Empty,
+                    false )
+                .ToBytes( serviceProvider, compress: false );
+
+        Assert.Equal( Serialize( first, secondOnFirst ), Serialize( secondOnFirst, first ) );
+    }
+
+    private static async Task<IReadOnlyDictionary<string, byte[]>> GetResourcesAsync(
+        TestContext testContext,
+        IEnumerable<KeyValuePair<string, string>> orderedFiles )
+    {
+        var compilation = testContext.CreateCSharpCompilation( orderedFiles.ToDictionary( x => x.Key, x => x.Value ), assemblyName: "Producer" );
+
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
+        var diagnostics = new DiagnosticBag();
+
+        var result = await pipeline.ExecuteAsync( diagnostics.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
+
+        Assert.True( result.IsSuccessful, string.Join( "\n", diagnostics.ToImmutableArray() ) );
+
+        var peStream = new MemoryStream();
+
+        var emitResult = result.Value.ResultingCompilation.Compilation.Emit(
+            peStream,
+            manifestResources: result.Value.AdditionalResources.Select( x => x.Resource ) );
+
+        Assert.True( emitResult.Success );
+
+        return ReadManagedResources( peStream.ToArray() );
+    }
+
+    private static void AssertSameResources( IReadOnlyDictionary<string, byte[]> expected, IReadOnlyDictionary<string, byte[]> actual )
+    {
+        Assert.Contains( expected.Keys, name => name.Contains( "Inheritable" ) );
+        Assert.Equal( expected.Keys.OrderBy( x => x ), actual.Keys.OrderBy( x => x ) );
+
+        foreach ( var name in expected.Keys )
+        {
+            Assert.True( expected[name].SequenceEqual( actual[name] ), $"The bytes of the resource '{name}' differ." );
+        }
     }
 
     private static byte[] Inflate( byte[] compressed )
@@ -159,5 +239,45 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
         }
 
         return resources;
+    }
+
+    /// <summary>
+    /// An aspect instance that has the values of another instance and a different target declaration.
+    /// </summary>
+    private sealed class RetargetedAspectInstance : IAspectInstance, IAspectPredecessorImpl
+    {
+        private readonly InheritableAspectInstance _instance;
+
+        public RetargetedAspectInstance( InheritableAspectInstance instance, IRef<IDeclaration> targetDeclaration )
+        {
+            this._instance = instance;
+            this.TargetDeclaration = targetDeclaration;
+        }
+
+        public IRef<IDeclaration> TargetDeclaration { get; }
+
+        public IAspect Aspect => this._instance.Aspect;
+
+        public IAspectClass AspectClass => this._instance.AspectClass;
+
+        public bool IsSkipped => false;
+
+        public bool IsInheritable => true;
+
+        public ImmutableArray<IAspectInstance> SecondaryInstances => ImmutableArray<IAspectInstance>.Empty;
+
+        public IAspectState? AspectState => this._instance.AspectState;
+
+        public int PredecessorDegree => this._instance.PredecessorDegree;
+
+        public ImmutableArray<AspectPredecessor> Predecessors => ImmutableArray<AspectPredecessor>.Empty;
+
+        public int TargetDeclarationDepth => this._instance.TargetDeclarationDepth;
+
+        public ImmutableArray<SyntaxTree> PredecessorTreeClosure => ImmutableArray<SyntaxTree>.Empty;
+
+        public FormattableString FormatPredecessor( ICompilation compilation ) => this._instance.FormatPredecessor( compilation );
+
+        public Location? GetDiagnosticLocation( Compilation compilation ) => null;
     }
 }
