@@ -79,7 +79,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 base.VisitRecordDeclaration( node );
             }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
             /// <summary>
             /// Visits a union declaration, whose serializable members are collected exactly as those of a struct
             /// declaration are.

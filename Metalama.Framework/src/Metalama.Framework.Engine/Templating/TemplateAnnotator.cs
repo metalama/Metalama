@@ -753,7 +753,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node ) => this.VisitTypeDeclaration( node, n => base.VisitEnumDeclaration( n ) );
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
     /// <summary>
     /// Visits a union declaration, which is annotated with the scope of its declaration exactly as a struct
     /// declaration is.
@@ -1398,7 +1398,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     public override SyntaxNode VisitBreakStatement( BreakStatementSyntax node )
     {
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
         // A labeled break is reported instead of being classified. The label belongs to a loop whose scope may differ
         // from the scope of this statement, so the annotator cannot decide the scope of the statement. See section 5 of
@@ -1415,7 +1415,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     public override SyntaxNode VisitContinueStatement( ContinueStatementSyntax node )
     {
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
         // See the comment of VisitBreakStatement.
         if ( node.Name != null )

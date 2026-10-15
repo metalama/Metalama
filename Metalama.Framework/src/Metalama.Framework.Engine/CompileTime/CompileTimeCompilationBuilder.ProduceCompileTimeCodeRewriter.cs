@@ -196,7 +196,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
             public override SyntaxNode? VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitTypeDeclaration( node ).SingleOrDefault();
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
             /// <summary>
             /// Visits a union declaration, which is classified by its templating scope exactly as a struct declaration is.
             /// </summary>

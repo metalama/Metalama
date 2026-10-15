@@ -519,7 +519,7 @@ internal sealed partial class LinkerInjectionStep
 
         public override SyntaxNode VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
         /// <summary>
         /// Visits a union declaration, which is a type declaration like any other.

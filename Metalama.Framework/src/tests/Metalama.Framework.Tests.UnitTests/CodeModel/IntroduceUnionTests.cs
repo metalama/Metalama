@@ -6,7 +6,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
 using System;
 using Xunit;
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -29,7 +29,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// </remarks>
 public sealed class IntroduceUnionTests : UnitTestClass
 {
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
     /// <summary>
     /// Registers a union and the members that the compiler synthesizes for it, and returns the introduced type.

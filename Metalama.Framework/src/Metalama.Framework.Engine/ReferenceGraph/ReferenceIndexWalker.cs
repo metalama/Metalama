@@ -338,7 +338,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         }
     }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
     // Roslyn routes a union declaration to its own visit method, which a syntax kind cannot override, so the union
     // needs an override of its own. The method is named only in the Roslyn variant that declares it, for the reason
     // explained in section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md.

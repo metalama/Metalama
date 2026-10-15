@@ -47,7 +47,7 @@ internal sealed partial class LinkerLinkingStep
             return node;
         }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
         /// <summary>
         /// Visits a union declaration, which is rewritten like a struct, because that is what the language reports a

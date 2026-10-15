@@ -8,7 +8,7 @@
 // a version that its own LanguageVersion declares. One expected file cannot hold both lists, so the scenario is
 // split in two, as UnknownAccessorInTemplate is. LanguageVersion_Roslyn5_0 is the counterpart of this test.
 // @LanguageVersion(8.0)
-// @RequiredConstant(ROSLYN_5_11_0_OR_GREATER)
+// @RequiredConstant(ROSLYN_5_12_0_OR_GREATER)
 #endif
 
 using Metalama.Framework.Aspects;

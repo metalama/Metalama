@@ -23,12 +23,12 @@
     <RoslynApiMinVersion>5.0.0</RoslynApiMinVersion>
 
     <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. It matches the Roslyn version
-         that Metalama.Compiler builds on, which is the Roslyn that the .NET SDK 11.0.100-rc.1.26425.128 carries.
-         Roslyn 5.11 is a prerelease and is restored from the roslyn-consolidated feed declared in
+         that Metalama.Compiler builds on, which is the Roslyn that the .NET SDK 11.0.100-rc.2.26504.105 carries.
+         Roslyn 5.12 is a prerelease and is restored from the roslyn-consolidated feed declared in
          nuget.base.config. -->
-    <RoslynApiMaxVersion>5.11.0-1.26425.128</RoslynApiMaxVersion>
+    <RoslynApiMaxVersion>5.12.0-1.26504.105</RoslynApiMaxVersion>
     <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
-    <RoslynMaxVersion>5.11.0-1.26425.128</RoslynMaxVersion>
+    <RoslynMaxVersion>5.12.0-1.26504.105</RoslynMaxVersion>
 
     <!-- xUnitApiVersion is the version of xunit.v3 against which we build the testing framework. It must be the same
          version as the one that SharpCrafters.Backstage.Testing references. -->
@@ -47,7 +47,8 @@
          The consequence is a floor on the host, and it is deliberate. Microsoft.Build.Locator binds to the MSBuild
          of the host at run time, so MSBuildWorkspace now requires a .NET SDK whose MSBuild is 18.7.1 or higher.
          Measured: .NET SDK 10.0.112 ships 18.0.11 and 10.0.303 ships 18.6.14, which are below it, while 10.0.400
-         ships 18.9.6 and 11.0.100-rc.1 ships 18.11.0, which are above. Record that floor in
+         ships 18.9.6 and 11.0.100-rc.1 ships 18.11.0, which are above. Roslyn 5.12 requires the same 18.7.1.
+         Record that floor in
          Metalama.Framework/docs/platform-support.md when PB-2027.0 is next revised.
          Note that the FileVersion of the Microsoft.Build.dll shipped by an integrated development environment is
          not the NuGet version. Always verify that the NuGet package exists before pinning.
@@ -64,7 +65,7 @@
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
     <MessagePackLatestVersion>2.5.302</MessagePackLatestVersion>
-    <!-- Microsoft.CodeAnalysis 5.11 requires the .NET 10 line of System.Text.Json, Microsoft.Bcl.AsyncInterfaces
+    <!-- Microsoft.CodeAnalysis 5.12 requires the .NET 10 line of System.Text.Json, Microsoft.Bcl.AsyncInterfaces
          and System.IO.Pipelines. The *LatestVersion properties feed the projects that host themselves, which no
          design-time host loads, so they take the highest patch of that line rather than a version that the
          binding redirects of Visual Studio admit. SystemTextJsonLatestVersion is the exception: it is set per
@@ -254,9 +255,10 @@
          oldVersion upper bound in devenv.exe.config is assembly version 10.0.0.8 for all three in Visual Studio
          2026 18.9, and 10.0.0.10 in 18.10 and 18.11. 10.0.8 is the NuGet version whose lib/net462 asset carries
          10.0.0.8, so it fits every Visual Studio 2026 release measured. This pin is a lower bound only: the
-         Roslyn 5.11 variant of the payload resolves System.IO.Pipelines and Microsoft.Bcl.AsyncInterfaces 10.0.10
-         transitively, which fits the redirect of Visual Studio 18.11, the first release that selects that
-         variant. Do not take a version above 10.0.10.
+         Roslyn 5.12 variant of the payload resolves System.IO.Pipelines and Microsoft.Bcl.AsyncInterfaces 10.0.10
+         transitively. That version fits the redirect of Visual Studio 18.11. Visual Studio 18.11 presents
+         Roslyn 5.11 and therefore selects the Roslyn 5.0 variant. The redirect of the first Visual Studio that
+         presents Roslyn 5.12 has not been measured. Do not take a version above 10.0.10.
          Metalama.Vsx constrains these values at its build and not at its deployment.
          It does not constrain them at deployment. Metalama.Vsx merges SharpCrafters.Backstage, SharpCrafters.Common, Metalama.Backstage, Metalama.Backstage.Tools
          and Metalama.Framework.DesignTime.Rpc into a single Metalama.Repacked assembly with its own identity, so

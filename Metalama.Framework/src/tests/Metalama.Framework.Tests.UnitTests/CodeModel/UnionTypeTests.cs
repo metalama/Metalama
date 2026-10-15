@@ -11,7 +11,7 @@ using System;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -89,7 +89,7 @@ public sealed class UnionTypeTests : UnitTestClass
         Assert.Null( introducedType.Facets.Union );
     }
 
-#if !ROSLYN_5_11_0_OR_GREATER
+#if !ROSLYN_5_12_0_OR_GREATER
 
     /// <summary>
     /// Verifies that the attribute form of a union reports <see cref="INamedType.IsUnion"/> as <c>false</c>, has no
@@ -136,7 +136,7 @@ public sealed class UnionTypeTests : UnitTestClass
 
 #endif
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
     // The union is a C# 15 feature, so only the latest Roslyn variant parses it and only that variant reads
     // ITypeSymbol.IsUnion, under the same condition as the readers in SourceNamedTypeImpl. Roslyn 5.11 declares C# 15

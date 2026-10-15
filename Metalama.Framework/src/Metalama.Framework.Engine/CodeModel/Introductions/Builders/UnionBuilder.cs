@@ -43,7 +43,7 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public UnionBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name )
         : base( aspectLayerInstance, declaringNamespaceOrType, name, TypeKind.Struct )
     {
-#if !ROSLYN_5_11_0_OR_GREATER
+#if !ROSLYN_5_12_0_OR_GREATER
 
         // The emission of a union declaration is compiled into the latest Roslyn variant only, for the reason that
         // the setter of NamedTypeBuilder.IsClosed gives. The writer refuses the request instead of producing an
