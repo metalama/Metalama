@@ -6,5 +6,5 @@
         "warning LAMA0600.*'net9[.]0'",
         "warning LAMA0601.*'Test[.]FutureSdk'"
     ],
-    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0602" ]
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0602", "warning LAMA0604" ]
 }

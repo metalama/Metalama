@@ -3,10 +3,11 @@
     "ExpectedDiagnosticsRegexes": [
         "warning LAMA0600.*'Test[.]NewerFramework'.*newer",
         "warning LAMA0600.*'Test[.]WindowsOnly'.*windows",
+        "warning LAMA0604.*'Test[.]EnabledFramework'.*older than .NET 11[.]0",
         "warning LAMA0601.*'Test[.]FutureSdk'.*older than 99[.]0.*global[.]json.*earlier version of 'Test[.]FutureSdk'",
         "warning LAMA0601.*'Test[.]LegacySdk'.*newer than 1[.]0",
         "warning LAMA0601.*'Test[.]PreviousSdkLine'.*newer than",
         "warning LAMA0601.*'Test[.]FutureFeatureBand'.*older than"
     ],
-    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600.*'Metalama[.]Framework'", "warning LAMA0601.*'Metalama[.]Framework'", "warning LAMA0601.*'Test[.]CurrentSdkLine'", "warning LAMA0602", "earlier version of 'Test[.]LegacySdk'", "earlier version of 'Test[.]NewerFramework'" ]
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600.*'Metalama[.]Framework'", "warning LAMA0601.*'Metalama[.]Framework'", "warning LAMA0604.*'Metalama[.]Framework'", "warning LAMA0600.*'Test[.]EnabledFramework'", "warning LAMA0601.*'Test[.]CurrentSdkLine'", "warning LAMA0602", "earlier version of 'Test[.]LegacySdk'", "earlier version of 'Test[.]NewerFramework'" ]
 }
