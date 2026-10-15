@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `C`: `An exception of type 'System.InvalidOperationException' was thrown while executing BuildAspect for aspect [LateAspect] applied to 'C': The amender of the fabric 'Fabric' cannot be used after AmendProject has returned. Exception details are in '(none)'. To attach a debugger to the compiler, use the '-p:MetalamaDebugCompiler=True' command-line option.`
