@@ -3,15 +3,19 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Compiler;
+using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -41,6 +45,27 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
                                        [Inheritable]
                                        public class VersionedAttribute : TypeAspect { }
                                        """;
+
+    /// <summary>
+    /// The SHA-256 hash of the inflated content of <c>Metalama.InheritableAspects.bin</c> produced by <see cref="InheritableAspectResource_DoesNotDependOnSyntaxTreeOrder"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The CLR randomizes the hash codes of strings in each new process, so a comparison of two outputs produced in the same process
+    /// cannot detect an order that follows these hash codes. Each test run is a new process, so a comparison with a hash stored in the
+    /// source code detects it.
+    /// </para>
+    /// <para>
+    /// The hash is computed on the inflated content because the bytes produced by <see cref="DeflateStream"/> depend on the runtime.
+    /// The content names the core library of the runtime, so each target framework has its own value. The value must be updated
+    /// when the serialization format, the Roslyn version or the name of an assembly changes.
+    /// </para>
+    /// </remarks>
+#if NET
+    private const string _expectedInheritableAspectPayloadHash = "ebdac4094ec0a5faf2763f888671e9abd8a12cee3f9557a6782129f3ec6803e2";
+#else
+    private const string _expectedInheritableAspectPayloadHash = "37e6bcf607d5042a1440ca2d4ed64aed47a98e736ec0fc51cff6baa054b80edb";
+#endif
 
     private static readonly string[] _aspectNames = ["Tracked", "Audited", "Versioned"];
 
@@ -92,6 +117,25 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
         {
             Assert.True( forward[name].SequenceEqual( backward[name] ), $"The bytes of the resource '{name}' differ." );
         }
+
+        var payload = Inflate( forward[CompileTimeConstants.InheritableAspectManifestResourceName] );
+        Assert.Equal( _expectedInheritableAspectPayloadHash, ComputeHash( payload ) );
+    }
+
+    private static byte[] Inflate( byte[] compressed )
+    {
+        using var deflateStream = new DeflateStream( new MemoryStream( compressed ), CompressionMode.Decompress );
+        var inflated = new MemoryStream();
+        deflateStream.CopyTo( inflated );
+
+        return inflated.ToArray();
+    }
+
+    private static string ComputeHash( byte[] bytes )
+    {
+        using var sha256 = SHA256.Create();
+
+        return BitConverter.ToString( sha256.ComputeHash( bytes ) ).Replace( "-", "" ).ToLowerInvariant();
     }
 
     private static IReadOnlyDictionary<string, byte[]> ReadManagedResources( byte[] peImage )

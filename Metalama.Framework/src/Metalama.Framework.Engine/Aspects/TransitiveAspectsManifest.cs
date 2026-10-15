@@ -76,7 +76,9 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             inheritedAspects.GroupBy( a => a.AspectClass.FullName, StringComparer.Ordinal )
                 .ToImmutableDictionary(
                     g => g.Key,
-                    g => g.OrderBy( i => i.TargetDeclaration.ToSerializableId().Id, StringComparer.Ordinal )
+                    g => g.Select( i => (Instance: i, TargetId: i.TargetDeclaration.ToSerializableId().Id) )
+                        .OrderBy( x => x.TargetId, StringComparer.Ordinal )
+                        .Select( x => x.Instance )
                         .ToReadOnlyList(),
                     StringComparer.Ordinal ),
             extensions,
