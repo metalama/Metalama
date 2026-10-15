@@ -16,3 +16,7 @@ It also allows you to query code metrics.
 
 * Conceptual documentation: [Inspecting a project using LINQPad](https://doc.metalama.net/conceptual/introspection/linqpad)
 * API documentation: [Introspection API](https://doc.metalama.net/api/introspection-api)
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.

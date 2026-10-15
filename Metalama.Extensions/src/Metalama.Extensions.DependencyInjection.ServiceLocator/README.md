@@ -19,3 +19,7 @@ When you add this package to a project, it automatically configures itself as th
 ## Related Packages
 
 * [Metalama.Extensions.DependencyInjection](https://www.nuget.org/packages/Metalama.Extensions.DependencyInjection): The parent package.
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.
