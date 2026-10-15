@@ -1278,7 +1278,10 @@ internal sealed partial class CompileTimeCompilationBuilder
                             referencedProjects.SelectAsImmutableArray( r => r.RunTimeIdentity.GetDisplayName() ),
                             compilationResultManifest,
                             sourceHash,
-                            textMapDirectory.FilesByTargetPath.Values.Select( f => new CompileTimeFileManifest( f ) ).ToArray(),
+                            // Sorted so that the archive does not depend on the hash order of the dictionary (#2248).
+                            textMapDirectory.FilesByTargetPath.Values.OrderBy( f => f.TargetPath, StringComparer.Ordinal )
+                                .Select( f => new CompileTimeFileManifest( f ) )
+                                .ToArray(),
                             diagnostics.SelectAsArray( d => new CompileTimeDiagnosticManifest( d, sourceFilePathIndexes! ) ),
                             referencesMetalamaSdk,
                             languageVersion: templateLanguageVersion );

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Serialization;
 using System;
 using System.Collections.Generic;
@@ -46,6 +47,20 @@ public sealed class ImmutableDictionarySerializationOrderTests : SerializationTe
 
         var forward = ids.ToImmutableDictionary( k => k, k => k.ToString(), new CollidingDeclarationIdComparer() );
         var backward = Enumerable.Reverse( ids ).ToImmutableDictionary( k => k, k => k.ToString(), new CollidingDeclarationIdComparer() );
+
+        // Check that the test inputs actually enumerate in different orders.
+        Assert.NotEqual( forward.Keys, backward.Keys );
+
+        Assert.Equal( this.Serialize( forward ), this.Serialize( backward ) );
+    }
+
+    [Fact]
+    public void OptionsKeys_SameBytesForAnyEnumerationOrder()
+    {
+        var optionsKeys = _keys.SelectAsArray( k => new HierarchicalOptionsKey( "Options" + k.Length, new SerializableDeclarationId( "T:" + k ) ) );
+
+        var forward = optionsKeys.ToImmutableDictionary( k => k, k => k.OptionType, new CollidingOptionsKeyComparer() );
+        var backward = Enumerable.Reverse( optionsKeys ).ToImmutableDictionary( k => k, k => k.OptionType, new CollidingOptionsKeyComparer() );
 
         // Check that the test inputs actually enumerate in different orders.
         Assert.NotEqual( forward.Keys, backward.Keys );
@@ -115,6 +130,29 @@ public sealed class ImmutableDictionarySerializationOrderTests : SerializationTe
             public object Convert( object value, Type targetType ) => value;
 
             public object CreateInstance( Type type, IArgumentsReader constructorArguments ) => new CollidingDeclarationIdComparer();
+
+            public void DeserializeFields( ref object obj, IArgumentsReader initializationArguments ) { }
+
+            public void SerializeObject( object obj, IArgumentsWriter constructorArguments, IArgumentsWriter? initializationArguments ) { }
+
+            public bool IsTwoPhase => false;
+        }
+    }
+
+    /// <summary>
+    /// A comparer of <see cref="HierarchicalOptionsKey"/> that returns the same hash code for every key.
+    /// </summary>
+    public sealed class CollidingOptionsKeyComparer : IEqualityComparer<HierarchicalOptionsKey>
+    {
+        public bool Equals( HierarchicalOptionsKey x, HierarchicalOptionsKey y ) => x.Equals( y );
+
+        public int GetHashCode( HierarchicalOptionsKey obj ) => 0;
+
+        public sealed class Serializer : ISerializer
+        {
+            public object Convert( object value, Type targetType ) => value;
+
+            public object CreateInstance( Type type, IArgumentsReader constructorArguments ) => new CollidingOptionsKeyComparer();
 
             public void DeserializeFields( ref object obj, IArgumentsReader initializationArguments ) { }
 

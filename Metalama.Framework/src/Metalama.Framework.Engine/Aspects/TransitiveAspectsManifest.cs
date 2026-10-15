@@ -70,11 +70,13 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         // the same assembly name: grouping by the instance then yields two groups that map to a single key, and
         // ToImmutableDictionary throws (issue #1749). Merging them is the only meaningful answer here, because the
         // manifest is keyed by name and a consumer resolves an inherited aspect by name.
+        // The instances of a group are sorted by the identifier of their target, because the pipeline produces them in
+        // an undefined order, and the serialized manifest must be identical for identical source (#2248).
         => new(
             inheritedAspects.GroupBy( a => a.AspectClass.FullName, StringComparer.Ordinal )
                 .ToImmutableDictionary(
                     g => g.Key,
-                    g => g.Select( i => i )
+                    g => g.OrderBy( i => i.TargetDeclaration.ToSerializableId().Id, StringComparer.Ordinal )
                         .ToReadOnlyList(),
                     StringComparer.Ordinal ),
             extensions,
