@@ -108,6 +108,12 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> IgnoredWarnings => this.Wrapped.IgnoredWarnings;
 
+    public virtual bool EnforceImmutabilityContract => this.Wrapped.EnforceImmutabilityContract;
+
+    public virtual ImmutableArray<string> ImmutableTypes => this.Wrapped.ImmutableTypes;
+
+    public virtual ImmutableArray<string> ImmutableContractTypes => this.Wrapped.ImmutableContractTypes;
+
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
 
     public virtual ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;

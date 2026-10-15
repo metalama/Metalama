@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Options;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -73,17 +74,14 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// </remarks>
         public static ImmutabilityContext? Create( IProjectOptions? options )
         {
-            if ( options != null
-                 && options.TryGetProperty( "MetalamaEnforceImmutabilityContract", out var enforce )
-                 && bool.TryParse( enforce, out var enforceValue )
-                 && !enforceValue )
+            if ( options is { EnforceImmutabilityContract: false } )
             {
                 return null;
             }
 
             return new ImmutabilityContext(
-                ImmutabilitySymbolFacts.ReadTypeNameList( options, "MetalamaImmutableTypes" ),
-                ImmutabilitySymbolFacts.ReadTypeNameList( options, "MetalamaImmutableContractTypes" ) );
+                new HashSet<string>( options?.ImmutableTypes ?? [], StringComparer.Ordinal ),
+                new HashSet<string>( options?.ImmutableContractTypes ?? [], StringComparer.Ordinal ) );
         }
 
         /// <summary>

@@ -2,10 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.Options;
 using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Metalama.Framework.Engine.Templating.Immutability
@@ -89,31 +86,6 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             }
 
             builder.Append( type.MetadataName );
-        }
-
-        /// <summary>
-        /// Reads one of the semicolon-separated lists into which the build joins an MSBuild item.
-        /// </summary>
-        public static HashSet<string> ReadTypeNameList( IProjectOptions? options, string propertyName )
-        {
-            var result = new HashSet<string>( StringComparer.Ordinal );
-
-            if ( options == null || !options.TryGetProperty( propertyName, out var value ) || string.IsNullOrWhiteSpace( value ) )
-            {
-                return result;
-            }
-
-            foreach ( var name in value!.Split( ';' ) )
-            {
-                var trimmed = name.Trim();
-
-                if ( trimmed.Length > 0 )
-                {
-                    result.Add( trimmed );
-                }
-            }
-
-            return result;
         }
 
         /// <summary>
