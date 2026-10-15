@@ -46,3 +46,7 @@ To control this behavior, set the `MetalamaEnableDiffEngine` MSBuild property:
 | `False` | The diff tool integration is always disabled. |
 
 For example, set `MetalamaEnableDiffEngine` to `True` if your `Directory.Build.props` sets `ContinuousIntegrationBuild` to `True` for local builds too.
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.

@@ -42,3 +42,7 @@ Enable HTML output in aspect tests by adding a `metalamaTests.json` file to your
 ```
 
 Without this package, the `WriteHtml` feature and related test options will throw an error with a message indicating that the package needs to be installed.
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.

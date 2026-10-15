@@ -11,3 +11,7 @@ The `Metalama.Testing.UnitTesting` package is a class library that allows you to
 ## Documentation
 
 * [Testing compile-time helper code](https://doc.metalama.net/conceptual/aspects/testing/compile-time-testing)
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.
