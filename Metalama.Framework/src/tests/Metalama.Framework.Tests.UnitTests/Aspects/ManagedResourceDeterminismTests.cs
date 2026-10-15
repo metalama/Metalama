@@ -65,11 +65,16 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
     /// </para>
     /// <para>
     /// The hash is computed on the inflated content because the bytes produced by <see cref="DeflateStream"/> depend on the runtime.
-    /// The content names the core library of the runtime, so each target framework has its own value. The value must be updated
-    /// when the serialization format, the Roslyn version or the name of an assembly changes.
+    /// The content names the core library of the runtime and the assembly of the engine, whose name includes the Roslyn version.
+    /// Each combination of target framework and Roslyn version therefore has its own value. The value must be updated when the
+    /// serialization format, a supported Roslyn version or the name of an assembly changes.
     /// </para>
     /// </remarks>
-#if NET
+#if ROSLYN_4_12_0 && NET
+    private const string _expectedInheritableAspectPayloadHash = "308b7434df442bb333dae96f50f29c911a5b59286a48bd850a519a185ba832f6";
+#elif ROSLYN_4_12_0
+    private const string _expectedInheritableAspectPayloadHash = "9dac17200e34586d02597e250fa489d9e04a6fed2f9da1a7e5dc5ac1f1b67a6b";
+#elif NET
     private const string _expectedInheritableAspectPayloadHash = "ebdac4094ec0a5faf2763f888671e9abd8a12cee3f9557a6782129f3ec6803e2";
 #else
     private const string _expectedInheritableAspectPayloadHash = "37e6bcf607d5042a1440ca2d4ed64aed47a98e736ec0fc51cff6baa054b80edb";
