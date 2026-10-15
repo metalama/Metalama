@@ -231,7 +231,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     /// <summary>
     /// Verifies that the diagnostic query of the fabric, whose contributor is replayed in both stages, reports each diagnostic once at compile time.
     /// </summary>
-    [Fact( Skip = "The compile-time pipeline evaluates replayed contributors in every stage (#2113)." )]
+    [Fact]
     public async Task CompileTime_DiagnosticQuery_ReplayedContributor_ReportedOnce()
     {
         using var testContext = this.CreateTestContext();
