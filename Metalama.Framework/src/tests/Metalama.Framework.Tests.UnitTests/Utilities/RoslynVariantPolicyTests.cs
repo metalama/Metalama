@@ -17,7 +17,8 @@ public sealed class RoslynVariantPolicyTests
     /// <summary>
     /// Verifies that a host at or above the lowest supported Roslyn version, and below the latest variant, is
     /// served by the Roslyn 5.0 variant. That variant covers Rider under PB-2027.0, and it also covers a host on
-    /// Roslyn 5.10, which no longer has a variant of its own since issue #2005 renumbered the latest one to 5.11.
+    /// Roslyn 5.10 or 5.11. Neither version has a variant of its own, because issue #2005 renumbered the latest
+    /// variant from 5.10 to 5.11, and issue #215 of Metalama.Compiler renumbered it from 5.11 to 5.12.
     /// </summary>
     [Theory]
     [InlineData( "5.0" )]
@@ -26,6 +27,8 @@ public sealed class RoslynVariantPolicyTests
     [InlineData( "5.9.9" )]
     [InlineData( "5.10" )]
     [InlineData( "5.10.0" )]
+    [InlineData( "5.11" )]
+    [InlineData( "5.11.0" )]
     public void SupportedVersionBelowLatestSelectsThe500Variant( string version )
     {
         Assert.True( RoslynVariantPolicy.TryGetVariantName( new Version( version ), out var variantName ) );
@@ -33,23 +36,24 @@ public sealed class RoslynVariantPolicyTests
     }
 
     /// <summary>
-    /// Verifies that a host at or above Roslyn 5.11 is served by the latest variant, including a host whose Roslyn
+    /// Verifies that a host at or above Roslyn 5.12 is served by the latest variant, including a host whose Roslyn
     /// is newer than any variant we ship.
     /// </summary>
     /// <remarks>
-    /// A host on Roslyn 5.10 is served by the Roslyn 5.0 variant and not by this one, which is asserted by
-    /// <see cref="SupportedVersionBelowLatestSelectsThe500Variant"/>. Issue #2005 renumbered the latest variant from
-    /// 5.10 to 5.11, so its payload binds against assembly version 5.11.0.0, and assembly binding never rolls back.
+    /// A host on Roslyn 5.11 is served by the Roslyn 5.0 variant and not by this one, which is asserted by
+    /// <see cref="SupportedVersionBelowLatestSelectsThe500Variant"/>. Issue #215 of Metalama.Compiler renumbered the
+    /// latest variant from 5.11 to 5.12, so its payload binds against assembly version 5.12.0.0, and assembly binding
+    /// never rolls back.
     /// </remarks>
     [Theory]
-    [InlineData( "5.11" )]
-    [InlineData( "5.11.0" )]
+    [InlineData( "5.12" )]
     [InlineData( "5.12.0" )]
+    [InlineData( "5.13.0" )]
     [InlineData( "6.0.0" )]
-    public void LatestVersionSelectsThe5110Variant( string version )
+    public void LatestVersionSelectsThe5120Variant( string version )
     {
         Assert.True( RoslynVariantPolicy.TryGetVariantName( new Version( version ), out var variantName ) );
-        Assert.Equal( "5.11.0", variantName );
+        Assert.Equal( "5.12.0", variantName );
     }
 
     /// <summary>

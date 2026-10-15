@@ -98,7 +98,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
             public override void VisitInterfaceDeclaration( InterfaceDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
             /// <summary>
             /// Visits a union declaration, which is classified exactly as a struct declaration is.
             /// </summary>

@@ -34,7 +34,7 @@ public static class SyntaxExtensions
                      or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                      or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
                      or SyntaxKind.DelegateDeclaration or SyntaxKind.ExtensionBlockDeclaration
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
                      or SyntaxKind.UnionDeclaration
 #endif
                      or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
@@ -66,7 +66,7 @@ public static class SyntaxExtensions
                       or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                       or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
                       or SyntaxKind.DelegateDeclaration or SyntaxKind.ExtensionBlockDeclaration
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
                       or SyntaxKind.UnionDeclaration
 #endif
                       or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
@@ -125,7 +125,7 @@ public static class SyntaxExtensions
             SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                 or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
                 or SyntaxKind.ExtensionBlockDeclaration
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
                 or SyntaxKind.UnionDeclaration
 #endif
                 when node is TypeDeclarationSyntax type => type,

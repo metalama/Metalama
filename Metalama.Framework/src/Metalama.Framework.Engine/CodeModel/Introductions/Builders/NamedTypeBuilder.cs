@@ -63,7 +63,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
             if ( value )
             {
-#if !ROSLYN_5_11_0_OR_GREATER
+#if !ROSLYN_5_12_0_OR_GREATER
 
                 // ModifierHelper.GetTypeSyntaxModifierList emits SyntaxKind.ClosedKeyword under the same condition,
                 // because that member exists in the latest Roslyn variant only. Which variant runs is decided by the

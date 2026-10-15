@@ -4,7 +4,7 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(15.0)
-// @RequiredConstant(ROSLYN_5_11_0_OR_GREATER)
+// @RequiredConstant(ROSLYN_5_12_0_OR_GREATER)
 #endif
 
 // The target body and the override body each declare a labeled loop of the same name, and each leaves its own loop

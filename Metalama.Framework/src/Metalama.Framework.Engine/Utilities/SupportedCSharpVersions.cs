@@ -29,14 +29,14 @@ public static class SupportedCSharpVersions
     /// This C# version might not be supported by the .NET SDK. See also <see cref="LanguageVersionProvider"/>.
     /// <para>
     /// The value differs between the Roslyn variants, because a parser accepts only a version that its own
-    /// <see cref="LanguageVersion"/> declares. Roslyn 5.11 declares C# 15, and the Roslyn 5.0 variant does not, so the
+    /// <see cref="LanguageVersion"/> declares. Roslyn 5.12 declares C# 15, and the Roslyn 5.0 variant does not, so the
     /// lower variant stays on C# 14. The value is a variant distinction and not a build flag: it is the default
     /// language version of a project, and the version that the compile-time pipeline assumes for a compilation that
     /// carries no parse options, so it must name a version that the running parser accepts.
     /// </para>
     /// </remarks>
     public static LanguageVersion Latest
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
         => AllLanguageVersions.CSharp15;
 #else
         => AllLanguageVersions.CSharp14;
@@ -51,7 +51,7 @@ public static class SupportedCSharpVersions
     /// that the bound parser does not declare would be offered to a user and then rejected by that parser.
     /// </remarks>
     public static ImmutableHashSet<LanguageVersion> All { get; } = ImmutableHashSet.Create(
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
         AllLanguageVersions.CSharp15,
 #endif
         LanguageVersion.CSharp14,
@@ -75,7 +75,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => AllLanguageVersions.CSharp12,
             RoslynApiVersion.V4_12_0 => AllLanguageVersions.CSharp13,
             RoslynApiVersion.V5_0_0 => AllLanguageVersions.CSharp14,
-            RoslynApiVersion.V5_11_0 => AllLanguageVersions.CSharp15,
+            RoslynApiVersion.V5_12_0 => AllLanguageVersions.CSharp15,
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 
@@ -100,7 +100,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => "4.8.0",
             RoslynApiVersion.V4_12_0 => "4.12.0",
             RoslynApiVersion.V5_0_0 => "5.0.0",
-            RoslynApiVersion.V5_11_0 => "5.11.0-1.26425.128",
+            RoslynApiVersion.V5_12_0 => "5.12.0-1.26504.105",
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
         };
 
@@ -157,7 +157,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => new Version( 4, 8, 0 ),
             RoslynApiVersion.V4_12_0 => new Version( 4, 12, 0 ),
             RoslynApiVersion.V5_0_0 => new Version( 5, 0, 0 ),
-            RoslynApiVersion.V5_11_0 => new Version( 5, 11, 0 ),
+            RoslynApiVersion.V5_12_0 => new Version( 5, 12, 0 ),
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynApiVersion}." )
         };
 

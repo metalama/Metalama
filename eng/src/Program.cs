@@ -23,7 +23,7 @@ using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Defin
 //
 // The product is therefore built with an SDK that no supported Visual Studio installs. The desktop MSBuild of the
 // container still builds with the SDK that Visual Studio ships, which is the .NET 10 one below.
-const string dotNet11SdkVersion = "11.0.100-rc.1.26425.128";
+const string dotNet11SdkVersion = "11.0.100-rc.2.26504.105";
 
 // The .NET 10 SDK, which stays installed beside the .NET 11 one. Every project of this repository targets net10.0,
 // and the .NET 11 SDK carries no .NET 10 runtime, so the tests and this project would have no runtime to execute

@@ -4,7 +4,7 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(15.0)
-// @RequiredConstant(ROSLYN_5_11_0_OR_GREATER)
+// @RequiredConstant(ROSLYN_5_12_0_OR_GREATER)
 #endif
 
 // A labeled break in a template is not supported, for the reason given in section 5 of

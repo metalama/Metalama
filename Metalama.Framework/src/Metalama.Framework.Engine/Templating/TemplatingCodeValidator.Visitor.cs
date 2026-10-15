@@ -320,7 +320,7 @@ namespace Metalama.Framework.Engine.Templating
                 base.VisitRecordDeclaration( node );
             }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
             /// <summary>
             /// Visits a union declaration, which is validated exactly as a struct declaration is.
             /// </summary>

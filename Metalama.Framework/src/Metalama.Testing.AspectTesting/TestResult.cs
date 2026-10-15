@@ -568,7 +568,7 @@ internal class TestResult : IDisposable
                         case SyntaxKind.InterfaceDeclaration:
                         case SyntaxKind.RecordDeclaration:
                         case SyntaxKind.RecordStructDeclaration:
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
                         // The union declaration is a member declaration like any other. The kind is named only in the
                         // Roslyn variant that declares it, because a case label names a constant and the lower variant
