@@ -307,6 +307,10 @@
        framework, LAMA0601 for the .NET SDK, LAMA0602 for the Visual Studio version. Every requirement of a dimension
        shares its code, so MetalamaSupportedPlatformExclusion is the way to silence a single requirement.
 
+       The target framework dimension has a second code, LAMA0604, for a target framework that is enabled but not
+       supported: it is at or above the minimum and below the supported floor. A separate code lets NoWarn silence
+       this state without silencing LAMA0600.
+
        Both targets are hooked before _CheckForInvalidConfigurationAndPlatform, rather than before CoreCompile, so that
        the warnings also appear in a design-time build. See https://github.com/metalama/Metalama/issues/1884.
   -->
@@ -350,6 +354,7 @@
       <_MetalamaTargetFrameworkVersion>$(TargetFrameworkVersion.TrimStart('vV'))</_MetalamaTargetFrameworkVersion>
 
       <_MetalamaSuppressionHint0600>The build continues, but a problem that is specific to this platform will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0600' to the 'NoWarn' property.</_MetalamaSuppressionHint0600>
+      <_MetalamaSuppressionHint0604>The build output is correct, but a problem that is specific to this target framework will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0604' to the 'NoWarn' property.</_MetalamaSuppressionHint0604>
     </PropertyGroup>
 
     <!-- A target framework identifier outside the declared list, for example MonoAndroid or UAP. The separators added
@@ -395,6 +400,25 @@
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'%(_MetalamaPlatformRequirement.RequiredTargetPlatformIdentifier)'!='' AND '$(TargetPlatformIdentifier)'!='%(_MetalamaPlatformRequirement.RequiredTargetPlatformIdentifier)'"
              Text="'%(_MetalamaPlatformRequirement.Identity)' requires a target framework of the '%(_MetalamaPlatformRequirement.RequiredTargetPlatformIdentifier)' platform, but this project targets '$(TargetFramework)'.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+
+    <!-- LAMA0604 reports an enabled target framework: it is at or above the minimum, so the build accepts it, but it
+         is below the supported floor that the MinimumSupported metadata declares. A target framework below the minimum
+         reports LAMA0600 only, so each rule also checks the minimum. See rule 9 of platform-support.md and
+         https://github.com/metalama/Metalama/issues/2023. -->
+    <Warning Code="LAMA0604"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETFramework' AND '%(_MetalamaPlatformRequirement.MinimumSupportedNETFrameworkVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumSupportedNETFrameworkVersion))) AND ('%(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion)'=='' OR !$([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion))))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' builds and runs on the target framework '$(TargetFramework)', but does not support it, because it is older than .NET Framework %(_MetalamaPlatformRequirement.MinimumSupportedNETFrameworkVersion), the oldest supported version.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0604)"/>
+
+    <Warning Code="LAMA0604"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' AND '%(_MetalamaPlatformRequirement.MinimumSupportedNETCoreAppVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumSupportedNETCoreAppVersion))) AND ('%(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion)'=='' OR !$([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion))))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' builds and runs on the target framework '$(TargetFramework)', but does not support it, because it is older than .NET %(_MetalamaPlatformRequirement.MinimumSupportedNETCoreAppVersion), the oldest supported version.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0604)"/>
+
+    <Warning Code="LAMA0604"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETStandard' AND '%(_MetalamaPlatformRequirement.MinimumSupportedNETStandardVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumSupportedNETStandardVersion))) AND ('%(_MetalamaPlatformRequirement.MinimumNETStandardVersion)'=='' OR !$([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETStandardVersion))))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' builds and runs on the target framework '$(TargetFramework)', but does not support it, because it is older than .NET Standard %(_MetalamaPlatformRequirement.MinimumSupportedNETStandardVersion), the oldest supported version.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0604)"/>
 
   </Target>
 

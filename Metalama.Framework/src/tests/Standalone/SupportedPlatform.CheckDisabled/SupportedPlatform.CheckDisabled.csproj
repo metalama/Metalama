@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!-- MetalamaCheckSupportedPlatform set to 'False' suppresses every diagnostic of the check, including the ones
-         of a contributed requirement. The target framework and the contributed requirement below would each report a
-         diagnostic if the property were left at its default.
+         of a contributed requirement. The target frameworks and the contributed requirement below would each report a
+         diagnostic if the property were left at its default: LAMA0600 for 'net8.0', LAMA0604 for 'net472', and
+         LAMA0601 for the contributed requirement.
          See https://github.com/metalama/Metalama/issues/1884. -->
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>net8.0;net472</TargetFrameworks>
         <OutputType>Library</OutputType>
         <MetalamaCheckSupportedPlatform>False</MetalamaCheckSupportedPlatform>
     </PropertyGroup>
