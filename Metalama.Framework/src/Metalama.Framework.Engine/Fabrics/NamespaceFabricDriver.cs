@@ -75,6 +75,7 @@ namespace Metalama.Framework.Engine.Fabrics
 
             if ( !this.FabricManager.UserCodeInvoker.TryInvoke( () => ((NamespaceFabric) this.Fabric).AmendNamespace( amender ), executionContext ) )
             {
+                amender.Complete();
                 result = null;
 
                 return false;

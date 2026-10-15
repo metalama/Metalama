@@ -122,6 +122,7 @@ namespace Metalama.Framework.Engine.Fabrics
 
             if ( !this.FabricManager.UserCodeInvoker.TryInvoke( () => projectFabric.AmendProject( amender ), executionContext ) )
             {
+                amender.Complete();
                 result = null;
 
                 return false;
