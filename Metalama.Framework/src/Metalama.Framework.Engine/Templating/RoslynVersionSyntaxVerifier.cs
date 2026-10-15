@@ -48,7 +48,7 @@ internal sealed partial class RoslynVersionSyntaxVerifier : SafeSyntaxWalker
             ? $"The version is C# {version} because the project sets the {MSBuildPropertyNames.MetalamaTemplateLanguageVersion} property to {version}, "
               + $"so that the templates can be used from projects that compile with C# {version}."
             : $"The version is C# {version} because the compile-time code of the project is compiled with C# {version}, "
-              + "which is the LangVersion of the project capped by the version that the .NET SDK supports. "
+              + "which is the LangVersion of the project capped by the version that the compiler toolset used to build the project supports. "
               + $"Set the {MSBuildPropertyNames.MetalamaTemplateLanguageVersion} property to choose the version explicitly.";
 
         this._diagnostics.Report(
