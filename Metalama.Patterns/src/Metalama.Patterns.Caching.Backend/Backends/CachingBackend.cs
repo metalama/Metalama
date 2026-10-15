@@ -1166,12 +1166,25 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                     }
                 }
             }
-            else
+            else if ( this.Status != CachingBackendStatus.Disposing || this.ShouldWaitForDisposalInProgress() )
             {
                 this._disposeTask.Task.Wait( cancellationToken );
             }
         }
     }
+
+    /// <summary>
+    /// Determines whether a call to <see cref="Dispose()"/> or <see cref="DisposeAsync()"/> waits for the completion of another disposal
+    /// that is already in progress. This protected method is part of the implementation API and is meant to be overridden in user code, not invoked.
+    /// </summary>
+    /// <returns><c>true</c> if the call waits for the disposal in progress, or <c>false</c> if the call returns before the disposal in progress completes.
+    /// The default implementation returns <c>true</c>.</returns>
+    /// <remarks>
+    /// Override this method when the disposal in progress waits for code that can itself call <see cref="Dispose()"/> or <see cref="DisposeAsync()"/>,
+    /// for instance the processing of a message by a background receive loop. When this method is called from such code, return <c>false</c>,
+    /// because the wait for the disposal in progress would cause a deadlock.
+    /// </remarks>
+    protected virtual bool ShouldWaitForDisposalInProgress() => true;
 
     /// <summary>
     /// Synchronously disposes the current <see cref="CachingBackend"/>. This protected method is part of the implementation API and is meant to be overridden in user code, not invoked.
@@ -1247,7 +1260,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                     }
                 }
             }
-            else
+            else if ( this.Status != CachingBackendStatus.Disposing || this.ShouldWaitForDisposalInProgress() )
             {
                 await this._disposeTask.Task.WithCancellation( cancellationToken );
             }

@@ -198,6 +198,34 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
     }
 
+    [Fact]
+    public async Task Dispose_CalledFromCodeAwaitedByDisposalInProgress_DoesNotWait()
+    {
+        var backend = new CallbackDisposingCachingBackend( this._serviceProvider );
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
+
+        // The disposal waits for a callback that disposes the backend. The disposal called from the callback returns
+        // without waiting for the disposal in progress, so the outer disposal completes.
+        await Task.Run( () => backend.Dispose( TestContext.Current.CancellationToken ), TestContext.Current.CancellationToken )
+            .WaitWithTimeoutAsync();
+
+        Assert.Equal( CachingBackendStatus.Disposing, backend.StatusAfterCallbackDisposal );
+        Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
+    }
+
+    [Fact]
+    public async Task DisposeAsync_CalledFromCodeAwaitedByDisposalInProgress_DoesNotWait()
+    {
+        var backend = new CallbackDisposingCachingBackend( this._serviceProvider );
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
+
+        // See Dispose_CalledFromCodeAwaitedByDisposalInProgress_DoesNotWait.
+        await backend.DisposeAsync( TestContext.Current.CancellationToken ).AsTask().WaitWithTimeoutAsync();
+
+        Assert.Equal( CachingBackendStatus.Disposing, backend.StatusAfterCallbackDisposal );
+        Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
+    }
+
     #endregion
 
     #region Cancellation
