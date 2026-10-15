@@ -154,9 +154,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             return instances;
         }
 
-        var instancesByTarget = instances.Select( i => (Instance: i, TargetId: i.TargetDeclaration.ToSerializableId().Id) )
-            .OrderBy( x => x.TargetId, StringComparer.Ordinal )
-            .ToList();
+        var instancesByTarget = instances.SelectAsReadOnlyList( i => (Instance: i, TargetId: i.TargetDeclaration.ToSerializableId().Id) )
+            .ToOrderedList( x => x.TargetId, StringComparer.Ordinal );
 
         var orderedInstances = new List<InheritableAspectInstance>( instancesByTarget.Count );
 
