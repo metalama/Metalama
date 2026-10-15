@@ -695,7 +695,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     var originalPathAttribute = Attribute( this._originalPathTypeSyntax )
                         .WithArgumentList(
                             AttributeArgumentList(
-                                SingletonSeparatedList( AttributeArgument( SyntaxFactoryEx.LiteralExpression( node.SyntaxTree.FilePath ) ) ) ) );
+                                SingletonSeparatedList( AttributeArgument( SyntaxFactoryEx.LiteralExpression( GetMappedSourcePath( this._runTimeCompilation, node.SyntaxTree.FilePath ) ) ) ) ) );
 
                     transformedNode = transformedNode
                         .WithAttributeLists( transformedNode.AttributeLists.Add( AttributeList( SingletonSeparatedList( originalPathAttribute ) ) ) );

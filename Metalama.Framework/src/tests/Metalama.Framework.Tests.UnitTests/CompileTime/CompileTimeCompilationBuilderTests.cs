@@ -2239,7 +2239,7 @@ public class MyFabric : ProjectFabric
                 // The OriginalPath attribute of the fabric must be mapped.
                 var transformedCode = project.CodeFiles.SelectAsArray( f => File.ReadAllText( Path.Combine( project.Directory!, f.TransformedPath ) ) );
 
-                Assert.Contains( transformedCode, c => c.Contains( @"OriginalPath(""/_/src/Lib/Fabric.cs"")", StringComparison.Ordinal ) );
+                Assert.Contains( transformedCode, c => c.Contains( @"OriginalPathAttribute(""/_/src/Lib/Fabric.cs"")", StringComparison.Ordinal ) );
             }
 
             // The source hash must not depend on the directory of the sources.

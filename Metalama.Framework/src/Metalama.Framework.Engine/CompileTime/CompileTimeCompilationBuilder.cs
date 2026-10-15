@@ -120,7 +120,20 @@ internal sealed partial class CompileTimeCompilationBuilder
         this._languageVersionProvider = serviceProvider.GetRequiredService<ILanguageVersionProvider>();
     }
 
-    private ulong ComputeSourceHash( FrameworkName? targetFramework, IReadOnlyList<SyntaxTree> compileTimeTrees )
+    /// <summary>
+    /// Applies the path map of a compilation (the <c>/pathmap</c> option of the compiler) to the path of a source file.
+    /// </summary>
+    /// <remarks>
+    /// The compile-time project is embedded in the run-time assembly, so the source paths that it stores must be mapped in the
+    /// same way as the compiler maps the paths that it emits. Otherwise, the assembly depends on the directory of the sources.
+    /// When the compilation has no path map, the path is returned unchanged.
+    /// </remarks>
+    internal static string GetMappedSourcePath( Compilation compilation, string path )
+        => compilation.Options.SourceReferenceResolver is SourceFileResolver { PathMap.IsDefaultOrEmpty: false } resolver
+            ? resolver.NormalizePath( path, null ) ?? path
+            : path;
+
+    private ulong ComputeSourceHash( Compilation runTimeCompilation, FrameworkName? targetFramework, IReadOnlyList<SyntaxTree> compileTimeTrees )
     {
         if ( compileTimeTrees.Count == 0 )
         {
@@ -152,15 +165,20 @@ internal sealed partial class CompileTimeCompilationBuilder
         // Hash syntax trees, including their file paths.
         // Including file paths ensures that renaming a file invalidates the cache,
         // even if the content is unchanged. (fix for #730)
-        foreach ( var syntaxTree in compileTimeTrees.OrderBy( t => t.FilePath ) )
+        // The file paths are mapped so that the hash does not depend on the directory of the sources. (fix for #2249)
+        var mappedTrees = compileTimeTrees
+            .SelectAsArray( t => (SyntaxTree: t, Path: GetMappedSourcePath( runTimeCompilation, t.FilePath )) )
+            .OrderBy( t => t.Path );
+
+        foreach ( var (syntaxTree, path) in mappedTrees )
         {
-            h.Append( syntaxTree.FilePath );
+            h.Append( path );
 
             // SourceText.Checksum does not seem to return the same thing at compile time than at run time, so we take use our own algorithm.
             var text = syntaxTree.GetText().ToString();
             h.Append( text );
 
-            this._logger.Trace?.Log( $"SourceHash: '{syntaxTree.FilePath}'={string.Join( "", HashUtilities.HashString( text ) )}" );
+            this._logger.Trace?.Log( $"SourceHash: '{path}'={string.Join( "", HashUtilities.HashString( text ) )}" );
         }
 
         return h.GetCurrentHashAsUInt64();
@@ -1278,7 +1296,9 @@ internal sealed partial class CompileTimeCompilationBuilder
                             referencedProjects.SelectAsImmutableArray( r => r.RunTimeIdentity.GetDisplayName() ),
                             compilationResultManifest,
                             sourceHash,
-                            textMapDirectory.FilesByTargetPath.Values.Select( f => new CompileTimeFileManifest( f ) ).ToArray(),
+                            textMapDirectory.FilesByTargetPath.Values
+                                .Select( f => new CompileTimeFileManifest( f, GetMappedSourcePath( runTimeCompilation, f.SourcePath ) ) )
+                                .ToArray(),
                             diagnostics.SelectAsArray( d => new CompileTimeDiagnosticManifest( d, sourceFilePathIndexes! ) ),
                             referencesMetalamaSdk,
                             languageVersion: templateLanguageVersion );
@@ -1321,7 +1341,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         var targetFramework = runTimeCompilation.GetTargetFramework();
         var assemblyIdentity = runTimeCompilation.Assembly.Identity;
 
-        var sourceHash = this.ComputeSourceHash( targetFramework, sourceTreesWithCompileTimeCode );
+        var sourceHash = this.ComputeSourceHash( runTimeCompilation, targetFramework, sourceTreesWithCompileTimeCode );
         var projectHash = this.ComputeProjectHash( assemblyIdentity, referencedProjects, sourceHash );
 
         var outputPaths = this._outputPathHelper.GetOutputPaths( runTimeCompilation.AssemblyName!, targetFramework, projectHash );
