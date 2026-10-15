@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
@@ -97,6 +98,10 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
             addTitles: options.AddTitles,
             diagnostics: diagnostics,
             cancellationToken: cancellationToken );
+
+        var symbols = options.AddSymbols
+            ? await GetSymbolAttributesAsync( document, syntaxRoot, cancellationToken )
+            : null;
 
         var finalBuilder = new StringBuilder();      // Builds the whole file.
         var codeLineBuilder = new StringBuilder();   // Builds the current line.
@@ -352,13 +357,25 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
                     }
                 }
 
-                if ( classes.Count > 0 || titles.Count > 0 )
+                SymbolAttributes? symbol = null;
+                symbols?.TryGetValue( textSpan, out symbol );
+
+                if ( classes.Count > 0 || titles.Count > 0 || symbol != null )
                 {
                     codeLineBuilder.Append( "<span" );
 
                     if ( classes.Count > 0 )
                     {
                         codeLineBuilder.Append( FormattableString.Invariant( $" class=\"{string.Join( " ", classes )}\"" ) );
+                    }
+
+                    if ( symbol != null )
+                    {
+                        AppendAttribute( codeLineBuilder, textSpan, "data-def", symbol.Definition );
+                        AppendAttribute( codeLineBuilder, textSpan, "data-ref", symbol.Reference );
+                        AppendAttribute( codeLineBuilder, textSpan, "data-overrides", symbol.Overrides );
+                        AppendAttribute( codeLineBuilder, textSpan, "data-local-def", symbol.LocalDefinition );
+                        AppendAttribute( codeLineBuilder, textSpan, "data-local-ref", symbol.LocalReference );
                     }
 
                     if ( titles.Count > 0 )
@@ -399,6 +416,193 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
         }
 
         await textWriter.WriteAsync( finalBuilder.ToString() );
+    }
+
+    private static void AppendAttribute( StringBuilder stringBuilder, TextSpan span, string name, string? value )
+    {
+        if ( value == null )
+        {
+            return;
+        }
+
+        stringBuilder.Append( ' ' );
+        stringBuilder.Append( name );
+        stringBuilder.Append( "=\"" );
+        HtmlEncode( stringBuilder, span, value, true );
+        stringBuilder.Append( '"' );
+    }
+
+    /// <summary>
+    /// The symbol attributes of an identifier. Each value is a documentation comment id, the format of the
+    /// <c>commentId</c> field of DocFx cross-reference maps.
+    /// </summary>
+    /// <param name="Definition">The id of the symbol declared by the identifier.</param>
+    /// <param name="Reference">The id of the symbol referenced by the identifier.</param>
+    /// <param name="Overrides">The id of the member overridden by the declared member.</param>
+    /// <param name="LocalDefinition">The key of the local symbol declared by the identifier. Locals, parameters, type
+    /// parameters and local functions have no documentation id, so they get a key that is unique in the document.</param>
+    /// <param name="LocalReference">The key of the local symbol referenced by the identifier.</param>
+    private sealed record SymbolAttributes(
+        string? Definition,
+        string? Reference,
+        string? Overrides,
+        string? LocalDefinition = null,
+        string? LocalReference = null );
+
+    /// <summary>
+    /// Finds the symbol declared or referenced by each identifier of a document, by span of the identifier.
+    /// </summary>
+    private static async Task<Dictionary<TextSpan, SymbolAttributes>> GetSymbolAttributesAsync(
+        Document document,
+        SyntaxNode syntaxRoot,
+        CancellationToken cancellationToken )
+    {
+        var result = new Dictionary<TextSpan, SymbolAttributes>();
+        var localKeys = new Dictionary<ISymbol, string>( SymbolEqualityComparer.Default );
+        var semanticModel = await document.GetSemanticModelAsync( cancellationToken );
+
+        if ( semanticModel == null )
+        {
+            return result;
+        }
+
+        foreach ( var token in syntaxRoot.DescendantTokens() )
+        {
+            if ( !token.IsKind( SyntaxKind.IdentifierToken ) || token.Parent is not { } parent )
+            {
+                continue;
+            }
+
+            if ( parent is SimpleNameSyntax name )
+            {
+                // The identifier references a symbol.
+                if ( name.IsVar || name.Identifier.ValueText is "dynamic" or "nameof" )
+                {
+                    continue;
+                }
+
+                var symbolInfo = semanticModel.GetSymbolInfo( name, cancellationToken );
+                var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
+
+                // The name of an attribute, or of the type in an object creation, binds to the constructor. A name is
+                // linked to its type because the type is what the reader looks for.
+                if ( symbol is IMethodSymbol { MethodKind: MethodKind.Constructor } constructor )
+                {
+                    symbol = constructor.ContainingType;
+                }
+
+                if ( GetSymbolId( symbol ) is { } referenceId )
+                {
+                    result[token.Span] = new SymbolAttributes( null, referenceId, null );
+                }
+                else if ( GetLocalKey( symbol ) is { } localKey )
+                {
+                    result[token.Span] = new SymbolAttributes( null, null, null, LocalReference: localKey );
+                }
+            }
+            else if ( parent is not ExpressionSyntax )
+            {
+                // When the parent of an identifier token declares a symbol, the identifier is the name of this symbol.
+                var declaredSymbol = semanticModel.GetDeclaredSymbol( parent, cancellationToken );
+
+                if ( GetSymbolId( declaredSymbol ) is { } definitionId )
+                {
+                    var overriddenSymbol = declaredSymbol switch
+                    {
+                        IMethodSymbol method => (ISymbol?) method.OverriddenMethod,
+                        IPropertySymbol property => property.OverriddenProperty,
+                        IEventSymbol @event => @event.OverriddenEvent,
+                        _ => null
+                    };
+
+                    result[token.Span] = new SymbolAttributes( definitionId, null, GetSymbolId( overriddenSymbol ) );
+                }
+                else if ( GetLocalKey( declaredSymbol ) is { } localKey )
+                {
+                    result[token.Span] = new SymbolAttributes( null, null, null, LocalDefinition: localKey );
+                }
+            }
+        }
+
+        return result;
+
+        // Gets the key of a symbol that is declared in a method body or signature, i.e. a symbol without a documentation id.
+        string? GetLocalKey( ISymbol? symbol )
+        {
+            if ( symbol is not (ILocalSymbol or IParameterSymbol or IRangeVariableSymbol or ITypeParameterSymbol
+                or IMethodSymbol { MethodKind: MethodKind.LocalFunction }) )
+            {
+                return null;
+            }
+
+            symbol = symbol.OriginalDefinition;
+
+            // A symbol declared in another document, e.g. a parameter of a partial method, cannot be linked.
+            if ( symbol.DeclaringSyntaxReferences.All( r => r.SyntaxTree != syntaxRoot.SyntaxTree ) )
+            {
+                return null;
+            }
+
+            if ( !localKeys.TryGetValue( symbol, out var key ) )
+            {
+                key = localKeys.Count.ToString( CultureInfo.InvariantCulture );
+                localKeys.Add( symbol, key );
+            }
+
+            return key;
+        }
+    }
+
+    /// <summary>
+    /// Gets the documentation comment id of a symbol, or <c>null</c> if the symbol has no stable id, as locals and parameters.
+    /// </summary>
+    private static string? GetSymbolId( ISymbol? symbol )
+    {
+        // An extension method called as an instance method is documented as a static method.
+        if ( symbol is IMethodSymbol { ReducedFrom: { } reducedFrom } )
+        {
+            symbol = reducedFrom;
+        }
+
+        // A generic type or member is documented by its definition, not by its constructions.
+        symbol = symbol?.OriginalDefinition;
+
+        // Members of anonymous types and tuple elements have no documentation id.
+        if ( symbol?.ContainingType is { IsAnonymousType: true } or { IsTupleType: true } )
+        {
+            return null;
+        }
+
+        switch ( symbol )
+        {
+            case INamedTypeSymbol { TypeKind: not TypeKind.Error, IsAnonymousType: false, IsTupleType: false }:
+            case IMethodSymbol { MethodKind: not (MethodKind.LocalFunction or MethodKind.AnonymousFunction) }:
+            case IPropertySymbol:
+            case IFieldSymbol:
+            case IEventSymbol:
+            case INamespaceSymbol { IsGlobalNamespace: false }:
+                try
+                {
+                    var id = DocumentationCommentId.CreateDeclarationId( symbol );
+
+                    // Roslyn appends the return type of a method after '~'. The C# documentation id format, used by
+                    // DocFx cross-reference maps, has it only for conversion operators, to distinguish their overloads.
+                    if ( symbol is IMethodSymbol { MethodKind: not MethodKind.Conversion } && id.IndexOf( '~' ) is var returnTypeIndex and > 0 )
+                    {
+                        id = id.Substring( 0, returnTypeIndex );
+                    }
+
+                    return id;
+                }
+                catch ( InvalidOperationException )
+                {
+                    // Roslyn cannot create an id for some symbols, for instance some symbols of erroneous code.
+                    return null;
+                }
+
+            default:
+                return null;
+        }
     }
 
     private static void HtmlEncode(

@@ -151,6 +151,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool WriteHtml => this.GetBooleanOption( MSBuildPropertyNames.MetalamaWriteHtml );
 
     [Memo]
+    public override bool WriteHtmlSymbols => this.GetBooleanOption( MSBuildPropertyNames.MetalamaWriteHtmlSymbols );
+
+    [Memo]
     public override bool? WriteLicenseUsageData => this.GetNullableBooleanOption( MSBuildPropertyNames.MetalamaWriteLicenseUsageData );
 
     [Memo]

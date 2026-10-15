@@ -1,0 +1,125 @@
+
+<html>
+    <head>
+        <style>
+            .cr-CompileTime,
+            .cr-Conflict,
+            .cr-TemplateKeyword,
+            .cr-Dynamic,
+            .cr-CompileTimeVariable,
+            .cr-GeneratedCode
+            {
+                background-color: rgba(50,50,90,0.1);
+            }
+
+            .cr-NeutralTrivia
+            {
+                background-color: rgba(0,255,0,0.1);
+            }
+
+            .cr-TemplateKeyword
+            {
+                color: rgb(250, 0, 250) !important;
+                font-weight: bold;
+            }
+
+            .cr-Dynamic
+            {
+                text-decoration: underline;
+            }
+
+            .cr-CompileTimeVariable
+            {
+                font-style: italic;
+            }
+
+            .diag-Warning
+            {
+                text-decoration: underline 1px wavy orange;
+            }
+
+            .diag-Error
+            {
+                text-decoration: underline 1px wavy red;
+            }
+
+         .diff-Imaginary {
+                display: block;
+                background-image: repeating-linear-gradient( -45deg, gray, gray 2px, transparent 2px, transparent 8px );
+            }
+
+
+            .legend
+            {
+                margin-top: 100px;
+            }
+        </style>
+    </head>
+    <body><pre><code class="nohighlight"><span class='line-number'>1</span><span class="cs-keyword">using</span> <span class="cs-namespace-name" data-ref="N:System">System</span><span class="cs-punctuation">;</span>
+<span class='line-number'>2</span><span class="cs-keyword">using</span> <span class="cs-namespace-name" data-ref="N:System">System</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:System.Collections">Collections</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:System.Collections.Generic">Generic</span><span class="cs-punctuation">;</span>
+<span class='line-number'>3</span><span class="cs-keyword">using</span> <span class="cs-namespace-name" data-ref="N:System">System</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:System.Linq">Linq</span><span class="cs-punctuation">;</span>
+<span class='line-number'>4</span><span class="cs-keyword">using</span> <span class="cs-namespace-name" data-ref="N:Metalama">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework.Aspects">Aspects</span><span class="cs-punctuation">;</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span><span class="cs-keyword">namespace</span> <span class="cs-namespace-name" data-ref="N:Metalama">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework.Tests">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework.Tests.AspectTests">AspectTests</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework.Tests.AspectTests.Tests">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework.Tests.AspectTests.Tests.Formatting">Formatting</span><span class="cs-operator">.</span><span class="cs-namespace-name" data-ref="N:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols">HtmlSymbols</span><span class="cs-punctuation">;</span>
+<span class='line-number'>7</span>
+<span class='line-number' data-member='LogAttribute'>8</span><span class="cr-NeutralTrivia cs-comment">// This test verifies that, with the AddHtmlSymbols option, each identifier gets the documentation id of the symbol it</span>
+<span class='line-number' data-member='LogAttribute'>9</span><span class="cr-NeutralTrivia cs-comment">// declares (data-def) or references (data-ref), and that an overriding member gets the id of the overridden member</span>
+<span class='line-number' data-member='LogAttribute'>10</span><span class="cr-NeutralTrivia cs-comment">// (data-overrides). Locals, parameters and type parameters have no documentation id, so they get a key that is unique in</span>
+<span class='line-number' data-member='LogAttribute'>11</span><span class="cr-NeutralTrivia cs-comment">// the document (data-local-def and data-local-ref).</span>
+<span class='line-number' data-member='LogAttribute'>12</span>
+<span class='line-number' data-member='LogAttribute'>13</span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">class</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name" data-def="T:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.LogAttribute">LogAttribute</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name" data-ref="T:Metalama.Framework.Aspects.OverrideMethodAspect">OverrideMethodAspect</span>
+<span class='line-number' data-member='LogAttribute'>14</span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='LogAttribute.OverrideMethod'>15</span><span class="cr-NeutralTrivia">    </span><span class="cs-keyword">public</span> <span class="cs-keyword">override</span> <span class="cs-keyword">dynamic</span><span class="cs-operator">?</span> <span class="cs-method-name" data-def="M:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.LogAttribute.OverrideMethod" data-overrides="M:Metalama.Framework.Aspects.OverrideMethodAspect.OverrideMethod">OverrideMethod</span><span class="cs-punctuation">()</span>
+<span class='line-number' data-member='LogAttribute.OverrideMethod'>16</span><span class="cr-NeutralTrivia">    </span><span class="cr-RunTime cs-punctuation">{</span>
+<span class='line-number' data-member='LogAttribute.OverrideMethod'>17</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-class-name cs-static-symbol" data-ref="T:System.Console">Console</span><span class="cr-RunTime cs-operator">.</span><span class="cr-RunTime cs-method-name cs-static-symbol" data-ref="M:System.Console.WriteLine(System.String)">WriteLine</span><span class="cr-RunTime cs-punctuation">(</span><span class="cr-RunTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol" data-ref="T:Metalama.Framework.Aspects.meta">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol" data-ref="P:Metalama.Framework.Aspects.meta.Target">Target</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name" data-ref="P:Metalama.Framework.Aspects.IMetaTarget.Method">Method</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name" data-ref="P:Metalama.Framework.Code.INamedDeclaration.Name">Name</span><span class="cr-NeutralTrivia"> </span><span class="cr-RunTime cs-punctuation">);</span>
+<span class='line-number' data-member='LogAttribute.OverrideMethod'>18</span>
+<span class='line-number' data-member='LogAttribute.OverrideMethod'>19</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-keyword cs-control">return</span><span class="cr-RunTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol" data-ref="T:Metalama.Framework.Aspects.meta">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-method-name cs-static-symbol" data-ref="M:Metalama.Framework.Aspects.meta.Proceed">Proceed</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-RunTime cs-punctuation">;</span>
+<span class='line-number' data-member='LogAttribute.OverrideMethod'>20</span><span class="cr-NeutralTrivia">    </span><span class="cr-RunTime cs-punctuation">}</span>
+<span class='line-number' data-member='LogAttribute'>21</span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='LogAttribute'>22</span>
+<span class='line-number' data-member='Calculator'>23</span><span class="cs-keyword">public</span> <span class="cs-keyword">class</span> <span class="cs-class-name" data-def="T:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1">Calculator</span><span class="cs-punctuation">&lt;</span><span class="cs-type-parameter-name" data-local-def="0">T</span><span class="cs-punctuation">&gt;</span>
+<span class='line-number' data-member='Calculator'>24</span><span class="cs-punctuation">{</span>
+<span class='line-number' data-member='Calculator._values'>25</span>    <span class="cs-keyword">private</span> <span class="cs-keyword">readonly</span> <span class="cs-class-name" data-ref="T:System.Collections.Generic.List`1">List</span><span class="cs-punctuation">&lt;</span><span class="cs-type-parameter-name" data-local-ref="0">T</span><span class="cs-punctuation">&gt;</span> <span class="cs-field-name" data-def="F:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1._values">_values</span> <span class="cs-operator">=</span> <span class="cs-keyword">new</span><span class="cs-punctuation">();</span>
+<span class='line-number' data-member='Calculator._values'>26</span>
+<span class='line-number' data-member='Calculator.Changed'>27</span>    <span class="cs-keyword">public</span> <span class="cs-keyword">event</span> <span class="cs-delegate-name" data-ref="T:System.EventHandler">EventHandler</span><span class="cs-operator">?</span> <span class="cs-event-name" data-def="E:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1.Changed">Changed</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='Calculator.Changed'>28</span>
+<span class='line-number' data-member='Calculator.Count'>29</span>    <span class="cs-keyword">public</span> <span class="cs-keyword">int</span> <span class="cs-property-name" data-def="P:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1.Count">Count</span> <span class="cs-operator">=&gt;</span> <span class="cs-keyword">this</span><span class="cs-operator">.</span><span class="cs-field-name" data-ref="F:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1._values">_values</span><span class="cs-operator">.</span><span class="cs-property-name" data-ref="P:System.Collections.Generic.List`1.Count">Count</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='Calculator.Count'>30</span>
+<span class='line-number' data-member='Calculator.Add'>31</span>    <span class="cs-punctuation">[</span><span class="cs-class-name" data-ref="T:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.LogAttribute">Log</span><span class="cs-punctuation">]</span>
+<span class='line-number' data-member='Calculator.Add'>32</span>    <span class="cs-keyword">public</span> <span class="cs-keyword">void</span> <span class="cs-method-name" data-def="M:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1.Add(`0)">Add</span><span class="cs-punctuation">(</span> <span class="cs-type-parameter-name" data-local-ref="0">T</span> <span class="cs-parameter-name" data-local-def="1">value</span> <span class="cs-punctuation">)</span>
+<span class='line-number' data-member='Calculator.Add'>33</span>    <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='Calculator.Add'>34</span>        <span class="cs-keyword">var</span> <span class="cs-local-name" data-local-def="2">values</span> <span class="cs-operator">=</span> <span class="cs-keyword">this</span><span class="cs-operator">.</span><span class="cs-field-name" data-ref="F:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1._values">_values</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='Calculator.Add'>35</span>        <span class="cs-local-name" data-local-ref="2">values</span><span class="cs-operator">.</span><span class="cs-method-name" data-ref="M:System.Collections.Generic.List`1.Add(`0)">Add</span><span class="cs-punctuation">(</span> <span class="cs-parameter-name" data-local-ref="1">value</span> <span class="cs-punctuation">);</span>
+<span class='line-number' data-member='Calculator.Add'>36</span>        <span class="cs-keyword">this</span><span class="cs-operator">.</span><span class="cs-event-name" data-ref="E:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1.Changed">Changed</span><span class="cs-operator">?.</span><span class="cs-method-name" data-ref="M:System.EventHandler.Invoke(System.Object,System.EventArgs)">Invoke</span><span class="cs-punctuation">(</span> <span class="cs-keyword">this</span><span class="cs-punctuation">,</span> <span class="cs-class-name" data-ref="T:System.EventArgs">EventArgs</span><span class="cs-operator">.</span><span class="cs-field-name cs-static-symbol" data-ref="F:System.EventArgs.Empty">Empty</span> <span class="cs-punctuation">);</span>
+<span class='line-number' data-member='Calculator.Add'>37</span>    <span class="cs-punctuation">}</span>
+<span class='line-number' data-member='Calculator.Add'>38</span>
+<span class='line-number' data-member='Calculator.First'>39</span>    <span class="cs-keyword">public</span> <span class="cs-type-parameter-name" data-local-ref="0">T</span> <span class="cs-method-name" data-def="M:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1.First">First</span><span class="cs-punctuation">()</span> <span class="cs-operator">=&gt;</span> <span class="cs-keyword">this</span><span class="cs-operator">.</span><span class="cs-field-name" data-ref="F:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1._values">_values</span><span class="cs-operator">.</span><span class="cs-extension-method-name" data-ref="M:System.Linq.LinqExtensions.First``1(System.Collections.Generic.IReadOnlyList{``0})">First</span><span class="cs-punctuation">();</span>
+<span class='line-number' data-member='Calculator'>40</span><span class="cs-punctuation">}</span>
+<span class='line-number' data-member='Calculator'>41</span>
+<span class='line-number' data-member='Program'>42</span><span class="cs-keyword">public</span> <span class="cs-keyword">class</span> <span class="cs-class-name" data-def="T:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Program">Program</span>
+<span class='line-number' data-member='Program'>43</span><span class="cs-punctuation">{</span>
+<span class='line-number' data-member='Program.Main'>44</span>    <span class="cs-keyword">public</span> <span class="cs-keyword">static</span> <span class="cs-keyword">void</span> <span class="cs-method-name cs-static-symbol" data-def="M:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Program.Main">Main</span><span class="cs-punctuation">()</span>
+<span class='line-number' data-member='Program.Main'>45</span>    <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='Program.Main'>46</span>        <span class="cs-keyword">var</span> <span class="cs-local-name" data-local-def="3">calculator</span> <span class="cs-operator">=</span> <span class="cs-keyword">new</span> <span class="cs-class-name" data-ref="T:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1">Calculator</span><span class="cs-punctuation">&lt;</span><span class="cs-keyword">int</span><span class="cs-punctuation">&gt;();</span>
+<span class='line-number' data-member='Program.Main'>47</span>        <span class="cs-local-name" data-local-ref="3">calculator</span><span class="cs-operator">.</span><span class="cs-method-name" data-ref="M:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1.Add(`0)">Add</span><span class="cs-punctuation">(</span> <span class="cs-number">1</span> <span class="cs-punctuation">);</span>
+<span class='line-number' data-member='Program.Main'>48</span>        <span class="cs-class-name cs-static-symbol" data-ref="T:System.Console">Console</span><span class="cs-operator">.</span><span class="cs-method-name cs-static-symbol" data-ref="M:System.Console.WriteLine(System.Int32)">WriteLine</span><span class="cs-punctuation">(</span> <span class="cs-local-name" data-local-ref="3">calculator</span><span class="cs-operator">.</span><span class="cs-property-name" data-ref="P:Metalama.Framework.Tests.AspectTests.Tests.Formatting.HtmlSymbols.Calculator`1.Count">Count</span> <span class="cs-punctuation">);</span>
+<span class='line-number' data-member='Program.Main'>49</span>    <span class="cs-punctuation">}</span>
+<span class='line-number' data-member='Program'>50</span><span class="cs-punctuation">}</span>
+<span class='line-number'>51</span>
+</code></pre>
+       <p class='legend'>Legend:</p>
+       <pre>
+<span class='cr-Default'>Default</span>
+<span class='cr-RunTime'>RunTime</span>
+<span class='cr-CompileTime'>CompileTime</span>
+<span class='cr-Dynamic'>Dynamic</span>
+<span class='cr-CompileTimeVariable'>CompileTimeVariable</span>
+<span class='cr-TemplateKeyword'>TemplateKeyword</span>
+<span class='cr-Conflict'>Conflict</span>
+<span class='cr-Excluded'>Excluded</span>
+<span class='cr-GeneratedCode'>GeneratedCode</span>
+<span class='cr-SourceCode'>SourceCode</span>
+<span class='cr-NeutralTrivia'>NeutralTrivia</span>
+       </pre>
+   </body>
+</html>
