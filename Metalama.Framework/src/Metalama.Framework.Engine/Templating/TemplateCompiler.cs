@@ -30,6 +30,12 @@ namespace Metalama.Framework.Engine.Templating
         private readonly ILogger _logger;
         private readonly IProjectOptions _options;
 
+        /// <summary>
+        /// A value indicating whether <see cref="TemplateLanguageVersion"/> comes from the <c>MetalamaTemplateLanguageVersion</c> MSBuild property
+        /// rather than from the language version of the compile-time code.
+        /// </summary>
+        private bool _isTemplateLanguageVersionFromProperty;
+
         public LanguageVersion TemplateLanguageVersion { get; private set; }
 
         public TemplateCompiler(
@@ -63,6 +69,7 @@ namespace Metalama.Framework.Engine.Templating
                      && SupportedCSharpVersions.All.Contains( templateLanguageVersion ) )
                 {
                     this.TemplateLanguageVersion = templateLanguageVersion;
+                    this._isTemplateLanguageVersionFromProperty = true;
                 }
                 else
                 {
@@ -103,7 +110,7 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             // Verify the language version of the template.
-            var versionVerifier = new RoslynVersionSyntaxVerifier( diagnostics, this.TemplateLanguageVersion );
+            var versionVerifier = new RoslynVersionSyntaxVerifier( diagnostics, this.TemplateLanguageVersion, this._isTemplateLanguageVersionFromProperty );
             versionVerifier.Visit( sourceSyntaxRoot );
             usedApiVersion = versionVerifier.MaximalUsedVersion;
 
