@@ -22,6 +22,28 @@ public sealed class ImmutableWriteSiteTests : ImmutabilityTestBase
     // Where a write is allowed.
     // ------------------------------------------------------------------------------------------------------------
 
+    /// <remarks>
+    /// A lambda in a field initializer runs after construction, whenever the delegate is invoked, so a write in its body
+    /// is a mutation.
+    /// </remarks>
+    [Fact]
+    public async Task WriteInALambdaOfAFieldInitializer_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            Code( "private int _count; private readonly Action<C> _update = c => c._count++;" ),
+            "LAMA0887" );
+
+    [Fact]
+    public async Task WriteInALambdaOfAPropertyInitializer_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            Code( "private int _count; public Action<C> Update { get; } = c => c._count = 1;" ),
+            "LAMA0887" );
+
+    [Fact]
+    public async Task WriteInALambdaOfAConstructorInitializer_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            Code( "private int _count; public C() : this( c => c._count = 1 ) { } private C( Action<C> a ) { }" ),
+            "LAMA0887" );
+
     [Fact]
     public async Task WriteInAConstructor_IsNotReported()
         => await AssertNoDiagnosticAsync( Code( "private int _count; public C() { this._count = 1; }" ) );

@@ -36,42 +36,66 @@ namespace Metalama.Framework.Engine.Templating.Immutability
     internal sealed partial class ImmutabilityValidator
     {
         /// <summary>
-        /// Reports the writes, in the member bodies of a type declaration, to the members of a type bound by the contract.
+        /// Reports the writes, in the members and initializers of a type declaration, to the members of a type bound by the
+        /// contract.
         /// </summary>
         /// <param name="typeDeclaration">The declaration of the type in the current syntax tree. Nested type declarations
         /// are not examined here, because they are validated on their own.</param>
+        /// <remarks>
+        /// The operation of a method or constructor declaration includes its body, its expression body and, for a
+        /// constructor, its <c>base</c> or <c>this</c> initializer. Field, property and event initializers are examined
+        /// separately, because a lambda in an initializer can write a member long after construction.
+        /// </remarks>
         private void ValidateWriteSites( SyntaxNode typeDeclaration )
         {
-            foreach ( var node in typeDeclaration.DescendantNodes( n => n == typeDeclaration || n is not BaseTypeDeclarationSyntax ) )
+            // The walk stops at bodies and initializers, whose content is examined through their operation instead.
+            var nodes = typeDeclaration.DescendantNodes(
+                n => n == typeDeclaration
+                     || !(SyntaxFacts.IsTypeDeclaration( n.Kind() )
+                          || n.Kind() is SyntaxKind.Block or SyntaxKind.ArrowExpressionClause or SyntaxKind.EqualsValueClause
+                              or SyntaxKind.BaseConstructorInitializer or SyntaxKind.ThisConstructorInitializer) );
+
+            foreach ( var node in nodes )
             {
-                SyntaxNode? body;
+                SyntaxNode? root;
                 ISymbol? containingSymbol;
 
                 switch ( node.Kind() )
                 {
                     case SyntaxKind.MethodDeclaration or SyntaxKind.ConstructorDeclaration or SyntaxKind.DestructorDeclaration
-                        or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration when node is BaseMethodDeclarationSyntax method:
-                        body = (SyntaxNode?) method.Body ?? method.ExpressionBody;
-                        containingSymbol = this._semanticModel.GetDeclaredSymbol( method );
+                        or SyntaxKind.OperatorDeclaration or SyntaxKind.ConversionOperatorDeclaration:
+                        root = node;
+                        containingSymbol = this._semanticModel.GetDeclaredSymbol( node );
 
                         break;
 
                     case SyntaxKind.GetAccessorDeclaration or SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration
-                        or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration when node is AccessorDeclarationSyntax accessor:
-                        body = (SyntaxNode?) accessor.Body ?? accessor.ExpressionBody;
-                        containingSymbol = this._semanticModel.GetDeclaredSymbol( accessor );
+                        or SyntaxKind.AddAccessorDeclaration or SyntaxKind.RemoveAccessorDeclaration:
+                        root = node;
+                        containingSymbol = this._semanticModel.GetDeclaredSymbol( node );
 
                         break;
 
-                    case SyntaxKind.PropertyDeclaration when node is PropertyDeclarationSyntax { ExpressionBody: { } expressionBody } property:
-                        body = expressionBody;
-                        containingSymbol = this._semanticModel.GetDeclaredSymbol( property )?.GetMethod;
+                    case SyntaxKind.PropertyDeclaration when node is PropertyDeclarationSyntax property:
+                        // A property can have an expression body and an initializer, but not both.
+                        root = (SyntaxNode?) property.ExpressionBody ?? property.Initializer;
+                        containingSymbol = property.ExpressionBody != null
+                            ? this._semanticModel.GetDeclaredSymbol( property )?.GetMethod
+                            : this._semanticModel.GetDeclaredSymbol( property );
 
                         break;
 
                     case SyntaxKind.IndexerDeclaration when node is IndexerDeclarationSyntax { ExpressionBody: { } expressionBody } indexer:
-                        body = expressionBody;
+                        root = expressionBody;
                         containingSymbol = this._semanticModel.GetDeclaredSymbol( indexer )?.GetMethod;
+
+                        break;
+
+                    // The declarator of a field or of a field-like event, with an initializer.
+                    case SyntaxKind.VariableDeclarator
+                        when node is VariableDeclaratorSyntax { Initializer: { } initializer, Parent.Parent: FieldDeclarationSyntax or EventFieldDeclarationSyntax }:
+                        root = initializer;
+                        containingSymbol = this._semanticModel.GetDeclaredSymbol( node );
 
                         break;
 
@@ -79,12 +103,12 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                         continue;
                 }
 
-                if ( body == null || containingSymbol == null )
+                if ( root == null || containingSymbol == null )
                 {
                     continue;
                 }
 
-                var rootOperation = this._semanticModel.GetOperation( body );
+                var rootOperation = this._semanticModel.GetOperation( root );
 
                 if ( rootOperation == null )
                 {

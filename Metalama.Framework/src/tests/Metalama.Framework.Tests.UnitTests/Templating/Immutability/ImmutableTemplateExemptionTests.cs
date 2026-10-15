@@ -83,6 +83,17 @@ public sealed class ImmutableTemplateExemptionTests : ImmutabilityTestBase
             + "[ImmutableType] interface IHasTemplate { [Template] int Value { get; set; } } "
             + "class Impl : IHasTemplate { int IHasTemplate.Value { get; set; } }" );
 
+    /// <remarks>
+    /// The property type is mutable, so the exemption is what keeps the member from being reported. An explicit
+    /// implementation has a qualified name, so it cannot be matched to the interface member by name.
+    /// </remarks>
+    [Fact]
+    public async Task ExplicitImplementationOfAnAdviceMemberOfMutableType_IsExempt()
+        => await AssertNoDiagnosticAsync(
+            _aspectPrologue
+            + "[ImmutableType] interface IHasTemplate { [Template] List<int> Value { get; set; } } "
+            + "class Impl : IHasTemplate { List<int> IHasTemplate.Value { get; set; } }" );
+
     /// <summary>
     /// Asserts that the framework's own template property, whose overrides in user code carry no attribute, is one
     /// the exemption recognises.

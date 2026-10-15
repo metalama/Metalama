@@ -44,6 +44,12 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         private readonly SemanticModel _semanticModel;
         private readonly Action<Diagnostic> _reportDiagnostic;
 
+        /// <summary>
+        /// The types whose declaration-wide rules have been applied in the current syntax tree. A partial type can have
+        /// several declarations in one tree, and these rules examine all the members of the type at once.
+        /// </summary>
+        private readonly HashSet<INamedTypeSymbol> _validatedTypes = new( SymbolEqualityComparer.Default );
+
         private ImmutabilityValidator(
             ImmutabilityContext context,
             ISymbolClassifier classifier,
@@ -79,7 +85,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// <param name="declaration">The declaration of the type in the current syntax tree.</param>
         public void ValidateType( INamedTypeSymbol type, SyntaxNode declaration )
         {
-            if ( this._context.IsSubjectToContract( type ) )
+            if ( this._validatedTypes.Add( type ) && this._context.IsSubjectToContract( type ) )
             {
                 this.ValidateRedundantAttribute( type );
                 this.ValidateBaseType( type );
@@ -104,7 +110,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// </para>
         /// <para>
         /// <see cref="ISymbolClassifier.GetTemplateInfo"/> follows the overridden members but not the interface members
-        /// that a property implements implicitly, so that case is resolved here.
+        /// that a property implements, explicitly or implicitly, so these cases are resolved here.
         /// </para>
         /// </remarks>
         private bool IsAdviceMember( ISymbol member )
@@ -114,16 +120,25 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 return true;
             }
 
-            if ( member is not IPropertySymbol { ContainingType: { } containingType } )
+            if ( member.Kind != SymbolKind.Property || member is not IPropertySymbol { ContainingType: { } containingType } property )
             {
                 return false;
+            }
+
+            // An explicit implementation has a qualified name, so the lookup by name below cannot find it.
+            foreach ( var implementedProperty in property.ExplicitInterfaceImplementations )
+            {
+                if ( !this._classifier.GetTemplateInfo( implementedProperty ).IsNone )
+                {
+                    return true;
+                }
             }
 
             foreach ( var interfaceType in containingType.AllInterfaces )
             {
                 foreach ( var interfaceMember in interfaceType.GetMembers( member.Name ) )
                 {
-                    if ( interfaceMember is IPropertySymbol
+                    if ( interfaceMember.Kind == SymbolKind.Property
                          && SymbolEqualityComparer.Default.Equals( containingType.FindImplementationForInterfaceMember( interfaceMember ), member )
                          && !this._classifier.GetTemplateInfo( interfaceMember ).IsNone )
                     {
@@ -346,7 +361,9 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
             void ReportIfUnknown( string name, string itemName )
             {
-                if ( compilation.GetTypeByMetadataName( name ) == null )
+                // GetTypeByMetadataName returns null when several referenced assemblies define the name, so it cannot
+                // tell an ambiguous name from an unknown one.
+                if ( compilation.GetTypesByMetadataName( name ).IsEmpty )
                 {
                     reportDiagnostic( ImmutabilityDiagnosticDescriptors.UnknownDeclaredTypeName.CreateRoslynDiagnostic( Location.None, (name, itemName) ) );
                 }

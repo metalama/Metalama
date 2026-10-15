@@ -193,7 +193,9 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutabilityTestBase
 
         var compilation = this.CreateCompilation( testContext, "class X;" );
 
-        Assert.NotNull( compilation.GetTypeByMetadataName( metadataName ) );
+        // GetTypeByMetadataName returns null when several referenced assemblies define the name, which is the case of
+        // ImmutableArray`1 with the references of .NET Framework.
+        Assert.NotEmpty( compilation.GetTypesByMetadataName( metadataName ) );
     }
 
     public static TheoryData<string> TableNames

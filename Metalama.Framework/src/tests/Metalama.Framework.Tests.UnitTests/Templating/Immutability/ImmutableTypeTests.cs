@@ -23,6 +23,16 @@ public sealed class ImmutableTypeTests : ImmutabilityTestBase
     /// seen. A private field that is not read-only is accepted here and checked at its write sites instead, which
     /// <see cref="ImmutableWriteSiteTests"/> covers.
     /// </remarks>
+    /// <remarks>
+    /// Two declarations of a partial type in one syntax tree are both visited, and the members of the type are examined
+    /// once.
+    /// </remarks>
+    [Fact]
+    public async Task PartialTypeWithTwoDeclarationsInOneTree_IsReportedOnce()
+        => await AssertSingleDiagnosticAsync(
+            _prologue + "[ImmutableType] partial class C { public int Count; } partial class C { }",
+            "LAMA0880" );
+
     [Fact]
     public async Task PublicWriteableField_IsReported()
     {

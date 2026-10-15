@@ -92,6 +92,9 @@ public sealed class ImmutableRecordShapeTests : ImmutabilityTestBase
 
             [My( Flag = true )]
             class WithoutGetter;
+
+            // .NET Framework does not define the type that an 'init' accessor requires.
+            namespace System.Runtime.CompilerServices { internal static class IsExternalInit { } }
             """ );
 
         var errors = compilation.GetDiagnostics( TestContext.Current.CancellationToken )
