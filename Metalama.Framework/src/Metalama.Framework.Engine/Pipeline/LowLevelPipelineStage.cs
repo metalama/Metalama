@@ -103,6 +103,7 @@ internal sealed class LowLevelPipelineStage : PipelineStage
             input.Configuration,
             input.Diagnostics,
             input.ContributorSources,
+            transitiveContributors: input.TransitiveContributors,
             aspectInstanceResults: aspectInstances.SelectAsImmutableArray(
                 x => new AspectInstanceResult(
                     x.Value,
