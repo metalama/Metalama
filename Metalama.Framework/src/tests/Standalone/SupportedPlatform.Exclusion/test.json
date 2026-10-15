@@ -1,5 +1,5 @@
 {
     "BuildOnly": true,
     "ExpectedDiagnosticsRegexes": [ "warning LAMA0601.*'Test[.]FutureSdk'" ],
-    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600" ]
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600", "warning LAMA0604" ]
 }
