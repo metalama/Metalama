@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -43,6 +44,19 @@ public sealed class AspectPipelineConfiguration
 
     internal ImmutableArray<OrderedAspectLayer> AspectLayers { get; }
 
+    /// <summary>
+    /// Gets the aspect classes whose layers are split across several pipeline stages because a low-level aspect is ordered
+    /// between two of their layers. The key is the full name of the aspect class. The value is the short name of the first
+    /// low-level aspect that separates the layers.
+    /// </summary>
+    /// <remarks>
+    /// The pipeline does not support an aspect class whose layers are split across several stages. However, such an aspect class
+    /// causes no problem when the compilation contains no instance of it, for instance when it is declared in a referenced library
+    /// and not applied (issue #2226). Therefore, <see cref="GeneralDiagnosticDescriptors.AspectLayersSeparatedByWeaver"/> is reported
+    /// only when an instance of the aspect class is added to the pipeline.
+    /// </remarks>
+    internal ImmutableDictionary<string, string> AspectClassesSplitByWeaver { get; }
+
     internal CompileTimeProject? CompileTimeProject { get; }
 
     /// <summary>
@@ -68,6 +82,7 @@ public sealed class AspectPipelineConfiguration
         ImmutableArray<PipelineStageConfiguration> stages,
         AspectClassCollection aspectClasses,
         ImmutableArray<OrderedAspectLayer> aspectLayers,
+        ImmutableDictionary<string, string> aspectClassesSplitByWeaver,
         CompileTimeProject? compileTimeProject,
         CompileTimeProjectRepository compileTimeProjectRepository,
         PipelineContributorSources? fabricContributors,
@@ -81,6 +96,7 @@ public sealed class AspectPipelineConfiguration
         this.Stages = stages;
         this.BoundAspectClasses = aspectClasses;
         this.AspectLayers = aspectLayers;
+        this.AspectClassesSplitByWeaver = aspectClassesSplitByWeaver;
         this.CompileTimeProject = compileTimeProject;
         this.CompileTimeProjectRepository = compileTimeProjectRepository;
         this.FabricsContributors = fabricContributors;
@@ -97,6 +113,7 @@ public sealed class AspectPipelineConfiguration
             this.Stages,
             this.BoundAspectClasses,
             this.AspectLayers,
+            this.AspectClassesSplitByWeaver,
             this.CompileTimeProject,
             this.CompileTimeProjectRepository,
             this.FabricsContributors,

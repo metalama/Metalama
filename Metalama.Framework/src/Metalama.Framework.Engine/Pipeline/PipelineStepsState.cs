@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Backstage.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -45,6 +46,7 @@ internal sealed class PipelineStepsState
     private readonly ConcurrentLinkedList<AspectInstanceResult> _aspectInstanceResults = new();
     private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributors = new();
     private readonly OverflowAspectSource _overflowAspectSource = new();
+    private readonly HashSet<string> _aspectClassesReportedAsSplitByWeaver = new( StringComparer.Ordinal );
     private readonly IntrospectionPipelineListener? _introspectionListener;
     private readonly bool _shouldDetectUnorderedAspects;
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
@@ -447,6 +449,18 @@ internal sealed class PipelineStepsState
     {
         foreach ( var aspectInstance in aspectInstances )
         {
+            if ( this.PipelineConfiguration.AspectClassesSplitByWeaver.TryGetValue(
+                    aspectInstance.AspectInstance.AspectClass.FullName,
+                    out var separatingWeaverAspectName ) )
+            {
+                // The layers of this aspect class are split across several stages, which is not supported (issue #1636).
+                // The error is reported once per aspect class, and the instance is skipped.
+                this.ReportAspectLayersSeparatedByWeaver( aspectInstance.AspectInstance.AspectClass, separatingWeaverAspectName );
+                aspectInstance.AspectInstance.Skip();
+
+                continue;
+            }
+
             foreach ( var layer in aspectInstance.AspectInstance.AspectClass.Layers )
             {
                 var aspectTargetDeclaration = (IDeclaration) aspectInstance.TargetDeclaration;
@@ -482,6 +496,26 @@ internal sealed class PipelineStepsState
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Reports <see cref="GeneralDiagnosticDescriptors.AspectLayersSeparatedByWeaver"/> for an aspect class, unless it has already been reported
+    /// for this aspect class.
+    /// </summary>
+    private void ReportAspectLayersSeparatedByWeaver( IAspectClassImpl aspectClass, string separatingWeaverAspectName )
+    {
+        lock ( this._aspectClassesReportedAsSplitByWeaver )
+        {
+            if ( !this._aspectClassesReportedAsSplitByWeaver.Add( aspectClass.FullName ) )
+            {
+                return;
+            }
+        }
+
+        this.Report(
+            GeneralDiagnosticDescriptors.AspectLayersSeparatedByWeaver.CreateRoslynDiagnostic(
+                (aspectClass as IBoundAspectClass)?.GetDiagnosticLocation( this.FirstCompilation.RoslynCompilation ),
+                (aspectClass.ShortName, separatingWeaverAspectName) ) );
     }
 
     private void AddInheritableAspectInstances( IEnumerable<AspectInstance> inheritedAspectInstances )

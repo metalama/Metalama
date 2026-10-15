@@ -364,11 +364,15 @@ public abstract class AspectPipeline : IDisposable
                         : new PipelineStageConfiguration( PipelineStageKind.LowLevel, g.ToImmutableArray(), (IAspectWeaver) g.Key ) )
             .ToImmutableArray();
 
-        // Validate that no aspect has its layers split across several stages. A low-level weaver always forms its own
+        // Find the aspects whose layers are split across several stages. A low-level weaver always forms its own
         // stage, and the layers of a high-level aspect must all be processed within a single high-level stage (the
         // aspect source is evaluated once, in the stage owning the default layer, and all layers are processed there).
         // Ordering a weaver between two layers of the same aspect splits it across stages, which is not supported and
         // would otherwise crash with a KeyNotFoundException in PipelineStepIdComparer (issue #1636).
+        // The error is reported only when the compilation contains an instance of a split aspect, because the default
+        // order also includes the aspect classes of referenced libraries that the compilation does not use (issue #2226).
+        var aspectClassesSplitByWeaver = ImmutableDictionary.CreateBuilder<string, string>( StringComparer.Ordinal );
+
         {
             var firstStageByAspect = new Dictionary<string, int>();
 
@@ -380,26 +384,16 @@ public abstract class AspectPipeline : IDisposable
 
                     if ( firstStageByAspect.TryGetValue( aspectName, out var firstStageIndex ) )
                     {
-                        if ( firstStageIndex != stageIndex )
+                        if ( firstStageIndex != stageIndex && !aspectClassesSplitByWeaver.ContainsKey( aspectName ) )
                         {
                             // The aspect reappears in a later stage: its layers are separated by an intervening stage.
-                            // Report against the first low-level (weaver) stage that sits between the two layers.
+                            // Remember the first low-level (weaver) stage that sits between the two layers.
                             var separatingWeaverStage = stages
                                 .Skip( firstStageIndex + 1 )
                                 .Take( stageIndex - firstStageIndex - 1 )
                                 .First( s => s.Kind == PipelineStageKind.LowLevel );
 
-                            diagnosticAdder.Report(
-                                GeneralDiagnosticDescriptors.AspectLayersSeparatedByWeaver.CreateRoslynDiagnostic(
-                                    layer.AspectClass.GetDiagnosticLocation( compilationModel.RoslynCompilation ),
-                                    (layer.AspectClass.ShortName, separatingWeaverStage.AspectLayers[0].AspectClass.ShortName) ) );
-
-                            this.Logger.Warning?.Log(
-                                $"TryInitialize('{this.ProjectOptions.AssemblyName}') failed: the layers of aspect '{aspectName}' are split across stages." );
-
-                            configuration = null;
-
-                            return false;
+                            aspectClassesSplitByWeaver.Add( aspectName, separatingWeaverStage.AspectLayers[0].AspectClass.ShortName );
                         }
                     }
                     else
@@ -419,6 +413,7 @@ public abstract class AspectPipeline : IDisposable
             stages,
             allAspectClasses,
             allOrderedAspectLayers,
+            aspectClassesSplitByWeaver.ToImmutable(),
             compileTimeProject,
             compileTimeProjectRepository,
             fabricContributors,
