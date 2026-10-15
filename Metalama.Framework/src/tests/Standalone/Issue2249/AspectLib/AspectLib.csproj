@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+
+    <!-- Maps the directory of the project, so that the assembly does not depend on the directory of the sources. -->
+    <PathMap>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)'))=/_/</PathMap>
+
+    <!-- The copy of the project is in an ignored directory, so source control does not track its files. Without this
+         property, the PDB that is embedded in the assembly would include the source of these files, but only for the copy. -->
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+</Project>
