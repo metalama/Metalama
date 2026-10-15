@@ -1,18 +1,11 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Compiler;
-using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
-using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
-using Metalama.Framework.Options;
-using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System;
@@ -71,13 +64,13 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
     /// </para>
     /// </remarks>
 #if ROSLYN_4_12_0 && NET
-    private const string _expectedInheritableAspectPayloadHash = "308b7434df442bb333dae96f50f29c911a5b59286a48bd850a519a185ba832f6";
+    private const string _expectedInheritableAspectPayloadHash = "31eda399466016f0d946838a90d6c5a41a2b71310744e7f3503a8b99abe8b837";
 #elif ROSLYN_4_12_0
-    private const string _expectedInheritableAspectPayloadHash = "9dac17200e34586d02597e250fa489d9e04a6fed2f9da1a7e5dc5ac1f1b67a6b";
+    private const string _expectedInheritableAspectPayloadHash = "6e481330eeb620f59c43530f648c470ca699b8ab1acce3acb9859bb7e8551e5d";
 #elif NET
-    private const string _expectedInheritableAspectPayloadHash = "ebdac4094ec0a5faf2763f888671e9abd8a12cee3f9557a6782129f3ec6803e2";
+    private const string _expectedInheritableAspectPayloadHash = "c75fcb4929ccdb96c0f68a3e6182ffb766a71fbfe0233a880aedc7c8c266ffff";
 #else
-    private const string _expectedInheritableAspectPayloadHash = "37e6bcf607d5042a1440ca2d4ed64aed47a98e736ec0fc51cff6baa054b80edb";
+    private const string _expectedInheritableAspectPayloadHash = "dcd7d6dc596af956e7d0de95a95f1837ecc8d2fd37103efac7c7191472bfba5b";
 #endif
 
     private static readonly string[] _aspectNames = ["Tracked", "Audited", "Versioned"];
@@ -108,68 +101,47 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the serialized manifest does not depend on the order of several instances of one aspect class that share a
-    /// target declaration.
+    /// Verifies that the inheritable aspect manifest does not depend on the order of several instances of one aspect class that
+    /// share a target declaration.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// A type can inherit several instances of one aspect class, for example one from each of two base interfaces, and these
-    /// instances can have different values. Their target declarations have the same identifier, so a sort by target identifier
-    /// alone keeps the order of the input, and the pipeline does not produce these instances in a defined order.
-    /// </para>
-    /// <para>
-    /// The design-time pipeline keeps a single instance for each target declaration, so the test moves the instance of
-    /// <c>ISecond</c> to the target declaration of the instance of <c>IFirst</c>. It then builds the manifest from the two
-    /// instances in both orders.
-    /// </para>
+    /// <c>IBoth</c> inherits one instance of <c>TaggedAttribute</c> from each of its two base interfaces, and the two instances
+    /// have different values. They have the same aspect class and the same target declaration, so only their predecessors
+    /// distinguish them.
     /// </remarks>
     [Fact]
-    public void InheritableAspectManifest_InstancesSharingATarget_DoNotDependOnInputOrder()
+    public async Task InheritableAspectResource_InstancesSharingATarget_DoNotDependOnSyntaxTreeOrder()
     {
         using var testContext = this.CreateTestContext();
-        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+        using var domain = testContext.Domain;
 
-        const string code = """
-                            using Metalama.Framework.Aspects;
+        var files = new List<KeyValuePair<string, string>>
+        {
+            new(
+                "Aspects.cs",
+                """
+                using Metalama.Framework.Aspects;
 
-                            [Inheritable]
-                            public class TaggedAttribute : TypeAspect
-                            {
-                                public TaggedAttribute( string tag )
-                                {
-                                    this.Tag = tag;
-                                }
+                [Inheritable]
+                public class TaggedAttribute : TypeAspect
+                {
+                    public TaggedAttribute( string tag )
+                    {
+                        this.Tag = tag;
+                    }
 
-                                public string Tag { get; }
-                            }
+                    public string Tag { get; }
+                }
+                """ ),
+            new( "IFirst.cs", """[Tagged( "First" )] public interface IFirst { }""" ),
+            new( "ISecond.cs", """[Tagged( "Second" )] public interface ISecond { }""" ),
+            new( "IBoth.cs", "public interface IBoth : IFirst, ISecond { }" )
+        };
 
-                            [Tagged( "First" )]
-                            public interface IFirst { }
+        var forward = await GetResourcesAsync( testContext, files );
+        var backward = await GetResourcesAsync( testContext, Enumerable.Reverse( files ) );
 
-                            [Tagged( "Second" )]
-                            public interface ISecond { }
-                            """;
-
-        var compilation = testContext.CreateCSharpCompilation( code );
-        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var result ) );
-
-        var serviceProvider = result.Result.Configuration!.ServiceProvider;
-        var instances = result.Result.GetInheritableAspects( "TaggedAttribute" ).ToList();
-
-        var first = Assert.Single( instances, i => i.TargetDeclaration.ToSerializableId().Id == "Y:global::IFirst!" );
-        var second = Assert.Single( instances, i => i.TargetDeclaration.ToSerializableId().Id == "Y:global::ISecond!" );
-        var secondOnFirst = new InheritableAspectInstance( new RetargetedAspectInstance( second, first.TargetDeclaration ) );
-
-        byte[] Serialize( params InheritableAspectInstance[] orderedInstances )
-            => TransitiveAspectsManifest.Create(
-                    orderedInstances.ToImmutableArray(),
-                    ImmutableArray<ITransitiveAspectsManifestExtension>.Empty,
-                    ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>.Empty,
-                    ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Empty,
-                    false )
-                .ToBytes( serviceProvider, compress: false );
-
-        Assert.Equal( Serialize( first, secondOnFirst ), Serialize( secondOnFirst, first ) );
+        AssertSameResources( forward, backward );
     }
 
     private static async Task<IReadOnlyDictionary<string, byte[]>> GetResourcesAsync(
@@ -244,45 +216,5 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
         }
 
         return resources;
-    }
-
-    /// <summary>
-    /// An aspect instance that has the values of another instance and a different target declaration.
-    /// </summary>
-    private sealed class RetargetedAspectInstance : IAspectInstance, IAspectPredecessorImpl
-    {
-        private readonly InheritableAspectInstance _instance;
-
-        public RetargetedAspectInstance( InheritableAspectInstance instance, IRef<IDeclaration> targetDeclaration )
-        {
-            this._instance = instance;
-            this.TargetDeclaration = targetDeclaration;
-        }
-
-        public IRef<IDeclaration> TargetDeclaration { get; }
-
-        public IAspect Aspect => this._instance.Aspect;
-
-        public IAspectClass AspectClass => this._instance.AspectClass;
-
-        public bool IsSkipped => false;
-
-        public bool IsInheritable => true;
-
-        public ImmutableArray<IAspectInstance> SecondaryInstances => ImmutableArray<IAspectInstance>.Empty;
-
-        public IAspectState? AspectState => this._instance.AspectState;
-
-        public int PredecessorDegree => this._instance.PredecessorDegree;
-
-        public ImmutableArray<AspectPredecessor> Predecessors => ImmutableArray<AspectPredecessor>.Empty;
-
-        public int TargetDeclarationDepth => this._instance.TargetDeclarationDepth;
-
-        public ImmutableArray<SyntaxTree> PredecessorTreeClosure => ImmutableArray<SyntaxTree>.Empty;
-
-        public FormattableString FormatPredecessor( ICompilation compilation ) => this._instance.FormatPredecessor( compilation );
-
-        public Location? GetDiagnosticLocation( Compilation compilation ) => null;
     }
 }
