@@ -1,20 +1,20 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Analyzers.Durability;
-using Metalama.Framework.Analyzers.Immutability;
-using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System;
 using System.Collections.Immutable;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
-/// Asserts the four points on which the two contracts of this assembly deliberately disagree.
+/// Asserts the four points on which the durability and immutability contracts deliberately disagree.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -29,26 +29,13 @@ namespace Metalama.Framework.Analyzers.Tests;
 /// table that it refers to, together.
 /// </para>
 /// </remarks>
-public sealed class DurabilityImmutabilityDivergenceTests
+public sealed class DurabilityImmutabilityDivergenceTests : ImmutabilityTestBase
 {
-    private static readonly MetadataReference[] _references =
-    [
-        MetadataReference.CreateFromFile( typeof(object).Assembly.Location ),
-        MetadataReference.CreateFromFile(
-            Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "netstandard.dll" ) ),
-        MetadataReference.CreateFromFile(
-            Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Runtime.dll" ) ),
-        MetadataReference.CreateFromFile(
-            Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Collections.dll" ) ),
-        MetadataReference.CreateFromFile( typeof(ImmutableTypeAttribute).Assembly.Location ),
-        MetadataReference.CreateFromFile( typeof(SyntaxNode).Assembly.Location ),
-        MetadataReference.CreateFromFile( typeof(DurableAttribute).Assembly.Location )
-    ];
-
     /// <summary>
-    /// Runs both analyzers over one type that carries both contracts, and returns the identifiers each reported.
+    /// Runs the durability analyzer and the immutability rules over one type that carries both contracts, and returns
+    /// whether each of them reported a diagnostic.
     /// </summary>
-    private static async Task<(bool Durability, bool Immutability)> GetVerdictsAsync( string memberDeclaration )
+    private async Task<(bool Durability, bool Immutability)> GetVerdictsAsync( string memberDeclaration )
     {
         var code = $$"""
                      using System;
@@ -64,22 +51,17 @@ public sealed class DurabilityImmutabilityDivergenceTests
                      }
                      """;
 
-        var compilation = CSharpCompilation.Create(
-            "TestAssembly",
-            [CSharpSyntaxTree.ParseText( code, new CSharpParseOptions( LanguageVersion.CSharp12 ) )],
-            _references,
-            new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
+        using var testContext = this.CreateTestContext();
 
-        var diagnostics = await compilation
-            .WithAnalyzers(
-                ImmutableArray.Create<DiagnosticAnalyzer>(
-                    new DurableContractAnalyzer(),
-                    new ImmutableContractAnalyzer() ) )
-            .GetAnalyzerDiagnosticsAsync();
+        var durabilityDiagnostics = await this.CreateCompilation( testContext, code )
+            .WithAnalyzers( ImmutableArray.Create<DiagnosticAnalyzer>( new DurableContractAnalyzer() ) )
+            .GetAnalyzerDiagnosticsAsync( testContext.CancellationToken );
+
+        var immutabilityDiagnostics = await this.GetDiagnosticsAsync( code );
 
         return (
-            diagnostics.Any( d => d.Id.StartsWith( "LAMA087", StringComparison.Ordinal ) ),
-            diagnostics.Any( d => d.Id.StartsWith( "LAMA088", StringComparison.Ordinal ) ));
+            durabilityDiagnostics.Any( d => d.Id.StartsWith( "LAMA087", StringComparison.Ordinal ) ),
+            immutabilityDiagnostics.Any( d => d.Id.StartsWith( "LAMA088", StringComparison.Ordinal ) ));
     }
 
     /// <remarks>

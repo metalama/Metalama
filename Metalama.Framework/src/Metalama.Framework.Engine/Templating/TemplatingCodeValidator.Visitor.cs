@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxSerialization;
+using Metalama.Framework.Engine.Templating.Immutability;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Serialization;
@@ -52,6 +53,8 @@ namespace Metalama.Framework.Engine.Templating
             private readonly SymbolClassificationContext _symbolClassificationContext;
 
             private TemplateCompiler? _templateCompiler;
+            private ImmutabilityValidator? _immutabilityValidator;
+            private bool _isImmutabilityValidatorCreated;
             private ISymbol? _currentDeclaration;
             private TemplatingScope? _currentScope;
             private TemplatingScope? _currentTypeScope;
@@ -88,6 +91,26 @@ namespace Metalama.Framework.Engine.Templating
 
                 this._symbolClassificationContext =
                     this._hasCompileTimeCodeFast ? SymbolClassificationContext.Default : SymbolClassificationContext.RunTimeOnly;
+            }
+
+            /// <summary>
+            /// Gets the validator of the immutability rules for the current syntax tree, creating it on first use, or
+            /// <c>null</c> when the project turns the rules off.
+            /// </summary>
+            private ImmutabilityValidator? GetImmutabilityValidator()
+            {
+                if ( !this._isImmutabilityValidatorCreated )
+                {
+                    this._immutabilityValidator = ImmutabilityValidator.Create(
+                        this._serviceProvider.GetService<IProjectOptions>(),
+                        this._classifier,
+                        this._semanticModel,
+                        this.Report );
+
+                    this._isImmutabilityValidatorCreated = true;
+                }
+
+                return this._immutabilityValidator;
             }
 
             private bool IsInTemplate => this._currentTemplateInfo is { AttributeType: not TemplateAttributeType.None };
@@ -1033,6 +1056,22 @@ namespace Metalama.Framework.Engine.Templating
                                 break;
                             }
                         }
+                    }
+                }
+
+                // Report the mutable state of compile-time code.
+                if ( scope != TemplatingScope.Conflict && templateInfo.IsNone && this.GetImmutabilityValidator() is { } immutabilityValidator )
+                {
+                    if ( declaredSymbol.Kind == SymbolKind.NamedType )
+                    {
+                        if ( scope is TemplatingScope.CompileTimeOnly or TemplatingScope.RunTimeOrCompileTime )
+                        {
+                            immutabilityValidator.ValidateType( (INamedTypeSymbol) declaredSymbol, node );
+                        }
+                    }
+                    else if ( typeScope.HasValue && declaredSymbol.IsStatic )
+                    {
+                        immutabilityValidator.ValidateStaticMember( declaredSymbol, scope, typeScope.Value );
                     }
                 }
 

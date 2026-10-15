@@ -11,7 +11,7 @@ using Metalama.Framework.Project;
 using Metalama.Framework.Services;
 using Metalama.Framework.Utilities;
 using System;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Linq;
 
 // ReSharper disable UnusedMember.Global
@@ -45,7 +45,7 @@ namespace Metalama.Framework.Eligibility;
 public static partial class EligibilityExtensions
 {
     // The order is significant: the most significant should come first.
-    private static readonly ImmutableArray<(Type Type, string Name)> _interfaceNames =
+    private static readonly List<(Type Type, string Name)> _interfaceNames =
     [
         (typeof(IMethod), "method"),
         (typeof(IField), "field"),

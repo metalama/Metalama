@@ -2,14 +2,18 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers.Immutability;
+using Metalama.Framework.Engine.Templating.Immutability;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Reflection;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
 /// Asserts that <see cref="WellKnownImmutableTypes"/> and <see cref="ImmutabilityContext"/> agree with
@@ -17,8 +21,7 @@ namespace Metalama.Framework.Analyzers.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The two must be kept in correspondence. The analyzer project cannot reference the patterns assembly, which needs
-/// the engine's options system, so the lists cannot be shared in code and are held together here instead. The test
+/// The two must be kept in correspondence. The engine cannot reference the patterns assembly, so the lists cannot be shared in code and are held together here instead. The test
 /// reads the <b>source</b> of the two patterns files, which the project file embeds in this assembly. Embedding them
 /// rather than copying them means that moving or renaming either breaks the build, which is itself the signal that
 /// this test needs attention.
@@ -29,7 +32,7 @@ namespace Metalama.Framework.Analyzers.Tests;
 /// file, so that the next reader finds the reason rather than rediscovering the question.
 /// </para>
 /// </remarks>
-public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBase
+public sealed class ImmutableTableCorrespondenceTests : ImmutabilityTestBase
 {
     private static string ReadEmbeddedSource( string name )
     {
@@ -56,11 +59,12 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
             .Single( i => i.Expression.ToString().EndsWith( "SelectReflectionTypes", StringComparison.Ordinal ) );
 
         return invocation.ArgumentList.Arguments
+            .AsEnumerable()
             .Select( a => a.Expression )
             .OfType<TypeOfExpressionSyntax>()
             .Select( t => ToMetadataName( t.Type.ToString() ) )
             .OrderBy( n => n, StringComparer.Ordinal )
-            .ToList();
+            .ToArray();
     }
 
     /// <summary>
@@ -91,7 +95,7 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
 
         var fromAnalyzer = WellKnownImmutableTypes.ImmutableCollectionNames
             .OrderBy( n => n, StringComparer.Ordinal )
-            .ToList();
+            .ToArray();
 
         Assert.Equal( fromPatterns, fromAnalyzer );
     }
@@ -111,9 +115,10 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
         var body = Between( source, "public static ImmutabilityKind GetImmutabilityKind", "if ( type is not INamedType" );
 
         var fromPatterns = Regex.Matches( body, @"SpecialType\.(\w+)" )
+            .Cast<Match>()
             .Select( m => m.Groups[1].Value )
             .OrderBy( n => n, StringComparer.Ordinal )
-            .ToList();
+            .ToArray();
 
         var expected = new[]
             {
@@ -121,7 +126,7 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
                 "SByte", "Single", "String", "UInt16", "UInt32", "UInt64"
             }
             .OrderBy( n => n, StringComparer.Ordinal )
-            .ToList();
+            .ToArray();
 
         Assert.Equal( expected, fromPatterns );
     }
@@ -148,13 +153,14 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
         var body = Between( source, "IsNonImmutableSystemValueType( INamedType", "}" );
 
         var fromPatterns = Regex.Matches( body, "\"(\\w+)\"" )
+            .Cast<Match>()
             .Select( m => m.Groups[1].Value )
             .OrderBy( n => n, StringComparer.Ordinal )
-            .ToList();
+            .ToArray();
 
         var fromAnalyzer = WellKnownImmutableTypes.NonImmutableSystemValueTypeNames
             .OrderBy( n => n, StringComparer.Ordinal )
-            .ToList();
+            .ToArray();
 
         Assert.Equal( fromPatterns, fromAnalyzer );
     }
@@ -183,7 +189,9 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
     [MemberData( nameof(TableNames) )]
     public void EveryNameInTheTable_ResolvesToAType( string metadataName )
     {
-        var compilation = CreateCompilation( "class X;" );
+        using var testContext = this.CreateTestContext();
+
+        var compilation = this.CreateCompilation( testContext, "class X;" );
 
         Assert.NotNull( compilation.GetTypeByMetadataName( metadataName ) );
     }

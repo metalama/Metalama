@@ -70,6 +70,9 @@
         <ProjectReference Include="../../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" />
         <ProjectReference Include="../../Metalama.Extensions.DiffEngine/Metalama.Extensions.DiffEngine.csproj" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />
 
+        <!-- DurabilityImmutabilityDivergenceTests runs the public DurableContractAnalyzer next to the immutability rules. -->
+        <ProjectReference Include="../../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" />
+
         <!-- Roslyn version specific references -->
         <ProjectReference Include="../../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
         <ProjectReference Include="../../Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" />
@@ -89,6 +92,17 @@
             <_Parameter1>EngineeringDataDirectory</_Parameter1>
             <_Parameter2>$(PostSharpEngineeringDataDirectory)</_Parameter2>
         </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- ImmutableTableCorrespondenceTests reads these sources, whose rules and type lists WellKnownImmutableTypes
+             ports. The engine cannot reference Metalama.Patterns.Immutability, so the two lists can only be held together
+             by reading the source. Moving or renaming one of these files breaks this build, which is itself the signal
+             that the test needs attention. -->
+        <EmbeddedResource Include="$(MSBuildThisFileDirectory)../../../../Metalama.Patterns/src/Metalama.Patterns.Immutability/ImmutabilityExtensions.cs"
+                          LogicalName="ImmutabilityExtensions.cs" />
+        <EmbeddedResource Include="$(MSBuildThisFileDirectory)../../../../Metalama.Patterns/src/Metalama.Patterns.Immutability/Fabric.cs"
+                          LogicalName="ImmutabilityFabric.cs" />
     </ItemGroup>
 
 </Project>

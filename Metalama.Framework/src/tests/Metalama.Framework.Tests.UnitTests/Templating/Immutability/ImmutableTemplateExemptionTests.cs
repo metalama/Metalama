@@ -4,19 +4,20 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
 /// The exemption that keeps the rules off the members an aspect injects into its target.
 /// </summary>
 /// <remarks>
 /// An advice member is code, not state. It is routinely written as <c>{ get; set; }</c> or as a writeable field, the
-/// aspect never reads it, and reporting it would be wrong in every case. Without this exemption the analyzer fires on
+/// aspect never reads it, and reporting it would be wrong in every case. Without this exemption the rules report
 /// essentially every aspect that introduces a property.
 /// </remarks>
-public sealed class ImmutableTemplateExemptionTests : ImmutableAnalyzerTestBase
+public sealed class ImmutableTemplateExemptionTests : ImmutabilityTestBase
 {
     private const string _aspectPrologue = _prologue + "using Metalama.Framework.Advising;\nusing Metalama.Framework.Aspects;\n";
 
@@ -36,8 +37,8 @@ public sealed class ImmutableTemplateExemptionTests : ImmutableAnalyzerTestBase
             _aspectPrologue + $"[ImmutableType] class C {{ [{attribute}] public int _value; }}" );
 
     /// <remarks>
-    /// The exemption is keyed on the interface that every advice attribute implements, so an attribute a user writes
-    /// is covered without this analyzer knowing its name.
+    /// The exemption relies on the template information of the symbol classifier, which covers an advice attribute
+    /// that a user derives from a framework one.
     /// </remarks>
     [Fact]
     public async Task UserDefinedAdviceAttribute_IsExempt()
@@ -81,29 +82,6 @@ public sealed class ImmutableTemplateExemptionTests : ImmutableAnalyzerTestBase
             _aspectPrologue
             + "[ImmutableType] interface IHasTemplate { [Template] int Value { get; set; } } "
             + "class Impl : IHasTemplate { int IHasTemplate.Value { get; set; } }" );
-
-    /// <summary>
-    /// Asserts that every advice attribute still reaches the one interface the exemption is keyed on.
-    /// </summary>
-    /// <remarks>
-    /// Without this, a refactoring of the advice attribute hierarchy would disable the exemption silently, and the
-    /// analyzer would begin reporting every introduced property in every aspect in the world. Enumerating the five
-    /// attribute names in the analyzer instead of using the interface would be both longer and wrong, because it
-    /// would miss the advice attributes that users define.
-    /// </remarks>
-    [Fact]
-    public void EveryAdviceAttribute_ImplementsIAdviceAttribute()
-    {
-        Assert.True( typeof(IAdviceAttribute).IsAssignableFrom( typeof(TemplateAttribute) ) );
-        Assert.True( typeof(IAdviceAttribute).IsAssignableFrom( typeof(IntroduceAttribute) ) );
-        Assert.True( typeof(IAdviceAttribute).IsAssignableFrom( typeof(InterfaceMemberAttribute) ) );
-        Assert.True( typeof(IAdviceAttribute).IsAssignableFrom( typeof(DeclarativeAdviceAttribute) ) );
-        Assert.True( typeof(IAdviceAttribute).IsAssignableFrom( typeof(ITemplateAttribute) ) );
-
-        Assert.Equal(
-            "Metalama.Framework.Advising.IAdviceAttribute",
-            typeof(IAdviceAttribute).FullName );
-    }
 
     /// <summary>
     /// Asserts that the framework's own template property, whose overrides in user code carry no attribute, is one

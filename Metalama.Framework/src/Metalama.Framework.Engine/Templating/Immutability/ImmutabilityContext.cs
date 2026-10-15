@@ -2,24 +2,21 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Options;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Metalama.Framework.Analyzers.Immutability
+namespace Metalama.Framework.Engine.Templating.Immutability
 {
     /// <summary>
     /// Decides whether a type is immutable, for one compilation.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Every mutable field of this analyzer lives here, and an instance of this class is created inside
-    /// <c>RegisterCompilationStartAction</c> and captured only by the actions registered on that context.</b> Roslyn
-    /// keeps one instance of a <see cref="DiagnosticAnalyzer"/> alive for the lifetime of the process, so a cache of
-    /// symbols held in a field of the analyzer would retain the compilation those symbols came from. That is the very
-    /// defect the sibling <c>Durable</c> contract of this same assembly exists to report.
+    /// An instance holds caches keyed by symbols, so it retains the compilation of those symbols. It is created for one
+    /// validation of one syntax tree and is never stored beyond it, as <c>docs/design-time-memory.md</c> requires.
     /// </para>
     /// <para>
     /// No cycle can arise while evaluating a type, because the evaluation never descends into the members of a type:
@@ -35,13 +32,12 @@ namespace Metalama.Framework.Analyzers.Immutability
     /// <c>MetadataImportOptions.Public</c> does not expose at all.
     /// </para>
     /// </remarks>
-    internal sealed partial class ImmutabilityContext
+    internal sealed class ImmutabilityContext
     {
         private const int _maxDepth = 20;
 
         /// <summary>
-        /// The full metadata name of the marker, matched by name because this project deliberately references only
-        /// Roslyn.
+        /// The full metadata name of the marker.
         /// </summary>
         /// <remarks>
         /// Deliberately not <c>System.ComponentModel.ImmutableObjectAttribute</c>. That attribute exists to tell a
@@ -68,29 +64,17 @@ namespace Metalama.Framework.Analyzers.Immutability
         }
 
         /// <summary>
-        /// Creates the context of a compilation, or returns <c>null</c> when the compilation does not know the
-        /// attribute, or when the project turns the contract off, in which case no action is registered.
+        /// Creates the context of a compilation, or returns <c>null</c> when the project turns the contract off.
         /// </summary>
-        public static ImmutabilityContext? TryCreate( Compilation compilation, AnalyzerOptions options )
+        /// <remarks>
+        /// The contract is written for user code. A project that implements the framework itself declares aspects,
+        /// fabrics and code-model types whose mutability is deliberate, and it sets
+        /// <c>MetalamaEnforceImmutabilityContract</c> to <c>false</c>.
+        /// </remarks>
+        public static ImmutabilityContext? Create( IProjectOptions? options )
         {
-            // The compilation does not know the attribute, so nothing in it can be bound by the contract. This is the
-            // gate that makes the analyzer free for a project that does not reference Metalama, and it is the same
-            // gate the sibling durability contract uses.
-            if ( compilation.GetTypeByMetadataName( ImmutableTypeAttributeMetadataName ) == null )
-            {
-                return null;
-            }
-
-            var globalOptions = options.AnalyzerConfigOptionsProvider.GlobalOptions;
-
-            // The contract is written for user code. A project that implements the framework itself declares aspects,
-            // fabrics and code-model types whose mutability is deliberate -- a builder is mutable because that is what
-            // a builder is -- and it is verified by its own tests rather than by this rule. Such a project sets
-            // MetalamaEnforceImmutabilityContract to false.
-            //
-            // Note that the durability contract has no equivalent switch, and should not: durability is hard to get
-            // right in framework code and that is exactly where it matters. Immutability is the opposite way round.
-            if ( globalOptions.TryGetValue( "build_property.MetalamaEnforceImmutabilityContract", out var enforce )
+            if ( options != null
+                 && options.TryGetProperty( "MetalamaEnforceImmutabilityContract", out var enforce )
                  && bool.TryParse( enforce, out var enforceValue )
                  && !enforceValue )
             {
@@ -98,13 +82,13 @@ namespace Metalama.Framework.Analyzers.Immutability
             }
 
             return new ImmutabilityContext(
-                SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaImmutableTypes" ),
-                SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaImmutableContractTypes" ) );
+                ImmutabilitySymbolFacts.ReadTypeNameList( options, "MetalamaImmutableTypes" ),
+                ImmutabilitySymbolFacts.ReadTypeNameList( options, "MetalamaImmutableContractTypes" ) );
         }
 
         /// <summary>
-        /// Gets the type names declared by the <c>MetalamaImmutableType</c> item, so that the analyzer can report a
-        /// name that matches no type in the compilation.
+        /// Gets the type names declared by the <c>MetalamaImmutableType</c> item, so that a name that matches no type in
+        /// the compilation can be reported.
         /// </summary>
         public IEnumerable<string> ImmutableTypeNames => this._additionalImmutableTypes;
 
@@ -128,7 +112,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             {
                 if ( candidate.AttributeClass is { } attributeClass
                      && attributeClass.Name == "ImmutableTypeAttribute"
-                     && SymbolFacts.GetFullMetadataName( attributeClass ) == ImmutableTypeAttributeMetadataName )
+                     && ImmutabilitySymbolFacts.GetFullMetadataName( attributeClass ) == ImmutableTypeAttributeMetadataName )
                 {
                     attribute = candidate;
 
@@ -218,7 +202,7 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// </summary>
         private bool IsContractType( INamedTypeSymbol type )
         {
-            var metadataName = SymbolFacts.GetFullMetadataName( type.OriginalDefinition );
+            var metadataName = ImmutabilitySymbolFacts.GetFullMetadataName( type.OriginalDefinition );
 
             return WellKnownImmutabilityContractTypes.Contains( metadataName )
                    || this._additionalContractTypes.Contains( metadataName );
@@ -297,7 +281,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             // Rule 3. A nullable value type is exactly its underlying type, and adds no step to the chain. The
             // patterns implementation reaches Nullable<T> through the blanket rule for value types of namespace
             // System and therefore trusts it whatever T is; inspecting T costs one line and is strictly sounder.
-            if ( type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableType )
+            if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableType )
             {
                 return this.GetVerdictCore( nullableType.TypeArguments[0], depth + 1 );
             }
@@ -306,7 +290,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             // classify every tuple as mutable, because ValueTuple is excluded from the blanket rule and is not a
             // readonly struct. As the type of a read-only field a tuple cannot be reassigned, so that would be a
             // false positive on almost every use.
-            if ( type is INamedTypeSymbol { IsTupleType: true } tupleType )
+            if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { IsTupleType: true } tupleType )
             {
                 foreach ( var element in tupleType.TupleElements )
                 {
@@ -327,7 +311,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             if ( type is IArrayTypeSymbol )
             {
                 return ImmutabilityVerdict.NotImmutable(
-                    SymbolFacts.GetDisplayName( type ),
+                    ImmutabilitySymbolFacts.GetDisplayName( type ),
                     "an array is mutable: its elements can be replaced. Use ImmutableArray<T>" );
             }
 
@@ -352,7 +336,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             }
 
             var definition = namedType.OriginalDefinition;
-            var metadataName = SymbolFacts.GetFullMetadataName( definition );
+            var metadataName = ImmutabilitySymbolFacts.GetFullMetadataName( definition );
 
             // Rule 9. The project may declare a type it does not own to be immutable.
             if ( this._additionalImmutableTypes.Contains( metadataName ) )
@@ -370,7 +354,7 @@ namespace Metalama.Framework.Analyzers.Immutability
                         return ImmutabilityVerdict.Immutable;
 
                     case WellKnownImmutability.NotImmutable:
-                        return ImmutabilityVerdict.NotImmutable( SymbolFacts.GetDisplayName( type ), entry.Reason );
+                        return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( type ), entry.Reason );
 
                     case WellKnownImmutability.Transparent:
                         return this.GetTransparentVerdict( namedType, entry, depth );
@@ -398,7 +382,7 @@ namespace Metalama.Framework.Analyzers.Immutability
 
                         if ( !argumentVerdict.IsImmutable )
                         {
-                            return argumentVerdict.Prepend( SymbolFacts.GetDisplayName( type ) );
+                            return argumentVerdict.Prepend( ImmutabilitySymbolFacts.GetDisplayName( type ) );
                         }
                     }
                 }
@@ -409,7 +393,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             // Rule 14. A type that derives from or implements a well-known mutable type is mutable too. This is what
             // classifies every symbol interface, every syntax node and every collection derived from List<T> without
             // listing them.
-            var inherited = this.GetInheritedMutableVerdict( namedType, type );
+            var inherited = GetInheritedMutableVerdict( namedType, type );
 
             if ( inherited != null )
             {
@@ -440,13 +424,13 @@ namespace Metalama.Framework.Analyzers.Immutability
             if ( namedType.TypeKind == TypeKind.Interface || namedType.IsAbstract )
             {
                 return ImmutabilityVerdict.NotAnnotated(
-                    SymbolFacts.GetDisplayName( type ),
+                    ImmutabilitySymbolFacts.GetDisplayName( type ),
                     "an interface or abstract type that is not marked [ImmutableType]" );
             }
 
             // Rule 17. Immutability is opt-in.
             return ImmutabilityVerdict.NotImmutable(
-                SymbolFacts.GetDisplayName( type ),
+                ImmutabilitySymbolFacts.GetDisplayName( type ),
                 "the type is not marked [ImmutableType]" );
         }
 
@@ -468,7 +452,7 @@ namespace Metalama.Framework.Analyzers.Immutability
 
                 if ( !argumentVerdict.IsImmutable )
                 {
-                    return argumentVerdict.Prepend( SymbolFacts.GetDisplayName( type ) );
+                    return argumentVerdict.Prepend( ImmutabilitySymbolFacts.GetDisplayName( type ) );
                 }
             }
 
@@ -478,25 +462,25 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// <summary>
         /// Returns the verdict of the first well-known mutable base type or interface of a type, or <c>null</c>.
         /// </summary>
-        private ImmutabilityVerdict? GetInheritedMutableVerdict( INamedTypeSymbol type, ITypeSymbol reported )
+        private static ImmutabilityVerdict? GetInheritedMutableVerdict( INamedTypeSymbol type, ITypeSymbol reported )
         {
             for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
             {
-                if ( WellKnownImmutableTypes.TryGet( SymbolFacts.GetFullMetadataName( baseType.OriginalDefinition ), out var baseEntry )
+                if ( WellKnownImmutableTypes.TryGet( ImmutabilitySymbolFacts.GetFullMetadataName( baseType.OriginalDefinition ), out var baseEntry )
                      && baseEntry.Immutability == WellKnownImmutability.NotImmutable )
                 {
-                    return ImmutabilityVerdict.NotImmutable( SymbolFacts.GetDisplayName( reported ), baseEntry.Reason );
+                    return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( reported ), baseEntry.Reason );
                 }
             }
 
             foreach ( var interfaceType in type.AllInterfaces )
             {
                 if ( WellKnownImmutableTypes.TryGet(
-                         SymbolFacts.GetFullMetadataName( interfaceType.OriginalDefinition ),
+                         ImmutabilitySymbolFacts.GetFullMetadataName( interfaceType.OriginalDefinition ),
                          out var interfaceEntry )
                      && interfaceEntry.Immutability == WellKnownImmutability.NotImmutable )
                 {
-                    return ImmutabilityVerdict.NotImmutable( SymbolFacts.GetDisplayName( reported ), interfaceEntry.Reason );
+                    return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( reported ), interfaceEntry.Reason );
                 }
             }
 
@@ -510,7 +494,7 @@ namespace Metalama.Framework.Analyzers.Immutability
                 return cached;
             }
 
-            var result = SymbolFacts.ComputeStoredTypeParameters( definition, _maxDepth );
+            var result = ImmutabilitySymbolFacts.ComputeStoredTypeParameters( definition, _maxDepth );
             this._storedTypeParameters.TryAdd( definition, result );
 
             return result;

@@ -47,10 +47,7 @@ namespace Metalama.Framework.Aspects
     {
         private TemplateAttributeProperties _properties = new();
 
-        // This internal instance is never modified after it is constructed.
-#pragma warning disable LAMA0891
         internal static TemplateAttribute Default { get; } = new();
-#pragma warning restore LAMA0891
 
         /// <summary>
         /// Gets or sets an identifier that can be used to reference this template from advising methods.

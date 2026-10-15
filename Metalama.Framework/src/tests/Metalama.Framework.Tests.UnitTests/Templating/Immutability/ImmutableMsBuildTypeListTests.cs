@@ -2,44 +2,28 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers.Immutability;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
-using Metalama.Framework.Utilities;
-using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
 /// Tests of the <c>MetalamaImmutableType</c> and <c>MetalamaImmutableContractType</c> MSBuild items, by which a
 /// project declares the immutability of a type it does not own.
 /// </summary>
 /// <remarks>
-/// These tests cover the side the analyzer owns, that is, reading the three compiler-visible properties. They cannot
+/// These tests cover the side that Metalama owns, that is, reading the three compiler-visible properties. They cannot
 /// cover the build target that joins the items into those properties, which lives in
 /// <c>Metalama.CompilerVisibleProperties.props</c>. Only a build of a project that consumes the package exercises
 /// that, and the target name is the part that was wrong the first time.
 /// </remarks>
-public sealed class ImmutableMsBuildTypeListTests
+public sealed class ImmutableMsBuildTypeListTests : ImmutabilityTestBase
 {
-    private static readonly MetadataReference[] _references =
-    [
-        MetadataReference.CreateFromFile( typeof(object).Assembly.Location ),
-        MetadataReference.CreateFromFile(
-            Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "netstandard.dll" ) ),
-        MetadataReference.CreateFromFile(
-            Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Runtime.dll" ) ),
-        MetadataReference.CreateFromFile(
-            Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Collections.dll" ) ),
-        MetadataReference.CreateFromFile(
-            Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Text.RegularExpressions.dll" ) ),
-        MetadataReference.CreateFromFile( typeof(ImmutableTypeAttribute).Assembly.Location ),
-        MetadataReference.CreateFromFile( typeof(Metalama.Framework.Aspects.IAspect).Assembly.Location )
-    ];
-
     private const string _code = """
                                  using Metalama.Framework.Utilities;
 
@@ -58,33 +42,36 @@ public sealed class ImmutableMsBuildTypeListTests
                                  class Marked { }
                                  """;
 
-    private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(
+    private Task<ImmutableArray<Diagnostic>> GetDiagnosticsWithItemsAsync(
         string? immutableTypes,
         string? contractTypes = null,
         string? code = null,
         string? enforce = null )
     {
-        var compilation = CSharpCompilation.Create(
-            "TestAssembly",
-            [CSharpSyntaxTree.ParseText( code ?? _code, new CSharpParseOptions( LanguageVersion.CSharp12 ) )],
-            _references,
-            new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
+        var properties = new Dictionary<string, string>();
 
-        var options = new AnalyzerOptions(
-            ImmutableArray<AdditionalText>.Empty,
-            new TestOptionsProvider( immutableTypes, contractTypes, enforce ) );
+        if ( immutableTypes != null )
+        {
+            properties["MetalamaImmutableTypes"] = immutableTypes;
+        }
 
-        var diagnostics = await compilation
-            .WithAnalyzers( ImmutableArray.Create<DiagnosticAnalyzer>( new ImmutableContractAnalyzer() ), options )
-            .GetAnalyzerDiagnosticsAsync();
+        if ( contractTypes != null )
+        {
+            properties["MetalamaImmutableContractTypes"] = contractTypes;
+        }
 
-        return diagnostics.Where( d => d.Id.StartsWith( "LAMA088", StringComparison.Ordinal ) ).ToImmutableArray();
+        if ( enforce != null )
+        {
+            properties["MetalamaEnforceImmutabilityContract"] = enforce;
+        }
+
+        return this.GetDiagnosticsAsync( code ?? _code, properties );
     }
 
     [Fact]
     public async Task WithoutTheItem_AnUnknownTypeIsMutable()
     {
-        var diagnostics = await GetDiagnosticsAsync( null );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( null );
 
         Assert.Single( diagnostics );
         Assert.Contains( "Opaque", diagnostics[0].GetMessage(), StringComparison.Ordinal );
@@ -93,7 +80,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task MetalamaImmutableType_MakesTheTypeImmutable()
     {
-        var diagnostics = await GetDiagnosticsAsync( "Opaque" );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( "Opaque" );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -101,7 +88,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task TheListIsSemicolonSeparatedAndTrimmed()
     {
-        var diagnostics = await GetDiagnosticsAsync( " System.String ; Opaque ; " );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( " System.String ; Opaque ; " );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -113,7 +100,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task AMistypedTypeName_IsReported()
     {
-        var diagnostics = await GetDiagnosticsAsync( "System.Text.RegularExpressions.Regexx" );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( "System.Text.RegularExpressions.Regexx" );
 
         Assert.Contains( diagnostics, d => d.Id == "LAMA0885" );
         Assert.Contains( diagnostics, d => d.GetMessage().Contains( "MetalamaImmutableType", StringComparison.Ordinal ) );
@@ -122,7 +109,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task AGenericNameWithoutItsArity_IsReported()
     {
-        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List" );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( "System.Collections.Generic.List" );
 
         Assert.Contains( diagnostics, d => d.Id == "LAMA0885" );
     }
@@ -130,7 +117,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task AGenericNameWithItsArity_IsNotReported()
     {
-        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List`1" );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( "System.Collections.Generic.List`1" );
 
         Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0885" );
     }
@@ -151,11 +138,11 @@ public sealed class ImmutableMsBuildTypeListTests
                             }
                             """;
 
-        var withoutTheItem = await GetDiagnosticsAsync( null, null, code );
+        var withoutTheItem = await this.GetDiagnosticsWithItemsAsync( null, null, code );
 
         Assert.Empty( withoutTheItem.Select( d => d.GetMessage() ) );
 
-        var withTheItem = await GetDiagnosticsAsync( null, "IValidator", code );
+        var withTheItem = await this.GetDiagnosticsWithItemsAsync( null, "IValidator", code );
 
         Assert.Single( withTheItem );
         Assert.Equal( "LAMA0880", withTheItem[0].Id );
@@ -173,11 +160,11 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task MetalamaEnforceImmutabilityContractFalse_SilencesEverything()
     {
-        var enforced = await GetDiagnosticsAsync( null );
+        var enforced = await this.GetDiagnosticsWithItemsAsync( null );
 
         Assert.NotEmpty( enforced );
 
-        var notEnforced = await GetDiagnosticsAsync( null, null, null, "false" );
+        var notEnforced = await this.GetDiagnosticsWithItemsAsync( null, null, null, "false" );
 
         Assert.Empty( notEnforced.Select( d => d.GetMessage() ) );
     }
@@ -189,44 +176,8 @@ public sealed class ImmutableMsBuildTypeListTests
     [InlineData( "not-a-boolean" )]
     public async Task AnyOtherValueOfTheSwitch_LeavesTheContractEnforced( string value )
     {
-        var diagnostics = await GetDiagnosticsAsync( null, null, null, value );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( null, null, null, value );
 
         Assert.NotEmpty( diagnostics );
-    }
-
-    /// <summary>
-    /// Supplies the compiler-visible properties that the build would otherwise compute.
-    /// </summary>
-    private sealed class TestOptionsProvider(
-        string? immutableTypes,
-        string? contractTypes,
-        string? enforce ) : AnalyzerConfigOptionsProvider
-    {
-        public override AnalyzerConfigOptions GlobalOptions { get; } = new TestOptions( immutableTypes, contractTypes, enforce );
-
-        public override AnalyzerConfigOptions GetOptions( SyntaxTree tree ) => TestOptions.Empty;
-
-        public override AnalyzerConfigOptions GetOptions( AdditionalText textFile ) => TestOptions.Empty;
-
-        private sealed class TestOptions(
-            string? immutableTypes,
-            string? contractTypes,
-            string? enforce ) : AnalyzerConfigOptions
-        {
-            public static readonly TestOptions Empty = new( null, null, null );
-
-            public override bool TryGetValue( string key, [NotNullWhen( true )] out string? value )
-            {
-                value = key switch
-                {
-                    "build_property.MetalamaImmutableTypes" => immutableTypes,
-                    "build_property.MetalamaImmutableContractTypes" => contractTypes,
-                    "build_property.MetalamaEnforceImmutabilityContract" => enforce,
-                    _ => null
-                };
-
-                return value != null;
-            }
-        }
     }
 }

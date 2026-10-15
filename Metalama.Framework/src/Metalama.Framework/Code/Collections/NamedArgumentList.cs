@@ -14,10 +14,7 @@ internal sealed class NamedArgumentList : INamedArgumentList
 {
     private readonly IReadOnlyList<KeyValuePair<string, TypedConstant>> _arguments;
 
-    // This instance wraps an empty immutable array, and the type exposes no member that modifies it.
-#pragma warning disable LAMA0890
     public static NamedArgumentList Empty { get; } = new( null );
-#pragma warning restore LAMA0890
 
     internal NamedArgumentList( IReadOnlyList<KeyValuePair<string, TypedConstant>>? arguments )
     {

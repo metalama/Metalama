@@ -2,17 +2,24 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers.Immutability;
+using Metalama.Framework.Engine.Templating.Immutability;
+using System;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
-/// Tests the rule of <see cref="ImmutableContractAnalyzer"/> that reports the static fields and static automatic
+/// Tests the rule of <see cref="ImmutabilityValidator"/> that reports the static fields and static automatic
 /// properties of compile-time and run-time-or-compile-time types (LAMA0889, LAMA0890 and LAMA0891).
 /// </summary>
-public sealed class ImmutableStaticFieldTests : ImmutableAnalyzerTestBase
+public sealed class ImmutableStaticFieldTests : ImmutabilityTestBase
 {
+    /// <summary>
+    /// Gets a value indicating that the fragments declare the scope of each type themselves.
+    /// </summary>
+    private protected override bool IsCompileTimeAssembly => false;
+
     private const string _scopePrologue = _prologue + """
                                                       using Metalama.Framework.Aspects;
                                                       using Metalama.Framework.Diagnostics;

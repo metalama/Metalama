@@ -508,9 +508,8 @@ namespace Metalama.Framework.Analyzers.Durability
         /// of its instance fields, and which a construction of that type must therefore supply durably.
         /// </summary>
         /// <remarks>
-        /// The computation is in <see cref="SymbolFacts.ComputeStoredTypeParameters"/>, which the immutability
-        /// contract of this same assembly needs for the same reason. The cache stays here, because it holds symbols
-        /// and must therefore die with the compilation.
+        /// The computation is in <see cref="SymbolFacts.ComputeStoredTypeParameters"/>. The cache stays here, because it
+        /// holds symbols and must therefore be released with the compilation.
         /// </remarks>
         private StoredTypeParameters GetStoredTypeParameters( INamedTypeSymbol definition )
         {

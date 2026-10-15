@@ -2,23 +2,25 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers.Immutability;
+using Metalama.Framework.Engine.Templating.Immutability;
+using System;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
-/// The rule table of <see cref="ImmutableContractAnalyzer"/>, one fact per row.
+/// The rule table of <see cref="ImmutabilityValidator"/>, one fact per row.
 /// </summary>
-public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
+public sealed class ImmutableTypeTests : ImmutabilityTestBase
 {
     // ------------------------------------------------------------------------------------------------------------
     // LAMA0880 and LAMA0881: writeable members. One predicate produces both.
     // ------------------------------------------------------------------------------------------------------------
 
 /// <remarks>
-    /// Reported at the declaration only because the field is public, so the analyzer cannot see every assignment to
-    /// it. A private field that is not read-only is accepted here and checked at its write sites instead, which
+    /// Reported at the declaration only because the field is public, so not every assignment to it can be
+    /// seen. A private field that is not read-only is accepted here and checked at its write sites instead, which
     /// <see cref="ImmutableWriteSiteTests"/> covers.
     /// </remarks>
     [Fact]
@@ -41,9 +43,13 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     public async Task ReadOnlyField_IsNotReported()
         => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private readonly int _count; }" );
 
+    /// <remarks>
+    /// The contract on instance members does not apply to a static field. The field is reported by the rule on the static
+    /// members of compile-time types, because the fragments of these tests are compiled in a compile-time assembly.
+    /// </remarks>
     [Fact]
-    public async Task StaticField_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private static int _count; }" );
+    public async Task StaticField_IsReportedOnlyByTheStaticMemberRule()
+        => await AssertSingleDiagnosticAsync( _prologue + "[ImmutableType] class C { private static int _count; }", "LAMA0889" );
 
     [Fact]
     public async Task ConstField_IsNotReported()

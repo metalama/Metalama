@@ -4,17 +4,15 @@
 
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Analyzers.Immutability
+namespace Metalama.Framework.Engine.Templating.Immutability
 {
     /// <summary>
     /// The result of evaluating the immutability of a type, with the chain of members and types that explains a
     /// negative verdict.
     /// </summary>
     /// <remarks>
-    /// The chain holds strings and never symbols. A diagnostic is retained by Roslyn for as long as the compilation
-    /// that produced it, so an analyzer that reported a symbol as a message argument would keep that symbol alive.
-    /// That is the discipline the sibling <c>Durable</c> contract of this same assembly exists to enforce, and it
-    /// applies to this analyzer too.
+    /// The chain holds strings and never symbols. A diagnostic can be retained for longer than the compilation that
+    /// produced it, so a symbol passed as a message argument would keep that compilation alive.
     /// </remarks>
     internal sealed class ImmutabilityVerdict
     {

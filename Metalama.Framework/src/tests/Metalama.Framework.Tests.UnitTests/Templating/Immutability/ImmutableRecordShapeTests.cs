@@ -3,15 +3,18 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
 /// The shapes whose read-only-ness is not obvious from the source, and the compiler rule that the fix guidance of
 /// <c>LAMA0881</c> depends on.
 /// </summary>
-public sealed class ImmutableRecordShapeTests : ImmutableAnalyzerTestBase
+public sealed class ImmutableRecordShapeTests : ImmutabilityTestBase
 {
     [Fact]
     public async Task PositionalRecordClass_IsNotReported()
@@ -71,7 +74,10 @@ public sealed class ImmutableRecordShapeTests : ImmutableAnalyzerTestBase
     [Fact]
     public void InitOnlyProperty_IsAValidAttributeNamedArgument()
     {
-        var compilation = CreateCompilation(
+        using var testContext = this.CreateTestContext();
+
+        var compilation = this.CreateCompilation(
+            testContext,
             """
             using System;
 
