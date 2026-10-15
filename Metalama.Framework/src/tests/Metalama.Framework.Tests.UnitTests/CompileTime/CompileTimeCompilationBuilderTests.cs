@@ -2103,6 +2103,49 @@ public class MyAspect
         }
 
         /// <summary>
+        /// Regression test for issue #1986: when the <c>MetalamaTemplateLanguageVersion</c> property sets the template language version,
+        /// LAMA0232 names that property as the origin of the version. The aspect tests under <c>Tests/Aspects/LanguageVersion</c> cover
+        /// the message reported when the version comes from the language version of the compile-time code.
+        /// </summary>
+        [Fact]
+        public void TemplateLanguageVersionFromPropertyIsExplained()
+        {
+            var code = $$""""
+                         using Metalama.Framework.Aspects;
+
+                         namespace NS_{{Guid.NewGuid():N}};
+
+                         class Aspect : OverrideMethodAspect
+                         {
+                             public override dynamic? OverrideMethod()
+                             {
+                                 var message = """raw""";
+
+                                 return meta.Proceed();
+                             }
+                         }
+                         """";
+
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { TemplateLanguageVersion = "10.0" } );
+
+            var roslynCompilation = testContext.CreateCSharpCompilation( code );
+
+            var diagnostics = new DiagnosticBag();
+
+            using var domain = testContext.Domain;
+
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
+
+            var diagnostic = Assert.Single( diagnostics, d => d.Id == "LAMA0232" );
+
+            Assert.Equal(
+                "Template code must be compatible with C# 10.0, but this syntax requires a later version of C#. "
+                + "The version is C# 10.0 because the project sets the MetalamaTemplateLanguageVersion property to 10.0, "
+                + "so that the templates can be used from projects that compile with C# 10.0.",
+                diagnostic.GetMessage( CultureInfo.InvariantCulture ) );
+        }
+
+        /// <summary>
         /// Regression test for issue #700: Renaming a project with a case-only change (e.g., MetaLamaTest -> MetalamaTest)
         /// should not cause an AssertionFailedException due to assembly identity mismatch. The project hash includes
         /// the assembly name case-sensitively, so a case change produces a different hash and avoids cache collision.

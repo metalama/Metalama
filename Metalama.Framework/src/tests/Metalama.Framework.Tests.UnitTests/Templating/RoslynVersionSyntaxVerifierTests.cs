@@ -38,7 +38,7 @@ public sealed class RoslynVersionSyntaxVerifierTests : UnitTestClass
         Assert.DoesNotContain( parsedStatement.GetDiagnostics(), d => d.Severity == DiagnosticSeverity.Error );
 
         var diagnostics = new DiagnosticBag();
-        var verifier = new RoslynVersionSyntaxVerifier( diagnostics, maximalAcceptableLanguageVersion );
+        var verifier = new RoslynVersionSyntaxVerifier( diagnostics, maximalAcceptableLanguageVersion, isLanguageVersionFromProperty: false );
         verifier.Visit( parsedStatement );
 
         return (verifier.MaximalUsedVersion, diagnostics.ToArray());

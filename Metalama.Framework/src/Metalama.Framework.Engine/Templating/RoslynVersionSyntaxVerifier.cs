@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -18,23 +19,42 @@ internal sealed partial class RoslynVersionSyntaxVerifier : SafeSyntaxWalker
 {
     private readonly IDiagnosticAdder _diagnostics;
 
+    /// <summary>
+    /// A value indicating whether <see cref="MaximalAcceptableLanguageVersion"/> comes from the <c>MetalamaTemplateLanguageVersion</c>
+    /// MSBuild property. When it is <c>false</c>, the version is the language version of the compile-time code.
+    /// </summary>
+    private readonly bool _isLanguageVersionFromProperty;
+
     [UsedImplicitly]
     public LanguageVersion MaximalAcceptableLanguageVersion { get; }
 
     public RoslynApiVersion MaximalUsedVersion { get; private set; } = RoslynApiVersion.Lowest;
 
-    public RoslynVersionSyntaxVerifier( IDiagnosticAdder diagnostics, LanguageVersion maximalAcceptableLanguageVersion )
+    public RoslynVersionSyntaxVerifier(
+        IDiagnosticAdder diagnostics,
+        LanguageVersion maximalAcceptableLanguageVersion,
+        bool isLanguageVersionFromProperty )
     {
         this._diagnostics = diagnostics;
         this.MaximalAcceptableLanguageVersion = maximalAcceptableLanguageVersion;
+        this._isLanguageVersionFromProperty = isLanguageVersionFromProperty;
     }
 
     private void OnForbiddenSyntaxUsed( in SyntaxNodeOrToken node )
     {
+        var version = this.MaximalAcceptableLanguageVersion.ToDisplayStringSafe();
+
+        var explanation = this._isLanguageVersionFromProperty
+            ? $"The version is C# {version} because the project sets the {MSBuildPropertyNames.MetalamaTemplateLanguageVersion} property to {version}, "
+              + $"so that the templates can be used from projects that compile with C# {version}."
+            : $"The version is C# {version} because the compile-time code of the project is compiled with C# {version}, "
+              + "which is the LangVersion of the project capped by the version that the compiler toolset used to build the project supports. "
+              + $"Set the {MSBuildPropertyNames.MetalamaTemplateLanguageVersion} property to choose the version explicitly.";
+
         this._diagnostics.Report(
             TemplatingDiagnosticDescriptors.TemplateUsesUnsupportedLanguageVersion.CreateRoslynDiagnostic(
                 node.GetLocation(),
-                this.MaximalAcceptableLanguageVersion.ToDisplayStringSafe() ) );
+                (version, explanation) ) );
     }
 
     // ReSharper disable once UnusedMember.Local
