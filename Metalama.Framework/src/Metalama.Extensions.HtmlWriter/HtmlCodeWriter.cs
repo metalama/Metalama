@@ -585,9 +585,15 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
                 {
                     var id = DocumentationCommentId.CreateDeclarationId( symbol );
 
+                    if ( id == null )
+                    {
+                        return null;
+                    }
+
                     // Roslyn appends the return type of a method after '~'. The C# documentation id format, used by
                     // DocFx cross-reference maps, has it only for conversion operators, to distinguish their overloads.
-                    if ( symbol is IMethodSymbol { MethodKind: not MethodKind.Conversion } && id.IndexOf( '~' ) is var returnTypeIndex and > 0 )
+                    if ( symbol is IMethodSymbol { MethodKind: not MethodKind.Conversion }
+                         && id.IndexOf( "~", StringComparison.Ordinal ) is var returnTypeIndex and > 0 )
                     {
                         id = id.Substring( 0, returnTypeIndex );
                     }
