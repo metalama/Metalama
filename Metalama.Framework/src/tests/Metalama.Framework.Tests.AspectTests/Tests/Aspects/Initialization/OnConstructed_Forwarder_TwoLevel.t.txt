@@ -1,0 +1,7 @@
+OnConstructed BaseClass
+OnConstructed BaseClass
+OnConstructed DerivedClass
+OnConstructed BaseClass
+OnConstructed ExplicitDerivedClass
+OnConstructed BaseClass
+OnConstructed DerivedClass

@@ -1180,6 +1180,12 @@ public static class AdviserExtensions
     /// <param name="kind">The type of initializer to add.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields on the aspect type, used for cross-layer coordination.</param>
+    /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides which constructors receive a forwarding
+    ///     constructor when <paramref name="kind"/> is <see cref="InitializerKind.AfterLastInstanceConstructor"/>. A <c>null</c> value is interpreted as
+    ///     <see cref="ConstructorOverloadingStrategy.ForwardDefaultConstructor"/>, which keeps the parameterless constructor. Pass
+    ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> to keep every source constructor signature. This parameter must be
+    ///     <c>null</c> for other kinds. See <see cref="InitializerKind.AfterLastInstanceConstructor"/> for details.</param>
     /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     /// <remarks>
     /// <para>
@@ -1206,14 +1212,16 @@ public static class AdviserExtensions
         InitializerKind kind,
         object? args = null,
         object? tags = null,
-        IEnumerable<IField>? slotFields = null )
+        IEnumerable<IField>? slotFields = null,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
         => ((IAdviserInternal) adviser).AdviceFactory.AddInitializer(
             adviser.Target,
             template,
             kind,
             tags,
             args,
-            slotFields );
+            slotFields,
+            overloadingStrategy );
 
     /// <summary>
     /// Adds a type or instance initializer by using a template, specifying whether the initializer should run before or after the call to the base initializer.
@@ -1226,6 +1234,11 @@ public static class AdviserExtensions
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields on the aspect type, used for cross-layer coordination.</param>
+    /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides which constructors receive a forwarding
+    ///     constructor when <paramref name="kind"/> is <see cref="InitializerKind.AfterLastInstanceConstructor"/>. A <c>null</c> value is interpreted as
+    ///     <see cref="ConstructorOverloadingStrategy.ForwardDefaultConstructor"/>, which keeps the parameterless constructor. Pass
+    ///     <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/> to keep every source constructor signature. This parameter must be
+    ///     <c>null</c> for other kinds. See <see cref="InitializerKind.AfterLastInstanceConstructor"/> for details.</param>
     /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     /// <seealso cref="InitializerKind"/>
     /// <seealso cref="InitializerPosition"/>
@@ -1237,7 +1250,8 @@ public static class AdviserExtensions
         InitializerPosition position,
         object? args = null,
         object? tags = null,
-        IEnumerable<IField>? slotFields = null )
+        IEnumerable<IField>? slotFields = null,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
         => ((IAdviserInternal) adviser).AdviceFactory.AddInitializer(
             adviser.Target,
             template,
@@ -1245,7 +1259,8 @@ public static class AdviserExtensions
             position,
             tags,
             args,
-            slotFields );
+            slotFields,
+            overloadingStrategy );
 
     /// <summary>
     /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>.
@@ -1257,7 +1272,7 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     /// <remarks>
     /// This overload allows you to inject a programmatically constructed statement instead of using a template.
-    /// See <see cref="AddInitializer(IAdviser{INamedType}, string, InitializerKind, object?, object?, IEnumerable{IField}?)"/> for more details on initialization timing.
+    /// See <see cref="AddInitializer(IAdviser{INamedType}, string, InitializerKind, object?, object?, IEnumerable{IField}?, IConstructorOverloadingStrategy?)"/> for more details on initialization timing.
     /// </remarks>
     /// <seealso cref="InitializerKind"/>
     /// <seealso href="@initializers"/>

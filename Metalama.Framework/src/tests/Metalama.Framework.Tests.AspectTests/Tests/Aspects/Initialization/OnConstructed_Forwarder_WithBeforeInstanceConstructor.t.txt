@@ -1,0 +1,11 @@
+Document
+BeforeInstanceConstructor Document
+AfterLastInstanceConstructor Document
+Report
+BeforeInstanceConstructor Report
+AfterLastInstanceConstructor Report
+WeightedReport
+BeforeInstanceConstructor Report
+BeforeInstanceConstructor WeightedReport
+AfterLastInstanceConstructor Report
+AfterLastInstanceConstructor WeightedReport

@@ -1,12 +1,15 @@
 [TheAspect]
 public class TargetCode : BaseClass
 {
-  public TargetCode([AspectGenerated] InitializationContext context = default) : base(context.Descend(InitializationSlot.OnConstructed))
+  public TargetCode([AspectGenerated] InitializationContext context) : base(context.Descend(InitializationSlot.OnConstructed))
   {
     if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
+  }
+  public TargetCode() : this(context: default)
+  {
   }
   public override void OnConstructed(InitializationContext context = default)
   {

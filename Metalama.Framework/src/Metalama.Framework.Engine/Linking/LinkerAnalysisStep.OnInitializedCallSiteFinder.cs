@@ -121,6 +121,32 @@ internal sealed partial class LinkerAnalysisStep
                 this.VisitWithContainingSymbol( node, this._semanticModel.GetDeclaredSymbol( node ), base.VisitAccessorDeclaration );
             }
 
+            public override void VisitArrowExpressionClause( ArrowExpressionClauseSyntax node )
+            {
+                // An expression-bodied property or indexer has no accessor declaration: its expression body is the body
+                // of the getter. Attribute the call sites to the getter so that they are rewritten like those of a
+                // block-bodied getter. Arrow clauses of methods, accessors and other members are already inside a
+                // visited declaration.
+                if ( this._containingSymbol == null && this.GetExpressionBodiedGetter( node ) is { } getter )
+                {
+                    this.VisitWithContainingSymbol( node, getter, base.VisitArrowExpressionClause );
+                }
+                else
+                {
+                    base.VisitArrowExpressionClause( node );
+                }
+            }
+
+            private IMethodSymbol? GetExpressionBodiedGetter( ArrowExpressionClauseSyntax node )
+                => node.Parent?.Kind() switch
+                {
+                    SyntaxKind.PropertyDeclaration when node.Parent is PropertyDeclarationSyntax property =>
+                        this._semanticModel.GetDeclaredSymbol( property )?.GetMethod,
+                    SyntaxKind.IndexerDeclaration when node.Parent is IndexerDeclarationSyntax indexer =>
+                        this._semanticModel.GetDeclaredSymbol( indexer )?.GetMethod,
+                    _ => null
+                };
+
             public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
             {
                 var localFunctionSymbol = this._semanticModel.GetDeclaredSymbol( node );

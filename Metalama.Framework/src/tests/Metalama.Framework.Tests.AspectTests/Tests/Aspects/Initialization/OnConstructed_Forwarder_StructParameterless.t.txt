@@ -1,0 +1,5 @@
+OnConstructed ExplicitParameterless
+Value=1
+Value=0
+OnConstructed ImplicitParameterless
+Value=2
