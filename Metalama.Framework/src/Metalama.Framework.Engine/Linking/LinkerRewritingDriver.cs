@@ -253,6 +253,10 @@ internal sealed partial class LinkerRewritingDriver
                            ?? accessorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Operator is expected to have body or expression body: {accessorDecl}" );
 
+                // The getter of an expression-bodied property or indexer is declared by the arrow expression clause itself.
+                case SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpressionClause:
+                    return arrowExpressionClause;
+
                 default:
                     throw new AssertionFailedException( $"Unexpected redirection: '{symbol}'." );
             }
