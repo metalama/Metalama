@@ -4,7 +4,6 @@
 
 #if NET5_0_OR_GREATER
 using Metalama.Framework.Engine.Services;
-using SharpCrafters.Backstage.FileLocks;
 using System;
 using System.IO;
 using System.Reflection;

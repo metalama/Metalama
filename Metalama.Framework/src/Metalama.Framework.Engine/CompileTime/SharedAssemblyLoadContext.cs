@@ -4,7 +4,7 @@
 
 #if NET5_0_OR_GREATER
 using JetBrains.Annotations;
-using Metalama.Backstage.Utilities;
+using SharpCrafters.Backstage.FileLocks;
 using System;
 using System.Collections.Concurrent;
 using System.IO;

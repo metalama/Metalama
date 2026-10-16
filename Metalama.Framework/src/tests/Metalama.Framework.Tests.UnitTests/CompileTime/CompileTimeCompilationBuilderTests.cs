@@ -1574,7 +1574,12 @@ public class ReferencedClass
             var roslynCompilation = testContext.CreateCSharpCompilation( code );
 
             using var compileTimeDomain = testContext.Domain;
-            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, roslynCompilation ).AssertNotNull();
+            var loader = CompileTimeProjectRepository.Create(
+                    compileTimeDomain,
+                    testContext.ServiceProvider,
+                    roslynCompilation,
+                    cancellationToken: testContext.CancellationToken )
+                .AssertNotNull();
 
             var files = loader.RootProject.Manifest!.Files;
 
