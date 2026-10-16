@@ -30,6 +30,14 @@ public static class AspectLinkerDiagnosticDescriptors
             _category,
             Error );
 
+    internal static readonly DiagnosticDefinition<ISymbol>
+        InitializeNotCalledInExpressionTree = new(
+            "LAMA0656",
+            "The Initialize method is not called after an object creation expression in an expression tree.",
+            "The 'Initialize' method of '{0}' is not called after this object creation expression, because the expression is in a lambda expression converted to an expression tree, and an expression tree cannot contain this call.",
+            _category,
+            Warning );
+
     internal static readonly DiagnosticDefinition<(string AspectType, ISymbol TargetDeclaration)>
         DeclarationMustBeInlined = new(
             "LAMA0699",

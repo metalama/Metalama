@@ -58,6 +58,8 @@ public class Caller
 
         Expression<Func<IEnumerable<string>, IEnumerable<Document>>> nested = list => list.Select( title => new Document( title ) );
 
+        var query = from title in titles select new Document( title );
+
         Func<string, Document> createDelegate = title => new Document( title );
     }
 }
