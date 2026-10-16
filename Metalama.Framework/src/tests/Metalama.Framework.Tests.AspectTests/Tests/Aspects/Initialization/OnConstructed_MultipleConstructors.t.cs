@@ -2,7 +2,7 @@
 public class TargetCode
 {
   public int Value { get; }
-  public TargetCode([AspectGenerated] InitializationContext context = default) : this(0, context.Descend(InitializationSlot.OnConstructed))
+  public TargetCode([AspectGenerated] InitializationContext context) : this(0, context.Descend(InitializationSlot.OnConstructed))
   {
     if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
@@ -24,6 +24,9 @@ public class TargetCode
     {
       this.OnConstructed(context);
     }
+  }
+  public TargetCode() : this(context: default)
+  {
   }
   protected virtual void OnConstructed(InitializationContext context = default)
   {

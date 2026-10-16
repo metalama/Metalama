@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.ReflectionMocks;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using MethodBase = System.Reflection.MethodBase;
 
@@ -66,6 +67,10 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
     /// compile-time only: the original source constructor is still physically present in
     /// source at design time, so the source generator must not emit the clone.
     /// </summary>
+    /// <remarks>
+    /// The forwarding constructor of an implicit constructor keeps a <c>null</c> value, because the implicit
+    /// constructor is not present in the source code.
+    /// </remarks>
     public bool? IsDesignTimeObservableOverride { get; init; }
 
     public override bool IsDesignTimeObservable => this.IsDesignTimeObservableOverride ?? base.IsDesignTimeObservable;
@@ -130,10 +135,14 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
 
     public override bool IsExplicitInterfaceImplementation => false;
 
-    // ConstructorBuilder currently represents a default-shape constructor (either brand-new or
-    // replacing an implicit one). Its base call is to the parameterless base ctor — or, failing
-    // that, the unique accessible base ctor whose parameters are all optional.
-    public IConstructor? GetBaseConstructor() => BaseConstructorResolver.GetImplicitBaseConstructor( this.DeclaringType );
+    // A ConstructorBuilder with a `: this(...)` initializer (a forwarding constructor) chains to another constructor of
+    // the same type. Otherwise it represents a default-shape constructor (either brand-new or replacing an implicit one),
+    // whose base call is to the parameterless base ctor or, failing that, the unique accessible base ctor whose parameters
+    // are all optional.
+    public IConstructor? GetBaseConstructor()
+        => this.InitializerKind == ConstructorInitializerKind.This
+            ? BaseConstructorResolver.GetChainedThisConstructor( this, this.InitializerArguments.SelectAsArray( a => a.ParameterName ) )
+            : BaseConstructorResolver.GetImplicitBaseConstructor( this.DeclaringType );
 
     public override string Name
     {

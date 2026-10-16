@@ -3,14 +3,18 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
+using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
@@ -31,7 +35,7 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 /// signature of the constructor callable and forwards a strategy-supplied expression as the value of the
 /// newly introduced parameter.
 /// </summary>
-internal sealed class ForwardingConstructorHelper
+internal sealed partial class ForwardingConstructorHelper
 {
     private readonly AdviceImplementationContext _context;
     private readonly AspectLayerInstance _aspectLayerInstance;
@@ -57,14 +61,33 @@ internal sealed class ForwardingConstructorHelper
     public bool IsEnabled => this.OverloadingStrategy is not null;
 
     /// <summary>
+    /// Gets a value indicating whether a parameter introduced on a constructor that receives a forwarder must be
+    /// introduced without a default value. The value comes from
+    /// <see cref="IntroduceParameterPullStrategy.RequireParameterWhenForwarded"/>.
+    /// </summary>
+    public bool RequireParameterWhenForwarded => this._pullStrategy is IntroduceParameterPullStrategy { RequireParameterWhenForwarded: true };
+
+    /// <summary>
     /// Invoked after <paramref name="mutatedConstructor"/> has received <paramref name="introducedParameter"/>.
     /// If the overloading strategy asks for a forwarder, this method creates or extends one.
     /// </summary>
     public void ApplyForwarderIfNeeded( IConstructor mutatedConstructor, IParameter introducedParameter )
+        => this.ApplyForwarder( this.PlanForwarder( mutatedConstructor, introducedParameter ), mutatedConstructor, introducedParameter );
+
+    /// <summary>
+    /// Determines whether <paramref name="mutatedConstructor"/> will receive a forwarder when it receives
+    /// <paramref name="introducedParameter"/>, without adding any transformation.
+    /// </summary>
+    /// <remarks>
+    /// Call this method before the <see cref="ParameterBuilder"/> of <paramref name="introducedParameter"/> is frozen
+    /// when the default value of the parameter depends on the result (see <see cref="RequireParameterWhenForwarded"/>),
+    /// then pass the result to <see cref="ApplyForwarder"/>. The overloading strategy is evaluated only once.
+    /// </remarks>
+    public ForwardingPlan PlanForwarder( IConstructor mutatedConstructor, IParameter introducedParameter )
     {
         if ( !this.IsEnabled || this._pullStrategy is null )
         {
-            return;
+            return default;
         }
 
         // Compute pre-mutation parameters: the ones originating from source (aspect-introduced parameters
@@ -79,31 +102,90 @@ internal sealed class ForwardingConstructorHelper
         // the mutated constructor's required parameters.
         var existingForwarder = FindExistingForwarder( mutatedConstructor, preMutationParams );
 
+        // The new parameter is appended after the existing parameters. When one of them is optional, the new parameter
+        // cannot be required (CS1737), and a new forwarder with the pre-mutation signature would make the calls that omit
+        // the optional arguments ambiguous (CS0121). When the parameter is meant to be required on forwarded constructors,
+        // such a constructor therefore receives no new forwarder and keeps an optional parameter.
+        var hasOptionalParameter = mutatedConstructor.Parameters.Any( p => p.DefaultValue != null );
+
         if ( existingForwarder is not null )
         {
-            this.AppendForwarderArgument( existingForwarder, introducedParameter );
+            return new ForwardingPlan( existingForwarder, default, preMutationParams, hasOptionalParameter );
+        }
 
-            return;
+        if ( hasOptionalParameter && this.RequireParameterWhenForwarded )
+        {
+            return new ForwardingPlan( null, default, preMutationParams, hasOptionalParameter );
         }
 
         var action = this.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
 
-        if ( action.Kind == ConstructorOverloadingActionKind.None )
-        {
-            return;
-        }
+        return new ForwardingPlan( null, action, preMutationParams, hasOptionalParameter );
+    }
 
-        this.CreateForwarder( mutatedConstructor, preMutationParams, introducedParameter, action );
+    /// <summary>
+    /// Creates or extends the forwarder described by <paramref name="plan"/>, which was returned by
+    /// <see cref="PlanForwarder"/> for the same constructor and parameter.
+    /// </summary>
+    public void ApplyForwarder( in ForwardingPlan plan, IConstructor mutatedConstructor, IParameter introducedParameter )
+    {
+        if ( plan.ExistingForwarder is not null )
+        {
+            this.AppendForwarderArgument( plan.ExistingForwarder, introducedParameter );
+        }
+        else if ( plan.Action.Kind != ConstructorOverloadingActionKind.None )
+        {
+            this.CreateForwarder( mutatedConstructor, plan.PreMutationParameters!, introducedParameter, plan.Action );
+        }
     }
 
     private ConstructorOverloadingAction GetConstructorOverloadingAction( IConstructor mutatedConstructor, IParameter introducedParameter )
     {
+        // A constructor that replaces an implicit constructor is an aspect-generated declaration, but it stands for
+        // the implicit source constructor. Give the source constructor to the strategy, so that strategies that only
+        // forward source constructors also preserve an implicit parameterless constructor.
+        // Structs are excluded: a struct always has a parameterless constructor, which initializes the instance to its
+        // default value, so the implicit constructor of a struct does not need a forwarder. An explicit parameterless
+        // struct constructor would also change the meaning of `new S()` and require C# 10.
+        var logicalConstructor =
+            mutatedConstructor.DeclaringType.TypeKind != TypeKind.Struct
+            && GetReplacedImplicitConstructor( mutatedConstructor ) is { } replacedImplicitConstructor
+                ? replacedImplicitConstructor
+                : mutatedConstructor;
+
         using ( UserCodeExecutionContext.WithContext(
                    this._context.ServiceProvider,
                    this._context.MutableCompilation,
                    UserCodeDescription.Create( "executing GetConstructorOverloadingAction" ) ) )
         {
-            return this.OverloadingStrategy!.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
+            return this.OverloadingStrategy!.GetConstructorOverloadingAction( logicalConstructor, introducedParameter );
+        }
+    }
+
+    /// <summary>
+    /// Returns the implicit source constructor that <paramref name="constructor"/> replaces, or <c>null</c> when
+    /// <paramref name="constructor"/> does not replace an implicit constructor.
+    /// </summary>
+    /// <remarks>
+    /// An implicit constructor is replaced by a <see cref="ConstructorBuilder"/> when an advice must add code or parameters
+    /// to it. When an earlier advice has replaced it (for instance a <c>BeforeInstanceConstructor</c> initializer), the
+    /// current advice receives an <see cref="IntroducedConstructor"/> instead, whose builder data references the implicit
+    /// constructor. The reference resolves to the replacement, so the implicit constructor is created from its symbol.
+    /// </remarks>
+    private static IConstructor? GetReplacedImplicitConstructor( IConstructor constructor )
+    {
+        switch ( constructor )
+        {
+            case ConstructorBuilder { ReplacedImplicitConstructor: { } replaced }:
+                return replaced is SourceConstructor ? replaced : GetReplacedImplicitConstructor( replaced );
+
+            case IntroducedConstructor { BuilderData: ConstructorBuilderData { ReplacedImplicitConstructor: { } replacedRef } } introduced:
+                return replacedRef is ISymbolRef { Symbol: Microsoft.CodeAnalysis.IMethodSymbol implicitConstructorSymbol }
+                    ? new SourceConstructor( implicitConstructorSymbol, introduced.GetCompilationModel(), null )
+                    : null;
+
+            default:
+                return null;
         }
     }
 
@@ -114,9 +196,12 @@ internal sealed class ForwardingConstructorHelper
         // so a same-type ctor that is not the mutated one and whose parameter types/refkinds match
         // preMutationParams can only be the forwarder. The mutated constructor has a strictly larger
         // parameter count, so it is rejected by the count comparison.
+        // A forwarder is never implicitly declared. When the mutated constructor replaces an implicit constructor,
+        // the implicit constructor is still in the collection of the current compilation and has the
+        // pre-mutation signature, but it is the mutated constructor itself and not a forwarder.
         foreach ( var ctor in mutatedConstructor.DeclaringType.Constructors )
         {
-            if ( ctor.Parameters.Count != preMutationParams.Count )
+            if ( ctor.Parameters.Count != preMutationParams.Count || ctor.IsImplicitlyDeclared )
             {
                 continue;
             }
@@ -155,10 +240,14 @@ internal sealed class ForwardingConstructorHelper
             IsStatic = false,
             InitializerKind = ConstructorInitializerKind.This,
 
-            // The original source constructor is still physically present in the user's source at design time,
+            // An explicit source constructor is still physically present in the user's source at design time,
             // so the source generator must not emit the forwarding constructor (it would collide). The forwarder
             // is only needed at compile time, when the source constructor has been mutated with the introduced parameter.
-            IsDesignTimeObservableOverride = false
+            // An implicit constructor is different: the design-time source generator declares the mutated constructor
+            // in a partial type, so the compiler no longer declares the implicit constructor. The forwarder must then
+            // be visible at design time, otherwise the parameterless constructor would disappear from the design-time
+            // compilation. A null value keeps the default behavior of introduced constructors.
+            IsDesignTimeObservableOverride = GetReplacedImplicitConstructor( mutatedConstructor ) != null ? null : false
         };
 
         // When the strategy asks for [Obsolete], emit it before copying source attributes so we can skip a
@@ -209,6 +298,11 @@ internal sealed class ForwardingConstructorHelper
         // The newly introduced parameter is excluded from this loop because the
         // advice transformation that adds it has not been flushed yet — we forward
         // it explicitly afterwards.
+        // The pull strategy of the current advice is designed for the parameter that this advice introduces. Another
+        // advice may have introduced the earlier parameter with a different type, for instance a dependency next to an
+        // InitializationContext. The expression of the current strategy is used only when its type is convertible to the
+        // type of the earlier parameter. Otherwise, an optional parameter receives no argument, so that its own default
+        // value applies, and a required parameter receives the default value of its type.
         foreach ( var aspectParameter in mutatedConstructor.Parameters
                      .Where( p => p.Origin.Kind == DeclarationOriginKind.Aspect && p.Name != introducedParameter.Name ) )
         {
@@ -217,6 +311,16 @@ internal sealed class ForwardingConstructorHelper
             if ( priorForwardingExpression is null )
             {
                 return;
+            }
+
+            if ( !priorForwardingExpression.Type.IsConvertibleTo( aspectParameter.Type ) )
+            {
+                if ( aspectParameter.DefaultValue != null )
+                {
+                    continue;
+                }
+
+                priorForwardingExpression = this.CreateDefaultForwarderExpression( aspectParameter, forwarderBuilder );
             }
 
             forwarderBuilder.AddInitializerArgument( priorForwardingExpression, aspectParameter.Name );
