@@ -27,6 +27,12 @@ internal sealed class AspectInstanceCollector
 
     public CompilationModel Compilation { get; }
 
+    /// <summary>
+    /// Gets the compilation at the start of the pipeline stage. Unlike <see cref="Compilation"/>, it does not contain the changes
+    /// of the aspects of the stage. Diagnostics use it to display declarations as the user wrote them.
+    /// </summary>
+    public CompilationModel InitialCompilation { get; }
+
     public IDiagnosticAdder Diagnostics { get; }
 
     public CancellationToken CancellationToken { get; }
@@ -34,11 +40,13 @@ internal sealed class AspectInstanceCollector
     public AspectInstanceCollector(
         IAspectClass aspectClass,
         CompilationModel compilation,
+        CompilationModel initialCompilation,
         IDiagnosticAdder diagnostics,
         CancellationToken cancellationToken )
     {
         this.AspectClass = aspectClass;
         this.Compilation = compilation;
+        this.InitialCompilation = initialCompilation;
         this.Diagnostics = diagnostics;
         this.CancellationToken = cancellationToken;
     }
