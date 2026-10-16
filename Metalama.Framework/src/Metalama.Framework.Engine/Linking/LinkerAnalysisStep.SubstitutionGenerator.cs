@@ -528,6 +528,17 @@ internal sealed partial class LinkerAnalysisStep
                                 reference.ParametersToFix ) );
                     }
                 }
+
+                // Add substitutions for IInitializable call site references in the inlined body.
+                // The original body of an overridden member is inlined into the override, so its call sites
+                // are not processed by ProcessNonInlinedSemantic.
+                if ( this._onInitializedCallSitesByContainingSemantic.TryGetValue( inliningSpecification.TargetSemantic, out var onInitializedCallSites ) )
+                {
+                    foreach ( var reference in onInitializedCallSites )
+                    {
+                        AddSubstitution( inliningSpecification.ContextIdentifier, this.CreateInitializerSubstitution( reference ) );
+                    }
+                }
             }
 
             await this._concurrentTaskRunner.RunConcurrentlyAsync( this._inliningSpecifications, ProcessInliningSpecification, cancellationToken );

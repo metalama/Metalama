@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetCode`: `'Exception of type 'System.ArgumentOutOfRangeException' thrown while executing BuildAspect for aspect [TheAspect] applied to 'TargetCode': An 'IConstructorOverloadingStrategy' can only be specified with 'InitializerKind.AfterLastInstanceConstructor'. (Parameter 'kind') Actual value was BeforeInstanceConstructor. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

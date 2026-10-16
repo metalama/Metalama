@@ -1,12 +1,15 @@
 [TheAspect]
 public class BaseClass
 {
-  public BaseClass([AspectGenerated] InitializationContext context = default)
+  public BaseClass([AspectGenerated] InitializationContext context)
   {
     if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
+  }
+  public BaseClass() : this(context: default)
+  {
   }
   protected virtual void OnConstructed(InitializationContext context = default)
   {
@@ -18,12 +21,15 @@ public class BaseClass
 }
 public class DerivedClass : BaseClass
 {
-  public DerivedClass([AspectGenerated] InitializationContext context = default) : base(context.Descend(InitializationSlot.OnConstructed))
+  public DerivedClass([AspectGenerated] InitializationContext context) : base(context.Descend(InitializationSlot.OnConstructed))
   {
     if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
+  }
+  public DerivedClass() : this(context: default)
+  {
   }
   protected override void OnConstructed(InitializationContext context = default)
   {

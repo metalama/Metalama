@@ -74,6 +74,28 @@ namespace Metalama.Framework.Advising
         /// <para>
         /// The <c>InitializationContext</c> parameter is pulled into constructors via the constructor parameter
         /// introduction mechanism (<see cref="IAdviceFactory.IntroduceParameter(Code.IConstructor, string, Code.IType, Code.TypedConstant, IPullStrategy, System.Collections.Immutable.ImmutableArray{Code.DeclarationBuilders.AttributeConstruction})">IAdviceFactory.IntroduceParameter</see>).
+        /// The parameter is added to every instance constructor of the target type, including an implicit constructor,
+        /// and to the constructors of derived types, also in other projects. This changes the signature of these constructors.
+        /// </para>
+        /// <para>
+        /// To keep the type constructible, the framework adds a forwarding constructor. The forwarding constructor has the
+        /// original signature and calls the mutated constructor with <c>: this(...)</c>, passing <c>default</c> for the
+        /// <c>InitializationContext</c> parameter. Which constructors receive a forwarding constructor is decided by the
+        /// <see cref="IConstructorOverloadingStrategy"/> passed to the <c>overloadingStrategy</c> parameter of
+        /// <see cref="IAdviceFactory.AddInitializer(Code.INamedType, string, InitializerKind, object, object, System.Collections.Generic.IEnumerable{Code.IField}, IConstructorOverloadingStrategy)">IAdviceFactory.AddInitializer</see>.
+        /// The default strategy is <see cref="ConstructorOverloadingStrategy.ForwardDefaultConstructor"/>: only the parameterless
+        /// constructor receives a forwarding constructor, so <see cref="System.Activator.CreateInstance(System.Type)"/>,
+        /// <see cref="System.Activator.CreateInstance{T}()"/>, the <c>new()</c> generic constraint and serializers that require a
+        /// parameterless constructor keep working. Pass <see cref="ConstructorOverloadingStrategy.ForwardSourceConstructors"/>
+        /// when other code creates instances by reflection with the original argument list of another constructor.
+        /// </para>
+        /// <para>
+        /// A constructor that receives a forwarding constructor gets a required <c>InitializationContext</c> parameter. Therefore,
+        /// reflection-based activators and dependency injection containers find a single constructor with the original
+        /// parameter list: the forwarding constructor. A constructor that does not receive a forwarding constructor gets an
+        /// optional <c>InitializationContext</c> parameter whose default value is <c>default</c>, so that source code can still
+        /// call it with its original argument list. Its signature in the compiled assembly is nevertheless different from
+        /// the source signature.
         /// </para>
         /// </remarks>
         /// <seealso href="@initializers"/>
@@ -104,7 +126,7 @@ namespace Metalama.Framework.Advising
         /// <see cref="RunTime.Initialization.InitializationContext"/> parameter to inspect caller intent,
         /// metadata (e.g. <see cref="RunTime.Initialization.InitializationMetadata.Modify"/> for
         /// <c>with</c> expressions), or coordination slots passed to the <c>slotFields</c> parameter of
-        /// <see cref="IAdviceFactory.AddInitializer(Code.INamedType, string, InitializerKind, object, object, System.Collections.Generic.IEnumerable{Code.IField})">IAdviceFactory.AddInitializer</see>.
+        /// <see cref="IAdviceFactory.AddInitializer(Code.INamedType, string, InitializerKind, object, object, System.Collections.Generic.IEnumerable{Code.IField}, IConstructorOverloadingStrategy)">IAdviceFactory.AddInitializer</see>.
         /// </para>
         /// </remarks>
         /// <seealso cref="AfterLastInstanceConstructor"/>

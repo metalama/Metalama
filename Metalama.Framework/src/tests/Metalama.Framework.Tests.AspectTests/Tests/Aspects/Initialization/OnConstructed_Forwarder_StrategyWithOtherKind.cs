@@ -1,0 +1,37 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+#if TEST_OPTIONS
+// @RequiredConstant(NET5_0_OR_GREATER) - The message of ArgumentOutOfRangeException is formatted differently in .NET Framework
+#endif
+
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+using System;
+
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Initialization.OnConstructed_Forwarder_StrategyWithOtherKind;
+
+public class TheAspect : TypeAspect
+{
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
+    {
+        builder.AddInitializer(
+            nameof(InitializerTemplate),
+            InitializerKind.BeforeInstanceConstructor,
+            overloadingStrategy: ConstructorOverloadingStrategy.ForwardSourceConstructors );
+    }
+
+    [Template]
+    private void InitializerTemplate()
+    {
+        Console.WriteLine( "Initializing" );
+    }
+}
+
+// <target>
+[TheAspect]
+public class TargetCode
+{
+}
