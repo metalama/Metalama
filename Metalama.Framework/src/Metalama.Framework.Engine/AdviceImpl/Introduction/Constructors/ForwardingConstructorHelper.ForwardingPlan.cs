@@ -17,15 +17,24 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors
         /// <param name="ExistingForwarder">A forwarder created by an earlier advice, which receives the new argument, or <c>null</c>.</param>
         /// <param name="Action">The action returned by the overloading strategy when there is no existing forwarder.</param>
         /// <param name="PreMutationParameters">The source parameters of the mutated constructor.</param>
+        /// <param name="HasOptionalParameter">A value indicating whether the mutated constructor already has an optional parameter.</param>
         public readonly record struct ForwardingPlan(
             IConstructor? ExistingForwarder,
             ConstructorOverloadingAction Action,
-            IReadOnlyList<IParameter>? PreMutationParameters )
+            IReadOnlyList<IParameter>? PreMutationParameters,
+            bool HasOptionalParameter = false )
         {
             /// <summary>
             /// Gets a value indicating whether the mutated constructor has a forwarder after <see cref="ApplyForwarder"/> runs.
             /// </summary>
             public bool HasForwarder => this.ExistingForwarder != null || this.Action.Kind != ConstructorOverloadingActionKind.None;
+
+            /// <summary>
+            /// Gets a value indicating whether the introduced parameter can be introduced without a default value. This is the case
+            /// when the mutated constructor has a forwarder and no optional parameter, because a required parameter cannot follow an
+            /// optional parameter.
+            /// </summary>
+            public bool CanRequireParameter => this.HasForwarder && !this.HasOptionalParameter;
         }
     }
 }

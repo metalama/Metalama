@@ -102,14 +102,25 @@ internal sealed partial class ForwardingConstructorHelper
         // the mutated constructor's required parameters.
         var existingForwarder = FindExistingForwarder( mutatedConstructor, preMutationParams );
 
+        // The new parameter is appended after the existing parameters. When one of them is optional, the new parameter
+        // cannot be required (CS1737), and a new forwarder with the pre-mutation signature would make the calls that omit
+        // the optional arguments ambiguous (CS0121). When the parameter is meant to be required on forwarded constructors,
+        // such a constructor therefore receives no new forwarder and keeps an optional parameter.
+        var hasOptionalParameter = mutatedConstructor.Parameters.Any( p => p.DefaultValue != null );
+
         if ( existingForwarder is not null )
         {
-            return new ForwardingPlan( existingForwarder, default, preMutationParams );
+            return new ForwardingPlan( existingForwarder, default, preMutationParams, hasOptionalParameter );
+        }
+
+        if ( hasOptionalParameter && this.RequireParameterWhenForwarded )
+        {
+            return new ForwardingPlan( null, default, preMutationParams, hasOptionalParameter );
         }
 
         var action = this.GetConstructorOverloadingAction( mutatedConstructor, introducedParameter );
 
-        return new ForwardingPlan( null, action, preMutationParams );
+        return new ForwardingPlan( null, action, preMutationParams, hasOptionalParameter );
     }
 
     /// <summary>
@@ -287,6 +298,11 @@ internal sealed partial class ForwardingConstructorHelper
         // The newly introduced parameter is excluded from this loop because the
         // advice transformation that adds it has not been flushed yet — we forward
         // it explicitly afterwards.
+        // The pull strategy of the current advice is designed for the parameter that this advice introduces. Another
+        // advice may have introduced the earlier parameter with a different type, for instance a dependency next to an
+        // InitializationContext. The expression of the current strategy is used only when its type is convertible to the
+        // type of the earlier parameter. Otherwise, an optional parameter receives no argument, so that its own default
+        // value applies, and a required parameter receives the default value of its type.
         foreach ( var aspectParameter in mutatedConstructor.Parameters
                      .Where( p => p.Origin.Kind == DeclarationOriginKind.Aspect && p.Name != introducedParameter.Name ) )
         {
@@ -295,6 +311,16 @@ internal sealed partial class ForwardingConstructorHelper
             if ( priorForwardingExpression is null )
             {
                 return;
+            }
+
+            if ( !priorForwardingExpression.Type.IsConvertibleTo( aspectParameter.Type ) )
+            {
+                if ( aspectParameter.DefaultValue != null )
+                {
+                    continue;
+                }
+
+                priorForwardingExpression = this.CreateDefaultForwarderExpression( aspectParameter, forwarderBuilder );
             }
 
             forwarderBuilder.AddInitializerArgument( priorForwardingExpression, aspectParameter.Name );

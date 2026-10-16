@@ -212,10 +212,18 @@ internal sealed class PullConstructorParameterAdviceImpl
 
         if ( !this._onlyProcessDerivedTypes )
         {
-            // Process the current type.
+            // Process the current type. An aspect-introduced `: this(...)` constructor is typically a forwarding constructor
+            // created by an earlier advice. When the current advice has a forwarding helper, the helper gives the new
+            // argument to that forwarder (ForwardingConstructorHelper.PlanForwarder), so the pull must not process it a
+            // second time. Without a forwarding helper, the pull introduces the parameter on the forwarder like on any
+            // other chained constructor, so that the forwarder keeps passing the value to the mutated constructor.
+            var skipIntroducedForwarders = this._forwardingHelper is { IsEnabled: true };
+
             ProcessType(
                 baseConstructor.DeclaringType.Constructors
-                    .Where( c => c.InitializerKind == ConstructorInitializerKind.This ) );
+                    .Where(
+                        c => c.InitializerKind == ConstructorInitializerKind.This
+                             && !(skipIntroducedForwarders && c.Origin.Kind == DeclarationOriginKind.Aspect) ) );
 
             // Register a transitive aspect for the current type.
             if ( this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy && baseConstructor.CanBeChainedFromOutsideAssembly() )
@@ -385,7 +393,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                         // because a forwarded constructor may require the parameter to have no default value.
                         var forwardingPlan = this._forwardingHelper?.PlanForwarder( initializedChainedConstructor, recursiveParameterBuilder ) ?? default;
 
-                        if ( forwardingPlan.HasForwarder && this._forwardingHelper!.RequireParameterWhenForwarded )
+                        if ( forwardingPlan.CanRequireParameter && this._forwardingHelper!.RequireParameterWhenForwarded )
                         {
                             recursiveParameterBuilder.DefaultValue = null;
                         }
