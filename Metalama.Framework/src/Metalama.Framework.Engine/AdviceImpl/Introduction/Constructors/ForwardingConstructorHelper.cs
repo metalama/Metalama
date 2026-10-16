@@ -10,8 +10,11 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
@@ -134,8 +137,8 @@ internal sealed partial class ForwardingConstructorHelper
         // default value, so the implicit constructor of a struct does not need a forwarder. An explicit parameterless
         // struct constructor would also change the meaning of `new S()` and require C# 10.
         var logicalConstructor =
-            mutatedConstructor is ConstructorBuilder { ReplacedImplicitConstructor: { } replacedImplicitConstructor }
-            && mutatedConstructor.DeclaringType.TypeKind != TypeKind.Struct
+            mutatedConstructor.DeclaringType.TypeKind != TypeKind.Struct
+            && GetReplacedImplicitConstructor( mutatedConstructor ) is { } replacedImplicitConstructor
                 ? replacedImplicitConstructor
                 : mutatedConstructor;
 
@@ -145,6 +148,33 @@ internal sealed partial class ForwardingConstructorHelper
                    UserCodeDescription.Create( "executing GetConstructorOverloadingAction" ) ) )
         {
             return this.OverloadingStrategy!.GetConstructorOverloadingAction( logicalConstructor, introducedParameter );
+        }
+    }
+
+    /// <summary>
+    /// Returns the implicit source constructor that <paramref name="constructor"/> replaces, or <c>null</c> when
+    /// <paramref name="constructor"/> does not replace an implicit constructor.
+    /// </summary>
+    /// <remarks>
+    /// An implicit constructor is replaced by a <see cref="ConstructorBuilder"/> when an advice must add code or parameters
+    /// to it. When an earlier advice has replaced it (for instance a <c>BeforeInstanceConstructor</c> initializer), the
+    /// current advice receives an <see cref="IntroducedConstructor"/> instead, whose builder data references the implicit
+    /// constructor. The reference resolves to the replacement, so the implicit constructor is created from its symbol.
+    /// </remarks>
+    private static IConstructor? GetReplacedImplicitConstructor( IConstructor constructor )
+    {
+        switch ( constructor )
+        {
+            case ConstructorBuilder { ReplacedImplicitConstructor: { } replaced }:
+                return replaced is SourceConstructor ? replaced : GetReplacedImplicitConstructor( replaced );
+
+            case IntroducedConstructor { BuilderData: ConstructorBuilderData { ReplacedImplicitConstructor: { } replacedRef } } introduced:
+                return replacedRef is ISymbolRef { Symbol: Microsoft.CodeAnalysis.IMethodSymbol implicitConstructorSymbol }
+                    ? new SourceConstructor( implicitConstructorSymbol, introduced.GetCompilationModel(), null )
+                    : null;
+
+            default:
+                return null;
         }
     }
 
@@ -206,7 +236,7 @@ internal sealed partial class ForwardingConstructorHelper
             // in a partial type, so the compiler no longer declares the implicit constructor. The forwarder must then
             // be visible at design time, otherwise the parameterless constructor would disappear from the design-time
             // compilation. A null value keeps the default behavior of introduced constructors.
-            IsDesignTimeObservableOverride = mutatedConstructor is ConstructorBuilder { ReplacedImplicitConstructor: not null } ? null : false
+            IsDesignTimeObservableOverride = GetReplacedImplicitConstructor( mutatedConstructor ) != null ? null : false
         };
 
         // When the strategy asks for [Obsolete], emit it before copying source attributes so we can skip a
