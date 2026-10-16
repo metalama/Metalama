@@ -40,7 +40,7 @@ namespace Metalama.Framework.Code;
 /// <seealso cref="IDeclaration.ToSerializableId"/>
 /// <seealso href="@aspect-serialization"/>
 [CompileTime]
-public readonly struct SerializableDeclarationId : IEquatable<SerializableDeclarationId>
+public readonly struct SerializableDeclarationId : IEquatable<SerializableDeclarationId>, IComparable<SerializableDeclarationId>
 {
     /// <summary>
     /// Gets the string identifier for this declaration.
@@ -64,6 +64,13 @@ public readonly struct SerializableDeclarationId : IEquatable<SerializableDeclar
 
     /// <inheritdoc />
     public override int GetHashCode() => StringComparer.Ordinal.GetHashCode( this.Id );
+
+    /// <summary>
+    /// Compares this identifier with another one by the ordinal value of their <see cref="Id"/> strings.
+    /// </summary>
+    /// <param name="other">The identifier to compare with this identifier.</param>
+    /// <returns>A negative number if this identifier precedes <paramref name="other"/>, zero if both are equal, and a positive number otherwise.</returns>
+    public int CompareTo( SerializableDeclarationId other ) => string.CompareOrdinal( this.Id, other.Id );
 
     /// <summary>
     /// Determines whether two <see cref="SerializableDeclarationId"/> instances are equal.

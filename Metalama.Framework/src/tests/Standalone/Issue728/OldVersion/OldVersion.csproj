@@ -12,4 +12,10 @@
     <PackageReference Include="Metalama.Framework" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- This project must reference an old version of Metalama.Framework, and NuGet reports an advisory against that
+         version (NU1902). The test reports every unexpected diagnostic, so the advisory is suppressed here. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-m6wq-39m7-9xpp" />
+  </ItemGroup>
+
 </Project>
