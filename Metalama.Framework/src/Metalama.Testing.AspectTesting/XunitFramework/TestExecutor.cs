@@ -96,6 +96,9 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             var hasLaunchedDebugger = false;
             var directoryOptionsReader = new TestDirectoryOptionsReader( this._serviceProvider, this._factory.ProjectProperties.SourceDirectory );
 
+            // The registry is created for each run, so that a new run writes the files again.
+            var outputFileRegistry = new TestOutputFileRegistry();
+
             var collections = testCasesList.GroupBy( t => t.TestMethod.TestClass.TestCollection );
 
             var tasks = new ConcurrentDictionary<Task, Task>();
@@ -219,6 +222,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                                         SendMessage,
                                         projectReferences,
                                         directoryOptionsReader,
+                                        outputFileRegistry,
                                         testCase,
                                         test,
                                         testMetrics,
@@ -233,6 +237,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                                         SendMessage,
                                         projectReferences,
                                         directoryOptionsReader,
+                                        outputFileRegistry,
                                         testCase,
                                         test,
                                         testMetrics,
@@ -279,6 +284,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             Action<IMessageSinkMessage> sendMessage,
             TestProjectReferences projectReferences,
             TestDirectoryOptionsReader directoryOptionsReader,
+            TestOutputFileRegistry outputFileRegistry,
             ITestCase testCase,
             Test test,
             Metrics testMetrics,
@@ -324,6 +330,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                         var serviceProvider = this._serviceProvider.Underlying
                             .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
                             .WithService( new RandomNumberProvider( firstSeed ), true )
+                            .WithService( outputFileRegistry )
                             .WithServiceConditional<IExtensionLoader>( sp => new TestExtensionLoader( sp, testOptions ) )
                             .WithDisjointSharedServices();
 
@@ -351,7 +358,8 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                             var serviceProvider = this._serviceProvider.Underlying
                                 .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
-                                .WithService( new RandomNumberProvider( seed ) );
+                                .WithService( new RandomNumberProvider( seed ) )
+                                .WithService( outputFileRegistry );
 
                             var testRunner = TestRunnerFactory.CreateTestRunner(
                                 testInput,
