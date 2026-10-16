@@ -63,10 +63,10 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
     /// serialization format, a supported Roslyn version or the name of an assembly changes.
     /// </para>
     /// </remarks>
-#if ROSLYN_4_12_0 && NET
-    private const string _expectedInheritableAspectPayloadHash = "31eda399466016f0d946838a90d6c5a41a2b71310744e7f3503a8b99abe8b837";
-#elif ROSLYN_4_12_0
-    private const string _expectedInheritableAspectPayloadHash = "6e481330eeb620f59c43530f648c470ca699b8ab1acce3acb9859bb7e8551e5d";
+#if ROSLYN_5_12_0_OR_GREATER && NET
+    private const string _expectedInheritableAspectPayloadHash = "634e1cbe0b41989e30fbfa17e6a3bf66ca64bc94634591486d53e7d1f83dcbd3";
+#elif ROSLYN_5_12_0_OR_GREATER
+    private const string _expectedInheritableAspectPayloadHash = "29c76b28490f997fb574700c0f6b2c19f984124251d79bf77a3dc7ad6d899b4a";
 #elif NET
     private const string _expectedInheritableAspectPayloadHash = "c75fcb4929ccdb96c0f68a3e6182ffb766a71fbfe0233a880aedc7c8c266ffff";
 #else
@@ -145,7 +145,7 @@ public sealed class ManagedResourceDeterminismTests : UnitTestClass
     }
 
     private static async Task<IReadOnlyDictionary<string, byte[]>> GetResourcesAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         IEnumerable<KeyValuePair<string, string>> orderedFiles )
     {
         var compilation = testContext.CreateCSharpCompilation( orderedFiles.ToDictionary( x => x.Key, x => x.Value ), assemblyName: "Producer" );
