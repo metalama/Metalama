@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
@@ -10,6 +11,7 @@ using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -59,12 +61,18 @@ internal static class OnConstructedEpilogueEmitter
     /// introduced and the recursive parameter pull is triggered. When <c>false</c> (cross-project path),
     /// missing parameters indicate a contract violation: the pull aspect should have run first via
     /// <see cref="PullConstructorParameterTransitiveAspect"/>; the constructor is silently skipped.</param>
+    /// <param name="overloadingStrategy">The strategy that decides which constructors that receive the
+    /// <see cref="InitializationContext"/> parameter also receive a forwarding constructor. It is used only when
+    /// <paramref name="registerPullFallback"/> is <c>true</c>, because the cross-project path introduces no parameter.</param>
+    /// <param name="owningAdvice">The advice that reports the diagnostics of the forwarding constructors.</param>
     public static void EmitForType(
         INamedType targetType,
         IType initContextType,
         AspectLayerInstance aspectLayerInstance,
         AdviceImplementationContext context,
-        bool registerPullFallback )
+        bool registerPullFallback,
+        IConstructorOverloadingStrategy? overloadingStrategy,
+        Advice owningAdvice )
     {
         var guardEpilogue = !targetType.IsSealed && targetType.TypeKind != TypeKind.Struct;
 
@@ -77,7 +85,14 @@ internal static class OnConstructedEpilogueEmitter
         // constructors), emits the epilogue, and emits the descend override for :base(...).
         foreach ( var sourceCtor in allConstructors.Where( c => c.InitializerKind != ConstructorInitializerKind.This ) )
         {
-            var ensured = EnsureOrFindContextParameter( sourceCtor, initContextType, aspectLayerInstance, context, registerPullFallback );
+            var ensured = EnsureOrFindContextParameter(
+                sourceCtor,
+                initContextType,
+                aspectLayerInstance,
+                context,
+                registerPullFallback,
+                overloadingStrategy,
+                owningAdvice );
 
             if ( ensured == null )
             {
@@ -126,6 +141,15 @@ internal static class OnConstructedEpilogueEmitter
 
         foreach ( var sourceCtor in allConstructors.Where( c => c.InitializerKind == ConstructorInitializerKind.This ) )
         {
+            // A forwarding constructor created by an earlier parameter pull has the pre-mutation signature and no
+            // InitializationContext parameter. It passes `default` to the mutated constructor, which runs the epilogue,
+            // so the forwarder itself must not receive an epilogue.
+            if ( sourceCtor.Origin.Kind == DeclarationOriginKind.Aspect
+                 && !sourceCtor.Parameters.Any( p => p.Type.Equals( initContextType ) ) )
+            {
+                continue;
+            }
+
             // The parameter was already introduced by the pull in Pass 1 but the constructor
             // object captured in allConstructors may not reflect it yet. Try to find an existing
             // parameter first; if not found, use the default name that the pull strategy used.
@@ -167,7 +191,9 @@ internal static class OnConstructedEpilogueEmitter
         IType initializationContextType,
         AspectLayerInstance aspectLayerInstance,
         AdviceImplementationContext context,
-        bool registerPullFallback )
+        bool registerPullFallback,
+        IConstructorOverloadingStrategy? overloadingStrategy,
+        Advice owningAdvice )
     {
         // 1. Look for an existing parameter of type InitializationContext on this constructor.
         // This path satisfies the subtle constraint: even if the parameter was added by another aspect
@@ -199,10 +225,40 @@ internal static class OnConstructedEpilogueEmitter
             constructor = constructorBuilder;
         }
 
-        // 3. Introduce the parameter. For record primaries, the linker's primary-constructor
+        // 3. Create the pull strategy and the forwarding helper. The pull strategy is used in step 5 to pull the
+        //    parameter into chained constructors, and by the forwarding helper to obtain the value that a
+        //    forwarder passes for the parameter.
+        //    The default value is serialized as text; a typed `default(T)` is used so that
+        //    TypedConstant.TryConvertFromExpression recognizes it as a DefaultExpressionSyntax
+        //    (rather than as a DefaultLiteralExpression whose token value is the string "default").
+        //    `reuseExistingParameterOfCompatibleType: true` opts into reusing any existing
+        //    InitializationContext parameter on a chained constructor (added by hand or by another
+        //    aspect) instead of introducing a duplicate. InitializationContext is a unique marker
+        //    type, so a "match by type" rule is unambiguous here.
+        //    `requireParameterWhenForwarded: true` introduces the parameter without a default value on every
+        //    constructor that receives a forwarder, so that the forwarder is the only constructor that can be
+        //    called without a context. The strategy is serialized with the transitive pull aspect, so the same
+        //    rule applies to derived types in dependent projects.
+        var defaultValueText = $"default(global::{typeof(InitializationContext).FullName})";
+
+        var pullStrategy = new IntroduceParameterPullStrategy(
+            _defaultContextParameterName,
+            initializationContextType.ToDurableRef(),
+            defaultValueText,
+            reuseExistingParameterOfCompatibleType: true,
+            requireParameterWhenForwarded: true );
+
+        var forwardingHelper = new ForwardingConstructorHelper(
+            context,
+            aspectLayerInstance,
+            overloadingStrategy,
+            pullStrategy,
+            owningAdvice );
+
+        // 4. Introduce the parameter. For record primaries, the linker's primary-constructor
         // materialization path (driven by LateTypeLevelTransformations.RemovePrimaryConstructor)
         // strips the primary from the record header and emits an explicit body-declared ctor.
-        // Because the pull strategy below sets materializeOnRecord: false, the linker also filters
+        // Because the pull strategy sets materializeOnRecord: false, the linker also filters
         // the parameter out of the property/Deconstruct/assignment emission sites.
         var parameterBuilder = new ParameterBuilder(
             constructor,
@@ -217,6 +273,15 @@ internal static class OnConstructedEpilogueEmitter
             parameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
         }
 
+        // The forwarding decision is made before the parameter is frozen, because a forwarded constructor
+        // receives the parameter without a default value.
+        var forwardingPlan = forwardingHelper.PlanForwarder( constructor, parameterBuilder );
+
+        if ( forwardingPlan.HasForwarder )
+        {
+            parameterBuilder.DefaultValue = null;
+        }
+
         parameterBuilder.Freeze();
 
         context.AddTransformation(
@@ -225,29 +290,19 @@ internal static class OnConstructedEpilogueEmitter
                 parameterBuilder.BuilderData,
                 materializeOnRecord: false ) );
 
-        // 4. Recursively pull into constructors that chain to this one. Passing an
+        forwardingHelper.ApplyForwarder( forwardingPlan, constructor, parameterBuilder );
+
+        // 5. Recursively pull into constructors that chain to this one. Passing an
         //    IntroduceParameterPullStrategy enables cross-project propagation via
         //    PullConstructorParameterTransitiveAspect registered inside PullConstructorParameterAdviceImpl.
-        //    The default value is serialized as text; a typed `default(T)` is used so that
-        //    TypedConstant.TryConvertFromExpression recognizes it as a DefaultExpressionSyntax
-        //    (rather than as a DefaultLiteralExpression whose token value is the string "default").
-        //    `reuseExistingParameterOfCompatibleType: true` opts into reusing any existing
-        //    InitializationContext parameter on a chained constructor (added by hand or by another
-        //    aspect) instead of introducing a duplicate. InitializationContext is a unique marker
-        //    type, so a "match by type" rule is unambiguous here.
-        var defaultValueText = $"default(global::{typeof(InitializationContext).FullName})";
-
-        var pullStrategy = new IntroduceParameterPullStrategy(
-            _defaultContextParameterName,
-            initializationContextType.ToDurableRef(),
-            defaultValueText,
-            reuseExistingParameterOfCompatibleType: true );
-
+        //    Passing the forwarding helper gives forwarders to the chained and derived constructors, and serializes
+        //    the overloading strategy into the transitive aspect.
         var pullImpl = new PullConstructorParameterAdviceImpl(
             context,
             pullStrategy,
             aspectLayerInstance,
-            onlyProcessDerivedTypes: false );
+            onlyProcessDerivedTypes: false,
+            forwardingHelper );
 
         pullImpl.PullConstructorParameterRecursive( parameterBuilder );
 
@@ -276,6 +331,17 @@ internal static class OnConstructedEpilogueEmitter
         }
 
         var chainedContextParameter = chainedConstructor.Parameters.FirstOrDefault( p => p.Type.Equals( initContextType ) );
+
+        if ( chainedContextParameter == null
+             && FindConstructorForwardedBy( chainedConstructor, initContextType ) is { } forwardedConstructor )
+        {
+            // The initializer is bound to a forwarding constructor, typically `: base()` bound to the parameterless
+            // forwarder of a base type. The parameter pull has rewritten the call to target the forwarded constructor
+            // (see PullConstructorParameterAdviceImpl.IsChainedCall), so the argument to override is the
+            // InitializationContext parameter of the forwarded constructor.
+            chainedConstructor = forwardedConstructor;
+            chainedContextParameter = forwardedConstructor.Parameters.First( p => p.Type.Equals( initContextType ) );
+        }
 
         int parameterIndex;
         string parameterName;
@@ -314,6 +380,51 @@ internal static class OnConstructedEpilogueEmitter
                 BuildDescendExpression( contextParameterName ),
                 requiresParameterName,
                 isOverride: true ) );
+    }
+
+    /// <summary>
+    /// Returns the constructor of the same type that <paramref name="forwarder"/> forwards to, when
+    /// <paramref name="forwarder"/> is a forwarding constructor that keeps the signature of a constructor that received
+    /// an <see cref="InitializationContext"/> parameter. Returns <c>null</c> otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The forwarded constructor is the constructor whose parameters, without the <see cref="InitializationContext"/>
+    /// parameter, have the same types and the same ref kinds as the parameters of <paramref name="forwarder"/>. This
+    /// rule is unambiguous because <see cref="InitializationContext"/> is used only as a marker type, and C# does not
+    /// allow two constructors with the same signature. The rule does not depend on the <see cref="AspectGeneratedAttribute"/>,
+    /// which is added only to the parameters of constructors that can be chained from another assembly.
+    /// </remarks>
+    private static IConstructor? FindConstructorForwardedBy( IConstructor forwarder, IType initContextType )
+    {
+        foreach ( var candidate in forwarder.DeclaringType.Constructors )
+        {
+            var candidateParameters = candidate.Parameters.Where( p => !p.Type.Equals( initContextType ) ).ToList();
+
+            if ( candidateParameters.Count != forwarder.Parameters.Count || candidateParameters.Count == candidate.Parameters.Count )
+            {
+                continue;
+            }
+
+            var match = true;
+
+            for ( var i = 0; i < candidateParameters.Count; i++ )
+            {
+                if ( !SignatureTypeComparer.Instance.Equals( candidateParameters[i].Type, forwarder.Parameters[i].Type )
+                     || candidateParameters[i].RefKind != forwarder.Parameters[i].RefKind )
+                {
+                    match = false;
+
+                    break;
+                }
+            }
+
+            if ( match )
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

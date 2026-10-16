@@ -66,6 +66,10 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
     /// compile-time only: the original source constructor is still physically present in
     /// source at design time, so the source generator must not emit the clone.
     /// </summary>
+    /// <remarks>
+    /// The forwarding constructor of an implicit constructor keeps a <c>null</c> value, because the implicit
+    /// constructor is not present in the source code.
+    /// </remarks>
     public bool? IsDesignTimeObservableOverride { get; init; }
 
     public override bool IsDesignTimeObservable => this.IsDesignTimeObservableOverride ?? base.IsDesignTimeObservable;

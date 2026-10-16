@@ -381,6 +381,15 @@ internal sealed class PullConstructorParameterAdviceImpl
                             recursiveParameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
                         }
 
+                        // Decide whether the chained constructor receives a forwarder before the parameter is frozen,
+                        // because a forwarded constructor may require the parameter to have no default value.
+                        var forwardingPlan = this._forwardingHelper?.PlanForwarder( initializedChainedConstructor, recursiveParameterBuilder ) ?? default;
+
+                        if ( forwardingPlan.HasForwarder && this._forwardingHelper!.RequireParameterWhenForwarded )
+                        {
+                            recursiveParameterBuilder.DefaultValue = null;
+                        }
+
                         recursiveParameterBuilder.Freeze();
 
                         this.AddTransformation(
@@ -392,7 +401,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                         var recursiveParameter = recursiveParameterBuilder;
 
                         // Generate a forwarding constructor preserving the chained constructor's original signature if requested.
-                        this._forwardingHelper?.ApplyForwarderIfNeeded( initializedChainedConstructor, recursiveParameter );
+                        this._forwardingHelper?.ApplyForwarder( forwardingPlan, initializedChainedConstructor, recursiveParameter );
 
                         // Process all constructors calling this constructor.
                         this.PullConstructorParameterRecursive( recursiveParameter );

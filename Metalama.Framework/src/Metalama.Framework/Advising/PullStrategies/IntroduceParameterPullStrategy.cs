@@ -18,8 +18,21 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
     private readonly string? _forwarderExpression;
     private readonly bool _reuseExistingParameterOfCompatibleType;
     private readonly bool _materializeOnRecord;
+    private readonly bool _requireParameterWhenForwarded;
 
     internal bool MaterializeOnRecord => this._materializeOnRecord;
+
+    /// <summary>
+    /// Gets a value indicating whether a parameter introduced on a constructor that also receives a forwarding
+    /// constructor is introduced without a default value.
+    /// </summary>
+    /// <remarks>
+    /// When the value is <c>true</c>, the forwarding constructor is the only constructor that can be called without
+    /// a value for the introduced parameter. Reflection-based activators and dependency injection containers then
+    /// find a single applicable constructor. Constructors that do not receive a forwarding constructor keep the
+    /// default value given by the parameter default value of this strategy.
+    /// </remarks>
+    internal bool RequireParameterWhenForwarded => this._requireParameterWhenForwarded;
 
     public IntroduceParameterPullStrategy(
         string? parameterName,
@@ -27,7 +40,8 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
         string? parameterDefaultValue,
         string? forwarderExpression = null,
         bool reuseExistingParameterOfCompatibleType = false,
-        bool materializeOnRecord = false )
+        bool materializeOnRecord = false,
+        bool requireParameterWhenForwarded = false )
     {
         this._parameterName = parameterName;
         this._parameterType = parameterType;
@@ -35,6 +49,7 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
         this._forwarderExpression = forwarderExpression;
         this._reuseExistingParameterOfCompatibleType = reuseExistingParameterOfCompatibleType;
         this._materializeOnRecord = materializeOnRecord;
+        this._requireParameterWhenForwarded = requireParameterWhenForwarded;
     }
 
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
@@ -91,6 +106,7 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
             var forwarderExpression = constructorArguments.GetValue<string>( nameof(_forwarderExpression) );
             var reuseExistingParameterOfCompatibleType = constructorArguments.GetValue<bool>( nameof(_reuseExistingParameterOfCompatibleType) );
             var materializeOnRecord = constructorArguments.GetValue<bool>( nameof(_materializeOnRecord) );
+            var requireParameterWhenForwarded = constructorArguments.GetValue<bool>( nameof(_requireParameterWhenForwarded) );
 
             return new IntroduceParameterPullStrategy(
                 parameterName,
@@ -98,7 +114,8 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
                 parameterDefaultValue,
                 forwarderExpression,
                 reuseExistingParameterOfCompatibleType,
-                materializeOnRecord );
+                materializeOnRecord,
+                requireParameterWhenForwarded );
         }
 
         public override void SerializeObject(
@@ -112,6 +129,7 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
             constructorArguments.SetValue( nameof(_forwarderExpression), obj._forwarderExpression );
             constructorArguments.SetValue( nameof(_reuseExistingParameterOfCompatibleType), obj._reuseExistingParameterOfCompatibleType );
             constructorArguments.SetValue( nameof(_materializeOnRecord), obj._materializeOnRecord );
+            constructorArguments.SetValue( nameof(_requireParameterWhenForwarded), obj._requireParameterWhenForwarded );
         }
 #pragma warning restore SA1101
     }
