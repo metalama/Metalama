@@ -162,6 +162,19 @@ internal sealed partial class LinkerRewritingDriver
 
         static BlockSyntax TransformToBlock( SubstitutionContext substitutionContext, SyntaxNode node, IMethodSymbol symbol )
         {
+            // A throw expression is allowed as an expression body but not as the operand of a return statement or as an
+            // expression statement, so it becomes a throw statement, as in ExpressionBodySubstitution.
+            if ( node.IsKind( SyntaxKind.ArrowExpressionClause ) && node is ArrowExpressionClauseSyntax { Expression: ThrowExpressionSyntax throwExpression } )
+            {
+                return
+                    substitutionContext.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(
+                            ThrowStatement(
+                                throwExpression.ThrowKeyword,
+                                throwExpression.Expression,
+                                Token( SyntaxKind.SemicolonToken ) ) )
+                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+            }
+
             // TODO: Convert to block.
             if ( symbol.ReturnsVoid )
             {
