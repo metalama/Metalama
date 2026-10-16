@@ -34,6 +34,7 @@ namespace Metalama.Framework.Engine.CompileTime
     public sealed class UnloadableCompileTimeDomain : CompileTimeDomain
     {
         private readonly object _disposeLock = new();
+        private readonly SharedAssemblyLoadContext? _sharedContext;
 
         private AssemblyLoadContext? _assemblyLoadContext;
         private volatile bool _disposed;
@@ -46,9 +47,24 @@ namespace Metalama.Framework.Engine.CompileTime
         private readonly TaskCompletionSource<bool> _unloadedTask = new();
 #endif
 
-        public UnloadableCompileTimeDomain( GlobalServiceProvider serviceProvider ) : base( serviceProvider )
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UnloadableCompileTimeDomain"/> class that loads every assembly into its own
+        /// collectible <see cref="AssemblyLoadContext"/>.
+        /// </summary>
+        public UnloadableCompileTimeDomain( GlobalServiceProvider serviceProvider ) : this( serviceProvider, null ) { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UnloadableCompileTimeDomain"/> class that loads shared assemblies
+        /// (see <see cref="LoadAssemblyOptions.IsShared"/>) from a given <see cref="SharedAssemblyLoadContext"/>, and all other assemblies
+        /// into its own collectible <see cref="AssemblyLoadContext"/>.
+        /// </summary>
+        /// <param name="serviceProvider">The global service provider.</param>
+        /// <param name="sharedContext">The context from which shared assemblies are loaded, or <c>null</c> to load them into the
+        /// collectible context of this domain.</param>
+        public UnloadableCompileTimeDomain( GlobalServiceProvider serviceProvider, SharedAssemblyLoadContext? sharedContext ) : base( serviceProvider )
         {
-            this._assemblyLoadContext = new AssemblyLoadContext( "Metalama_" + Guid.NewGuid(), isCollectible: true );
+            this._sharedContext = sharedContext;
+            this._assemblyLoadContext = new DomainAssemblyLoadContext( this );
 
 #if VERIFY_MEMORY_LEAKS
             CollectibleExecutionContext.RegisterDisposeAction( this.WaitForDisposal );
@@ -71,16 +87,19 @@ namespace Metalama.Framework.Engine.CompileTime
 
             try
             {
+                // A shared assembly is loaded once for all domains that use the same shared context. When it cannot be shared,
+                // GetOrLoad returns null, and the assembly is loaded into the context of this domain.
+                if ( options.IsShared && this._sharedContext?.GetOrLoad( path ) is { } sharedAssembly )
+                {
+                    return sharedAssembly;
+                }
+
                 // There seems to be several issues with LoadFromAssemblyPath:
-                // - Performance issues during tests. Tests seem to be very slow. 
+                // - Performance issues during tests. Tests seem to be very slow.
                 //   Breaking into the process with the debugger shows of lot of threads are inside LoadFromAssemblyPath.
                 // - Possibly file lock issues, where files are not unlocked, even when the AssemblyLoadContext is disposed of.
-                // Therefore, we always use LoadFromStream. 
-                using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
-                var pdbPath = Path.ChangeExtension( path, ".pdb" );
-                using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
-
-                assembly = this._assemblyLoadContext.AssertNotNull().LoadFromStream( peStream, pdbStream );
+                // Therefore, we always use LoadFromStream.
+                assembly = SharedAssemblyLoadContext.LoadFromFile( this._assemblyLoadContext.AssertNotNull(), path );
             }
             catch ( Exception e )
             {
@@ -246,6 +265,48 @@ namespace Metalama.Framework.Engine.CompileTime
                 // We cannot wait for complete disposal synchronously because the TestResult object, lower in the stack, typically contains
                 // a reference to a build-time assembly. So, we need to put the test out of the stack before the domain
                 // can be completely disposed.
+            }
+        }
+
+        /// <summary>
+        /// The collectible <see cref="AssemblyLoadContext"/> of an <see cref="UnloadableCompileTimeDomain"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The runtime first binds a reference to an assembly already loaded in this context. When there is none, it calls
+        /// <see cref="Load"/>, and when <see cref="Load"/> returns <c>null</c>, it resolves the reference from the default context.
+        /// </para>
+        /// <para>
+        /// A shared assembly is not loaded in this context, so <see cref="Load"/> must return it. Otherwise, a compile-time assembly
+        /// that references an extension assembly would not find it. Only the shared assemblies that the domain has loaded are returned,
+        /// so a domain that has not loaded an extension assembly does not see it.
+        /// </para>
+        /// </remarks>
+        private sealed class DomainAssemblyLoadContext : AssemblyLoadContext
+        {
+            private readonly UnloadableCompileTimeDomain _domain;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="DomainAssemblyLoadContext"/> class.
+            /// </summary>
+            public DomainAssemblyLoadContext( UnloadableCompileTimeDomain domain ) : base( "Metalama_" + Guid.NewGuid(), isCollectible: true )
+            {
+                this._domain = domain;
+            }
+
+            /// <summary>
+            /// Returns the shared assembly of the given name when the domain has loaded it, or <c>null</c> otherwise.
+            /// </summary>
+            protected override Assembly? Load( AssemblyName assemblyName )
+            {
+                if ( this._domain._sharedContext != null
+                     && this._domain.TryGetLoadedAssembly( assemblyName, out var assembly )
+                     && GetLoadContext( assembly ) == this._domain._sharedContext )
+                {
+                    return assembly;
+                }
+
+                return null;
             }
         }
     }

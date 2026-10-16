@@ -35,3 +35,7 @@ The primary types in this package are:
 
 * `Metalama.Patterns.Contracts` provides contract attributes such as `[NotNull]` or `[Url]`. They integrate with the `DependencyPropertyAttribute` aspect.
 * `Metalama.Patterns.Observability` can implement `INotifyPropertyChanged` for the `CanExecute` property supported by the `CommandAttribute` aspect.
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.

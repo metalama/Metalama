@@ -12,11 +12,25 @@ namespace Metalama.Testing.UnitTesting;
 /// unloadable domain where the platform supports it.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The domain selection logic deliberately lives in <see cref="CompileTimeDomainFactoryBase"/> rather than here. It was
 /// duplicated, and the copies drifted, so a production fix was invisible to every unit test. See #1749.
+/// </para>
+/// <para>
+/// On .NET, all domains of the process load shared assemblies, which are the extension assemblies and their dependencies, from a
+/// single <c>SharedAssemblyLoadContext</c>. This type does not exist on .NET Framework. Each test creates new domains, so without this context every test would load and
+/// compile the same extension assemblies again. See #2254.
+/// </para>
 /// </remarks>
 internal sealed class TestCompileTimeDomainFactory : CompileTimeDomainFactoryBase
 {
+#if NET5_0_OR_GREATER
+    /// <summary>
+    /// The context from which all test domains of the process load shared assemblies.
+    /// </summary>
+    private static readonly SharedAssemblyLoadContext _sharedContext = new();
+#endif
+
     private readonly GlobalServiceProvider _serviceProvider;
 
     public TestCompileTimeDomainFactory( GlobalServiceProvider serviceProvider )
@@ -27,7 +41,7 @@ internal sealed class TestCompileTimeDomainFactory : CompileTimeDomainFactoryBas
     protected override CompileTimeDomain CreateDomainCore()
     {
 #if NET5_0_OR_GREATER
-        var unloadableDomain = new UnloadableCompileTimeDomain( this._serviceProvider );
+        var unloadableDomain = new UnloadableCompileTimeDomain( this._serviceProvider, _sharedContext );
         unloadableDomain.UnloadError += _ => MemoryDumpHelper.CaptureMiniDumpOnce();
 
         return unloadableDomain;

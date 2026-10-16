@@ -43,3 +43,7 @@ The primary types in this package are:
 * `Metalama.Patterns.Caching.Backends.Azure` implements pub/sub synchronization of distributed in-memory caches through Azure Message Bus.
 * `Flashtrace.Formatters` provides an infrastructure for cache key formatting.
 
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.

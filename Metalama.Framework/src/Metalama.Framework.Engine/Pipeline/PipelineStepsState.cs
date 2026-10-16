@@ -37,7 +37,7 @@ namespace Metalama.Framework.Engine.Pipeline;
 /// like <see cref="AddAspectInstances"/> or <see cref="AddAspectSources"/> that
 /// allow to add inputs to different steps of the pipeline. This object must create the steps in the appropriate order.
 /// </summary>
-internal sealed class PipelineStepsState
+internal sealed partial class PipelineStepsState
 {
     private readonly SkipListDictionary<PipelineStepId, PipelineStep> _steps;
     private readonly PipelineStepIdComparer _comparer;
@@ -130,7 +130,9 @@ internal sealed class PipelineStepsState
             this.FirstCompilation,
             this.LastCompilation,
             this._transformations,
-            this._inheritableAspectInstances,
+
+            // The instances are collected concurrently, so their order must be made deterministic (#2248).
+            this._inheritableAspectInstances.OrderBy( i => i, new InheritableAspectInstanceComparer( this.LastCompilation ) ).ToReadOnlyList(),
             this.Diagnostics.ToImmutable(),
             this._overflowAspectSource,
             this._extensionContributors,

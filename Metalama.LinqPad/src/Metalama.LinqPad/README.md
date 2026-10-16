@@ -28,3 +28,7 @@ workspace
 * `Metalama.Framework.Workspaces` allows you to do code queries in arbitrary projects without LinqPad.
 * `Metalama.Framework.Introspection` exposes concepts like `Workspace`, `Project`, `IIntrospectionAspectInstance`, `IIntrospectionAspectClass`, `IIntrospectionAspectDiagnostic`, ...
 * `Metalama.Framework` exposes the basic code model in the `Metalama.Framework.Code` namespace.
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.
