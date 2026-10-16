@@ -47,6 +47,9 @@ public class Calculator<T>
     public T First() => this._values.First();
 }
 
+// A positional parameter declares both a parameter and a property.
+public record Point( int X, int Y );
+
 public class Program
 {
     public static void Main()
@@ -54,5 +57,16 @@ public class Program
         var calculator = new Calculator<int>();
         calculator.Add( 1 );
         Console.WriteLine( calculator.Count );
+
+        var point = new Point( 1, 2 );
+        Console.WriteLine( point.X );
+
+        // Identifiers spelled like contextual keywords are ordinary symbols.
+        var dynamic = 0;
+        var @var = dynamic + 1;
+        Console.WriteLine( nameof(point) + @var );
     }
+
+    // The documentation id of a multidimensional array uses the compiler format, e.g. System.Int32[0:,0:].
+    public static int Sum( int[,] values ) => values.Length;
 }

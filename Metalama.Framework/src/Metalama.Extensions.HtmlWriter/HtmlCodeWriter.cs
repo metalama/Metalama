@@ -475,14 +475,15 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
 
             if ( parent is SimpleNameSyntax name )
             {
-                // The identifier references a symbol.
-                if ( name.IsVar || name.Identifier.ValueText is "dynamic" or "nameof" )
+                var symbolInfo = semanticModel.GetSymbolInfo( name, cancellationToken );
+                var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
+
+                // An implicitly typed declaration (var) binds to the inferred type, which the reader does not look for.
+                // A type that is actually named 'var' is linked.
+                if ( name.IsVar && symbol is ITypeSymbol { Name: not "var" } )
                 {
                     continue;
                 }
-
-                var symbolInfo = semanticModel.GetSymbolInfo( name, cancellationToken );
-                var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
 
                 // The name of an attribute, or of the type in an object creation, binds to the constructor. A name is
                 // linked to its type because the type is what the reader looks for.
@@ -491,7 +492,13 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
                     symbol = constructor.ContainingType;
                 }
 
-                if ( GetSymbolId( symbol ) is { } referenceId )
+                // The name of a namespace declaration declares the namespace; its qualifying names reference the
+                // enclosing namespaces.
+                if ( IsNamespaceDeclarationName( name ) && GetSymbolId( symbol ) is { } namespaceId )
+                {
+                    result[token.Span] = new SymbolAttributes( namespaceId, null, null );
+                }
+                else if ( GetSymbolId( symbol ) is { } referenceId )
                 {
                     result[token.Span] = new SymbolAttributes( null, referenceId, null );
                 }
@@ -519,12 +526,37 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
                 }
                 else if ( GetLocalKey( declaredSymbol ) is { } localKey )
                 {
-                    result[token.Span] = new SymbolAttributes( null, null, null, LocalDefinition: localKey );
+                    // A positional parameter of a record also declares a property, which is referenced by its id.
+                    var propertyId = declaredSymbol is IParameterSymbol parameter ? GetSymbolId( GetPositionalProperty( parameter, parent ) ) : null;
+
+                    result[token.Span] = new SymbolAttributes( propertyId, null, null, LocalDefinition: localKey );
                 }
             }
         }
 
         return result;
+
+        // Determines whether a name is the last name of the name of a namespace declaration, e.g. C in 'namespace A.B.C'.
+        static bool IsNamespaceDeclarationName( SimpleNameSyntax name )
+        {
+            SyntaxNode node = name;
+
+            if ( node.Parent is QualifiedNameSyntax qualifiedName && qualifiedName.Right == name )
+            {
+                node = qualifiedName;
+            }
+
+            return node.Parent is BaseNamespaceDeclarationSyntax namespaceDeclaration && namespaceDeclaration.Name == node;
+        }
+
+        // Gets the property synthesized for a positional parameter of a record, i.e. a property declared by the parameter
+        // itself, not one declared explicitly or inherited.
+        static IPropertySymbol? GetPositionalProperty( IParameterSymbol parameter, SyntaxNode parameterSyntax )
+            => parameter.ContainingSymbol is IMethodSymbol { MethodKind: MethodKind.Constructor, ContainingType: { IsRecord: true } recordType }
+                ? recordType.GetMembers( parameter.Name )
+                    .OfType<IPropertySymbol>()
+                    .FirstOrDefault( p => p.DeclaringSyntaxReferences.Any( r => r.SyntaxTree == parameterSyntax.SyntaxTree && r.Span == parameterSyntax.Span ) )
+                : null;
 
         // Gets the key of a symbol that is declared in a method body or signature, i.e. a symbol without a documentation id.
         string? GetLocalKey( ISymbol? symbol )
@@ -583,22 +615,10 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
             case INamespaceSymbol { IsGlobalNamespace: false }:
                 try
                 {
-                    var id = DocumentationCommentId.CreateDeclarationId( symbol );
-
-                    if ( id == null )
-                    {
-                        return null;
-                    }
-
-                    // Roslyn appends the return type of a method after '~'. The C# documentation id format, used by
-                    // DocFx cross-reference maps, has it only for conversion operators, to distinguish their overloads.
-                    if ( symbol is IMethodSymbol { MethodKind: not MethodKind.Conversion }
-                         && id.IndexOf( "~", StringComparison.Ordinal ) is var returnTypeIndex and > 0 )
-                    {
-                        id = id.Substring( 0, returnTypeIndex );
-                    }
-
-                    return id;
+                    // The id of the compiler, which DocFx cross-reference maps use. DocumentationCommentId.CreateDeclarationId
+                    // differs from it, e.g. it appends the return type of methods and encodes int[,] as System.Int32[,]
+                    // instead of System.Int32[0:,0:].
+                    return symbol.GetDocumentationCommentId();
                 }
                 catch ( InvalidOperationException )
                 {
