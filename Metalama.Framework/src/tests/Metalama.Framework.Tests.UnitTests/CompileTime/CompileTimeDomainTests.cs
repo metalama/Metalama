@@ -11,6 +11,10 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+#if NET5_0_OR_GREATER
+using System.Reflection;
+using System.Runtime.Loader;
+#endif
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 
@@ -398,12 +402,218 @@ public sealed class CompileTimeDomainTests : UnitTestClass
         }
     }
 
-    private static string CreateAssemblyOnDisk( string directory, string assemblyName, Version version, string code )
+#if NET5_0_OR_GREATER
+    /// <summary>
+    /// Verifies that two domains that use the same <see cref="SharedAssemblyLoadContext"/> get the same instance of a shared
+    /// assembly, and that this instance is not collectible.
+    /// </summary>
+    [Fact]
+    public void SharedContext_TwoDomains_ShareOneAssembly()
+    {
+        using var testContext = this.CreateTestContext();
+        var sharedContext = new SharedAssemblyLoadContext();
+        using var domain1 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+        using var domain2 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+
+        var tempDir = CreateTempDirectory();
+
+        try
+        {
+            var path = CreateAssemblyOnDisk( tempDir, "SharedExtension", new Version( 1, 0, 0, 0 ), "public class C {}" );
+
+            var assembly1 = domain1.LoadAssembly( path, null, LoadAssemblyOptions.Shared );
+            var assembly2 = domain2.LoadAssembly( path, null, LoadAssemblyOptions.Shared );
+
+            Assert.Same( assembly1, assembly2 );
+            Assert.False( assembly1.IsCollectible );
+            Assert.Same( sharedContext, AssemblyLoadContext.GetLoadContext( assembly1 ) );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that an assembly that is not shared, loaded into the collectible context of a domain, can use a type of a shared
+    /// assembly that the domain has loaded.
+    /// </summary>
+    [Fact]
+    public void SharedContext_DomainAssemblyReferencingSharedAssembly_IsResolved()
+    {
+        using var testContext = this.CreateTestContext();
+        var sharedContext = new SharedAssemblyLoadContext();
+        using var domain = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+
+        var tempDir = CreateTempDirectory();
+
+        try
+        {
+            var sharedPath = CreateAssemblyOnDisk(
+                tempDir,
+                "SharedExtension",
+                new Version( 1, 0, 0, 0 ),
+                "public static class SharedType { public static int Value => 42; }" );
+
+            var userPath = CreateAssemblyOnDisk(
+                tempDir,
+                "UserAssembly",
+                new Version( 1, 0, 0, 0 ),
+                "public static class UserType { public static int GetValue() => SharedType.Value; }",
+                sharedPath );
+
+            var sharedAssembly = domain.LoadAssembly( sharedPath, null, LoadAssemblyOptions.Shared );
+            var userAssembly = domain.LoadAssembly( userPath );
+
+            Assert.True( userAssembly.IsCollectible );
+            Assert.Equal( 42, InvokeGetValue( userAssembly ) );
+
+            // The reference must have been bound to the shared copy, not to a second copy in the collectible context.
+            Assert.DoesNotContain( AssemblyLoadContext.GetLoadContext( userAssembly )!.Assemblies, a => a.GetName().Name == "SharedExtension" );
+            Assert.Same( sharedContext, AssemblyLoadContext.GetLoadContext( sharedAssembly ) );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that disposing a domain does not affect a shared assembly that another domain uses.
+    /// </summary>
+    [Fact]
+    public void SharedContext_DisposingOneDomain_DoesNotAffectOtherDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var sharedContext = new SharedAssemblyLoadContext();
+        using var domain2 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+
+        var tempDir = CreateTempDirectory();
+
+        try
+        {
+            var sharedPath = CreateAssemblyOnDisk(
+                tempDir,
+                "SharedExtension",
+                new Version( 1, 0, 0, 0 ),
+                "public static class SharedType { public static int Value => 42; }" );
+
+            var userPath = CreateAssemblyOnDisk(
+                tempDir,
+                "UserAssembly",
+                new Version( 1, 0, 0, 0 ),
+                "public static class UserType { public static int GetValue() => SharedType.Value; }",
+                sharedPath );
+
+            using ( var domain1 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext ) )
+            {
+                domain1.LoadAssembly( sharedPath, null, LoadAssemblyOptions.Shared );
+            }
+
+            domain2.LoadAssembly( sharedPath, null, LoadAssemblyOptions.Shared );
+            var userAssembly = domain2.LoadAssembly( userPath );
+
+            Assert.Equal( 42, InvokeGetValue( userAssembly ) );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that a shared assembly whose file has changed since it was loaded is loaded again into the collectible context of
+    /// the domain instead of being taken from the shared context.
+    /// </summary>
+    [Fact]
+    public void SharedContext_FileChanged_LoadsIntoDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var sharedContext = new SharedAssemblyLoadContext();
+        using var domain1 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+        using var domain2 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+
+        var tempDir = CreateTempDirectory();
+
+        try
+        {
+            var path = CreateAssemblyOnDisk( tempDir, "SharedExtension", new Version( 1, 0, 0, 0 ), "public class C {}" );
+            var assembly1 = domain1.LoadAssembly( path, null, LoadAssemblyOptions.Shared );
+
+            // Rebuild the file with a different content and a later write time.
+            CreateAssemblyOnDisk( tempDir, "SharedExtension", new Version( 1, 0, 0, 0 ), "public class C {} public class D {}" );
+            File.SetLastWriteTimeUtc( path, File.GetLastWriteTimeUtc( path ).AddMinutes( 1 ) );
+
+            var assembly2 = domain2.LoadAssembly( path, null, LoadAssemblyOptions.Shared );
+
+            Assert.NotSame( assembly1, assembly2 );
+            Assert.True( assembly2.IsCollectible );
+            Assert.NotNull( assembly2.GetType( "D" ) );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that a shared assembly whose name is already used in the shared context by an assembly loaded from another path is
+    /// loaded into the collectible context of the domain.
+    /// </summary>
+    [Fact]
+    public void SharedContext_SameNameFromOtherPath_LoadsIntoDomain()
+    {
+        using var testContext = this.CreateTestContext();
+        var sharedContext = new SharedAssemblyLoadContext();
+        using var domain1 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+        using var domain2 = new UnloadableCompileTimeDomain( testContext.ServiceProvider.Global, sharedContext );
+
+        var tempDir1 = CreateTempDirectory();
+        var tempDir2 = CreateTempDirectory();
+
+        try
+        {
+            var path1 = CreateAssemblyOnDisk( tempDir1, "SharedExtension", new Version( 1, 0, 0, 0 ), "public class C {}" );
+            var path2 = CreateAssemblyOnDisk( tempDir2, "SharedExtension", new Version( 2, 0, 0, 0 ), "public class C {}" );
+
+            var assembly1 = domain1.LoadAssembly( path1, null, LoadAssemblyOptions.Shared );
+            var assembly2 = domain2.LoadAssembly( path2, null, LoadAssemblyOptions.Shared );
+
+            Assert.False( assembly1.IsCollectible );
+            Assert.True( assembly2.IsCollectible );
+            Assert.Equal( new Version( 2, 0, 0, 0 ), assembly2.GetName().Version );
+        }
+        finally
+        {
+            TryDeleteDirectory( tempDir1 );
+            TryDeleteDirectory( tempDir2 );
+        }
+    }
+
+    /// <summary>
+    /// Invokes the static <c>UserType.GetValue</c> method of an assembly created by the tests of <see cref="SharedAssemblyLoadContext"/>.
+    /// </summary>
+    private static int InvokeGetValue( Assembly assembly )
+        => (int) assembly.GetType( "UserType", true )!.GetMethod( "GetValue" )!.Invoke( null, null )!;
+#endif
+
+    /// <summary>
+    /// Creates a new temporary directory for the files of a test.
+    /// </summary>
+    private static string CreateTempDirectory()
+    {
+        var tempDir = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
+        Directory.CreateDirectory( tempDir );
+
+        return tempDir;
+    }
+
+    private static string CreateAssemblyOnDisk( string directory, string assemblyName, Version version, string code, params string[] referencePaths )
     {
         var compilation = CSharpCompilation.Create(
             assemblyName,
             [CSharpSyntaxTree.ParseText( $"[assembly: System.Reflection.AssemblyVersion(\"{version}\")]\n{code}" )],
-            [MetadataReference.CreateFromFile( typeof(object).Assembly.Location )],
+            [MetadataReference.CreateFromFile( typeof(object).Assembly.Location ), ..Array.ConvertAll( referencePaths, p => MetadataReference.CreateFromFile( p ) )],
             new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
 
         // Use a unique file name per version to avoid file conflicts.

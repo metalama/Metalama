@@ -6,13 +6,41 @@ using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
 using Metalama.Framework.Utilities;
+using System;
 
 namespace Metalama.Framework.Engine.HierarchicalOptions;
 
 [Durable]
 public record struct HierarchicalOptionsKey( string OptionType, SerializableDeclarationId DeclarationId, string? SyntaxTreePath = null )
+    : IComparable<HierarchicalOptionsKey>
 {
     // It is convenient for the design-time scenario to store the syntax tree path here, but it is not serialized.
+
+    /// <summary>
+    /// Compares this key with another one by the ordinal value of <see cref="OptionType"/>, then of <see cref="DeclarationId"/>,
+    /// then of <see cref="SyntaxTreePath"/>.
+    /// </summary>
+    /// <remarks>
+    /// This order makes the serialization of a dictionary keyed by <see cref="HierarchicalOptionsKey"/> deterministic (#2248).
+    /// </remarks>
+    public readonly int CompareTo( HierarchicalOptionsKey other )
+    {
+        var result = string.CompareOrdinal( this.OptionType, other.OptionType );
+
+        if ( result != 0 )
+        {
+            return result;
+        }
+
+        result = this.DeclarationId.CompareTo( other.DeclarationId );
+
+        if ( result != 0 )
+        {
+            return result;
+        }
+
+        return string.CompareOrdinal( this.SyntaxTreePath, other.SyntaxTreePath );
+    }
 
     [UsedImplicitly]
     private class Serializer : ValueTypeSerializer<HierarchicalOptionsKey>

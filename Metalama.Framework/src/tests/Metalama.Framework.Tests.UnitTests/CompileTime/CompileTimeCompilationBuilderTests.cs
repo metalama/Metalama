@@ -1550,6 +1550,39 @@ public class ReferencedClass
         }
 
         /// <summary>
+        /// Verifies that the manifest lists the compile-time files sorted by their transformed path (issue #2248). The order
+        /// of the files determines the bytes of the compile-time project archive, which is embedded in the assembly, so an
+        /// order that depends on hash codes changes the reference assembly between two compilations of the same source.
+        /// </summary>
+        [Fact]
+        public void ManifestFilesAreSortedByTransformedPath()
+        {
+            var code = new Dictionary<string, string>();
+
+            for ( var i = 0; i < 16; i++ )
+            {
+                code[$"File{i:00}.cs"] = $$"""
+                                           using Metalama.Framework.Aspects;
+
+                                           [CompileTime]
+                                           class CompileTimeClass{{i}} {}
+                                           """;
+            }
+
+            using var testContext = this.CreateTestContext();
+
+            var roslynCompilation = testContext.CreateCSharpCompilation( code );
+
+            using var compileTimeDomain = testContext.Domain;
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, roslynCompilation ).AssertNotNull();
+
+            var files = loader.RootProject.Manifest!.Files;
+
+            Assert.Equal( 16, files.Count );
+            Assert.Equal( files.SelectAsArray( f => f.TransformedPath ).OrderBy( p => p, StringComparer.Ordinal ), files.SelectAsArray( f => f.TransformedPath ) );
+        }
+
+        /// <summary>
         /// Verifies that a compile-time inline array declared as a partial type is reported exactly once, although
         /// the rewriter visits the type once for each of its declarations.
         /// </summary>

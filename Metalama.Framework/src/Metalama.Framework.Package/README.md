@@ -104,3 +104,7 @@ For more details, see [Contributing to Metalama](https://doc.postsharp.net/metal
 - [Metalama.Extensions.Architecture](https://www.nuget.org/packages/Metalama.Extensions.Architecture) 💎: built on `Metalama.Extensions.Validation`, implements concrete rules for architecture verification.
 - [Metalama.Extensions.CodeFixes](https://www.nuget.org/packages/Metalama.Extensions.CodeFixes) 💎: allows you to attach code fix suggestions to errors and warnings or to suggest code refactorings.
 - [Metalama.Patterns.*](https://www.nuget.org/packages?q=Metalama.Patterns&includeComputedFrameworks=true&prerel=true&sortby=relevance): a set of ready-made, professionally-built aspect libraries built with `Metalama.Framework`, most of them open-source.
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.
