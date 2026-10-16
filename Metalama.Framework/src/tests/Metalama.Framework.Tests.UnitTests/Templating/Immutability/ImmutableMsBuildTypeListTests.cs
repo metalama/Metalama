@@ -108,9 +108,9 @@ public sealed class ImmutableMsBuildTypeListTests : ImmutabilityTestBase
     }
 
     [Fact]
-    public async Task TheListIsSemicolonSeparatedAndTrimmed()
+    public async Task TheListIsCommaSeparatedAndTrimmed()
     {
-        var diagnostics = await this.GetDiagnosticsWithItemsAsync( " System.String ; Opaque ; " );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( " System.String , Opaque , " );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }

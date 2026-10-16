@@ -113,15 +113,21 @@ namespace Metalama.Framework.Analyzers
         }
 
         /// <summary>
-        /// Reads one of the semicolon-separated lists that an MSBuild item is joined into by the build, because an
+        /// Reads one of the comma-separated lists that an MSBuild item is joined into by the build, because an
         /// analyzer can read a property but not an item.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// The separator is a comma and not a semicolon, because the build writes the list to an <c>.editorconfig</c>
+        /// file, whose parser treats <c>;</c> as the start of a comment.
+        /// </para>
+        /// <para>
         /// A <see cref="HashSet{T}"/> and not an immutable hash set, because this set is read on a hot
         /// path -- once per named type of the compilation -- and an immutable hash set pays a tree walk per lookup.
         /// It is built once and never mutated afterwards, and the field that holds it is private and read-only.
         /// <c>IReadOnlySet{T}</c> would state that better but does not exist in <c>netstandard2.0</c>, which this
         /// assembly targets.
+        /// </para>
         /// </remarks>
         public static HashSet<string> ReadTypeNameList( AnalyzerConfigOptions options, string key )
         {
@@ -132,7 +138,7 @@ namespace Metalama.Framework.Analyzers
                 return result;
             }
 
-            foreach ( var name in value.Split( ';' ) )
+            foreach ( var name in value.Split( ',' ) )
             {
                 var trimmed = name.Trim();
 

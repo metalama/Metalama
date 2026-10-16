@@ -7,7 +7,6 @@ using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
@@ -116,9 +115,9 @@ public sealed class DurableMsBuildTypeListTests
     }
 
     [Fact]
-    public async Task TheListIsSemicolonSeparatedAndTrimmed()
+    public async Task TheListIsCommaSeparatedAndTrimmed()
     {
-        var diagnostics = await GetDiagnosticsAsync( " System.String ; Opaque ; ", null );
+        var diagnostics = await GetDiagnosticsAsync( " System.String , Opaque , ", null );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }

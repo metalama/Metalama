@@ -241,10 +241,14 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
         => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableContractTypes, _immutableTypeListSeparators );
 
     /// <summary>
-    /// The separator of the type-name lists, into which the build joins an MSBuild item. A type name can contain a comma,
-    /// so the default separators of <see cref="GetListOption"/> do not apply.
+    /// The separator of the type-name lists, into which the build joins an MSBuild item.
     /// </summary>
-    private static readonly char[] _immutableTypeListSeparators = [';'];
+    /// <remarks>
+    /// The build writes the lists to an <c>.editorconfig</c> file, whose parser treats <c>;</c> as the start of a
+    /// comment, so the build joins the items with a comma. A full metadata name without an assembly name contains no
+    /// comma, because a generic type is written with its arity.
+    /// </remarks>
+    private static readonly char[] _immutableTypeListSeparators = [','];
 
     [Memo]
     public override ImmutableArray<string> IgnoredWarnings
