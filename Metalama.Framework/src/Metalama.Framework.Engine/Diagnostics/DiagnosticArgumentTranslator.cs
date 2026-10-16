@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.CodeModel;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -34,11 +35,15 @@ internal static class DiagnosticArgumentTranslator
     /// <summary>
     /// Gets a copy of a <see cref="FormattableString"/> in which the declarations of the arguments, including the declarations
     /// of nested <see cref="FormattableString"/> and <see cref="IDescribedObject{T}"/> arguments, are translated into a given compilation.
+    /// Returns <c>null</c> when <paramref name="formattableString"/> is <c>null</c>.
     /// </summary>
-    public static FormattableString Translate( FormattableString formattableString, CompilationModel compilation )
-        => FormattableStringFactory.Create(
-            formattableString.Format,
-            formattableString.GetArguments().SelectAsArray( a => TranslateArgument( a, compilation ) ) );
+    [return: NotNullIfNotNull( nameof(formattableString) )]
+    public static FormattableString? Translate( FormattableString? formattableString, CompilationModel compilation )
+        => formattableString == null
+            ? null
+            : FormattableStringFactory.Create(
+                formattableString.Format,
+                formattableString.GetArguments().SelectAsArray( a => TranslateArgument( a, compilation ) ) );
 
     private static object? TranslateArgument( object? argument, CompilationModel compilation )
         => argument switch
@@ -47,7 +52,7 @@ internal static class DiagnosticArgumentTranslator
             FormattableString formattableString => Translate( formattableString, compilation ),
             IDescribedObject<object?> describedObject => new DescribedObject<object?>(
                 TranslateArgument( describedObject.Object, compilation ),
-                describedObject.Description == null ? null : Translate( describedObject.Description, compilation ) ),
+                Translate( describedObject.Description, compilation ) ),
             _ => argument
         };
 }
