@@ -134,6 +134,12 @@ public class TestOptions
     public bool? AddHtmlTitles { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether HTML files should identify the symbol declared or referenced by each identifier.
+    /// To enable this option in a test, add this comment to your test file: <c>// @AddHtmlSymbols</c>. 
+    /// </summary>
+    public bool? AddHtmlSymbols { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the <see cref="TestResult.ErrorMessage"/> should be added to
     /// the test output.
     /// You can only define this option in the <c>metalamaTests.json</c> file of a directory. 
@@ -430,6 +436,8 @@ public class TestOptions
 
         this.AddHtmlTitles ??= baseOptions.AddHtmlTitles;
 
+        this.AddHtmlSymbols ??= baseOptions.AddHtmlSymbols;
+
         this.ReportErrorMessage ??= baseOptions.ReportErrorMessage;
 
         this.FormatOutput ??= baseOptions.FormatOutput;
@@ -599,6 +607,11 @@ public class TestOptions
 
                 case "AddHtmlTitles":
                     this.AddHtmlTitles = true;
+
+                    break;
+
+                case "AddHtmlSymbols":
+                    this.AddHtmlSymbols = true;
 
                     break;
 

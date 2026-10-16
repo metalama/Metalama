@@ -21,6 +21,7 @@
         <CompilerVisibleProperty Include="MetalamaCompileTimeAssemblies"/>
         <CompilerVisibleProperty Include="MetalamaProjectReferenceNames"/>
         <CompilerVisibleProperty Include="MetalamaWriteHtml"/>
+        <CompilerVisibleProperty Include="MetalamaWriteHtmlSymbols"/>
         <CompilerVisibleProperty Include="MetalamaWriteLicenseUsageData"/>
         <CompilerVisibleProperty Include="ProjectAssetsFile"/>
         <CompilerVisibleProperty Include="MetalamaReferenceAssemblyRestoreTimeout"/>

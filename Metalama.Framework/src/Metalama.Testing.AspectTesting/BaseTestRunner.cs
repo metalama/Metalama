@@ -1024,7 +1024,7 @@ internal abstract partial class BaseTestRunner
         => new(
             testInput.ProjectDirectory,
             testInput.ProjectProperties.TargetFramework,
-            testInput.Options.AddHtmlTitles.GetValueOrDefault() );
+            testInput.Options.AddHtmlTitles.GetValueOrDefault() ) { AddSymbols = testInput.Options.AddHtmlSymbols.GetValueOrDefault() };
 
     private async Task WriteHtmlAsync(
         Compilation compilationWithDesignTimeTrees,

@@ -279,7 +279,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
 
                     var htmlOptions = new HtmlCodeWriterOptions(
                         ProjectPath: this.ProjectOptions.ProjectPath.AssertNotNull(),
-                        TargetFramework: this.ProjectOptions.TargetFramework.AssertNotNull() );
+                        TargetFramework: this.ProjectOptions.TargetFramework.AssertNotNull() ) { AddSymbols = this.ProjectOptions.WriteHtmlSymbols };
 
                     await htmlCodeWriter.WriteAllDiffAsync(
                         compilationWithDesignTimeTrees,

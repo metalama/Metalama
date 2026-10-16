@@ -17,5 +17,15 @@ namespace Metalama.Framework.Engine.Formatting
         string TargetFramework,
         bool AddTitles = false,
         string? Prolog = null,
-        string? Epilogue = null );
+        string? Epilogue = null )
+    {
+        /// <summary>
+        /// Gets a value indicating whether to add, to each identifier, the documentation comment id of the symbol it declares
+        /// (<c>data-def</c> attribute) or references (<c>data-ref</c> attribute), and to each overriding member the id of the
+        /// overridden member (<c>data-overrides</c> attribute). Locals, parameters, type parameters and local functions have
+        /// no documentation id, so their identifiers get a key that is unique in the document (<c>data-local-def</c> and
+        /// <c>data-local-ref</c> attributes).
+        /// </summary>
+        public bool AddSymbols { get; init; }
+    }
 }

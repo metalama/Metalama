@@ -35,6 +35,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaCompileTimeAssemblies = nameof(MetalamaCompileTimeAssemblies);
     public const string MetalamaProjectReferenceNames = nameof(MetalamaProjectReferenceNames);
     public const string MetalamaWriteHtml = nameof(MetalamaWriteHtml);
+    public const string MetalamaWriteHtmlSymbols = nameof(MetalamaWriteHtmlSymbols);
     public const string ProjectAssetsFile = nameof(ProjectAssetsFile);
     public const string MetalamaReferenceAssemblyRestoreTimeout = nameof(MetalamaReferenceAssemblyRestoreTimeout);
     public const string MetalamaWriteLicenseUsageData = nameof(MetalamaWriteLicenseUsageData);
@@ -89,6 +90,7 @@ public static class MSBuildPropertyNames
         MetalamaCompileTimePackages,
         MetalamaProjectReferenceNames,
         MetalamaWriteHtml,
+        MetalamaWriteHtmlSymbols,
         ProjectAssetsFile,
         MetalamaReferenceAssemblyRestoreTimeout,
         MetalamaWriteLicenseUsageData,

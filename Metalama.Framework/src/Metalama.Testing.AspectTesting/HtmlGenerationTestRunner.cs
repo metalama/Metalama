@@ -120,7 +120,7 @@ internal sealed class HtmlGenerationTestRunner : AspectTestRunner
             testInput.ProjectProperties.TargetFramework,
             testInput.Options.AddHtmlTitles.GetValueOrDefault(),
             _htmlProlog,
-            this._htmlEpilogue );
+            this._htmlEpilogue ) { AddSymbols = testInput.Options.AddHtmlSymbols.GetValueOrDefault() };
 
     /// <inheritdoc />
     protected override void ExecuteAssertions( TestInput testInput, TestResult testResult )

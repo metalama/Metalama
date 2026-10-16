@@ -52,6 +52,12 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool WriteHtml { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the HTML files written when <see cref="WriteHtml"/> is enabled should identify
+    /// the symbol declared or referenced by each identifier, so that the code can be made navigable.
+    /// </summary>
+    bool WriteHtmlSymbols { get; }
+
+    /// <summary>
     /// Gets a value indicating whether the compile-time code must be formatted.
     /// </summary>
     bool FormatCompileTimeCode { get; }

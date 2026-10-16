@@ -30,6 +30,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool WriteHtml => false;
 
+    public virtual bool WriteHtmlSymbols => false;
+
     public virtual bool FormatCompileTimeCode => false;
 
     public virtual bool IsUserCodeTrusted => true;
