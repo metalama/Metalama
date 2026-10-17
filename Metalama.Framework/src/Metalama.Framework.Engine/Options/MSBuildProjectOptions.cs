@@ -234,21 +234,10 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool EnforceImmutabilityContract => this.GetBooleanOption( MSBuildPropertyNames.MetalamaEnforceImmutabilityContract, true );
 
     [Memo]
-    public override ImmutableArray<string> ImmutableTypes => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableTypes, _immutableTypeListSeparators );
+    public override ImmutableArray<string> ImmutableTypes => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableTypes );
 
     [Memo]
-    public override ImmutableArray<string> ImmutableContractTypes
-        => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableContractTypes, _immutableTypeListSeparators );
-
-    /// <summary>
-    /// The separator of the type-name lists, into which the build joins an MSBuild item.
-    /// </summary>
-    /// <remarks>
-    /// The build writes the lists to an <c>.editorconfig</c> file, whose parser treats <c>;</c> as the start of a
-    /// comment, so the build joins the items with a comma. A full metadata name without an assembly name contains no
-    /// comma, because a generic type is written with its arity.
-    /// </remarks>
-    private static readonly char[] _immutableTypeListSeparators = [','];
+    public override ImmutableArray<string> ImmutableContractTypes => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableContractTypes );
 
     [Memo]
     public override ImmutableArray<string> IgnoredWarnings
