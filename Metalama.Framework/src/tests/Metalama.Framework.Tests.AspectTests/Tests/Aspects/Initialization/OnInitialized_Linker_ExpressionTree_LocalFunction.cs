@@ -44,8 +44,10 @@ public class Document
 // <target>
 public class Caller
 {
-    public void Method()
+    public Expression<Func<Document>>[] Method()
     {
+        return [Create(), CreateStatic(), CreateOuter()];
+
         Expression<Func<Document>> Create() => () => new Document( "local" );
 
         static Expression<Func<Document>> CreateStatic() => () => new Document( "static local" );
@@ -56,7 +58,5 @@ public class Caller
 
             return CreateInner();
         }
-
-        Func<Document> CreateDelegate() => () => new Document( "delegate" );
     }
 }

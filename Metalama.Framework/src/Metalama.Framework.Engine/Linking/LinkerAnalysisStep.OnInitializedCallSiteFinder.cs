@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
@@ -26,7 +27,10 @@ internal sealed partial class LinkerAnalysisStep
     /// Walks syntax trees in the intermediate compilation looking for object creation expressions
     /// and <c>with</c> expressions that target types implementing <c>IInitializable</c>.
     /// </summary>
+    // WeakCache.Dispose does nothing, so the class does not need to dispose the cache.
+#pragma warning disable CA1001
     private sealed class OnInitializedCallSiteFinder
+#pragma warning restore CA1001
     {
         private readonly CompilationContext _compilationContext;
         private readonly CompilationContext _sourceCompilationContext;
@@ -35,6 +39,7 @@ internal sealed partial class LinkerAnalysisStep
         private readonly IConcurrentTaskRunner _concurrentTaskRunner;
         private readonly INamedTypeSymbol? _initializationContextType;
         private readonly INamedTypeSymbol? _expressionType;
+        private readonly WeakCache<ITypeSymbol, bool> _isExpressionTypeCache = new();
 
         public OnInitializedCallSiteFinder(
             ProjectServiceProvider serviceProvider,
@@ -53,6 +58,36 @@ internal sealed partial class LinkerAnalysisStep
                 compilationContext.Compilation.GetTypeByMetadataName( typeof(InitializationContext).FullName! );
 
             this._expressionType = compilationContext.Compilation.GetTypeByMetadataName( "System.Linq.Expressions.Expression" );
+        }
+
+        /// <summary>
+        /// Determines whether a type is <see cref="System.Linq.Expressions.Expression"/> or a type derived from it,
+        /// such as <see cref="System.Linq.Expressions.Expression{TDelegate}"/>.
+        /// </summary>
+        /// <remarks>
+        /// The result is cached for each type, because the walkers of all syntax trees evaluate the same conversion types.
+        /// </remarks>
+        private bool IsExpressionType( ITypeSymbol type ) => this._isExpressionTypeCache.GetOrAdd( type, this.IsExpressionTypeCore );
+
+        /// <summary>
+        /// Computes the value returned by <see cref="IsExpressionType"/> when it is not in the cache.
+        /// </summary>
+        private bool IsExpressionTypeCore( ITypeSymbol type )
+        {
+            if ( this._expressionType == null )
+            {
+                return false;
+            }
+
+            for ( var t = type; t != null; t = t.BaseType )
+            {
+                if ( this._compilationContext.SymbolComparer.Equals( t.OriginalDefinition, this._expressionType ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public async Task<IReadOnlyList<ObjectCreationCallSiteReference>> FindCallSitesAsync( CancellationToken cancellationToken )
@@ -324,31 +359,7 @@ internal sealed partial class LinkerAnalysisStep
                 for ( var operation = this._semanticModel.GetOperation( node ); operation != null; operation = operation.Parent )
                 {
                     if ( operation is IAnonymousFunctionOperation { Parent: IConversionOperation { Type: { } conversionType } }
-                         && this.IsExpressionType( conversionType ) )
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            /// <summary>
-            /// Determines whether a type is <see cref="System.Linq.Expressions.Expression"/> or a type derived from it,
-            /// such as <see cref="System.Linq.Expressions.Expression{TDelegate}"/>.
-            /// </summary>
-            private bool IsExpressionType( ITypeSymbol type )
-            {
-                var expressionType = this._parent._expressionType;
-
-                if ( expressionType == null )
-                {
-                    return false;
-                }
-
-                for ( var t = type; t != null; t = t.BaseType )
-                {
-                    if ( this._compilationContext.SymbolComparer.Equals( t.OriginalDefinition, expressionType ) )
+                         && this._parent.IsExpressionType( conversionType ) )
                     {
                         return true;
                     }
@@ -385,6 +396,12 @@ internal sealed partial class LinkerAnalysisStep
             {
                 for ( var symbol = this._containingSymbol; symbol != null; symbol = symbol.ContainingSymbol )
                 {
+                    // A local function cannot be translated to the source compilation, so the expression is searched in the enclosing member.
+                    if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
+                    {
+                        continue;
+                    }
+
                     var sourceSymbol = this._parent._sourceCompilationContext.SymbolTranslator.Translate( symbol, allowMultiple: true );
 
                     if ( sourceSymbol == null )
