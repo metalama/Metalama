@@ -15,17 +15,20 @@ In scope:
 
 - A new package, `Metalama.Patterns.Commands`, that contains the command run-time types, the `[Command]` aspect, its
   options and its naming conventions.
-- The naming-convention infrastructure, which the commands and the dependency properties share, moves to the new
-  package as internal code.
 - `Metalama.Patterns.Wpf` keeps the `[DependencyProperty]` aspect and depends on the new package.
+- Both packages use the public `Metalama.Extensions.NamingConventions` package, whose direction is described in
+  [a general naming-conventions package](naming-conventions.md), instead of the internal naming-convention
+  infrastructure of `Metalama.Patterns.Wpf`. That infrastructure is removed.
 
 Out of scope:
 
+- The design of `Metalama.Extensions.NamingConventions` itself. This document only states what the commands split
+  requires from it.
 - Dependency property aspects for Avalonia (`StyledProperty`, `DirectProperty`), .NET MAUI (`BindableProperty`) or
   any other framework. The number of downloads of `Metalama.Patterns.Wpf` does not justify them. The design keeps
   them possible but does not prepare an abstraction for them.
 - An aspect for the property conventions of Windows Forms controls (`XxxChanged` events, `ShouldSerializeXxx`).
-- The compile-time topology (`Redist` and `CompileTime` packages). Section 10 explains how the new package maps onto
+- The compile-time topology (`Redist` and `CompileTime` packages). Section 10 explains how the new packages map onto
   it later.
 
 ## 2. Current state
@@ -52,58 +55,81 @@ Only the `[DependencyProperty]` aspect uses WPF: `DependencyObject`, `Dependency
 `Metalama.Patterns.Contracts`.
 
 The naming-convention infrastructure (`Metalama.Patterns.Wpf/Implementation/NamingConvention/`, 17 files) is used by
-both aspects. So are diagnostics LAMA5203 to LAMA5207, which report naming-convention conflicts, and the
-`Suppressions` and `StringHelper` helpers.
+both aspects. So are diagnostics LAMA5203 to LAMA5207, which report naming-convention conflicts, the
+`FormattingExtensions` helper, which formats the messages of these diagnostics, and the `Suppressions` class.
+The `StringHelper` helper is used only by `DefaultCommandNamingConvention`.
 
 ## 3. Target layout
 
-### 3.1. Metalama.Patterns.Commands
+### 3.1. The naming-convention code
+
+The internal naming-convention infrastructure cannot stay in one of the two packages and be used by the other. Three
+constraints apply:
+
+- No package grants `InternalsVisibleTo` to another package. `InternalsVisibleTo` is used only for test projects.
+- No source code is shared between packages, for example as linked files.
+- The naming-convention code does not belong in a package named `Metalama.Patterns.Commands`.
+
+A public package is the only option that satisfies the three constraints without duplicating the code. The current
+code is not suitable as a public API, as section 3 of [the direction document](naming-conventions.md) explains. The
+commands split therefore depends on `Metalama.Extensions.NamingConventions`, and both aspects are ported to its API:
+
+| Removed from `Metalama.Patterns.Wpf` | Replaced by |
+|---|---|
+| `Implementation/NamingConvention/*` (17 files) | The convention description, the resolver and the name patterns of `Metalama.Extensions.NamingConventions` |
+| LAMA5203 to LAMA5207 and `FormattingExtensions` | The standard diagnostics of `Metalama.Extensions.NamingConventions` (section 6) |
+| `StringHelper` (prefix and suffix removal in `DefaultCommandNamingConvention`) | A name pattern such as `[_][m_][Execute]{Stem}[Async][Command]` |
+
+`Suppressions` defines a single `SuppressionDefinition` for IDE0051. Each package defines its own instance. This is
+one declaration, not a shared implementation.
+
+### 3.2. Metalama.Patterns.Commands
 
 | Kind | Content |
 |---|---|
 | Run-time types | `BaseDelegateCommand`, `DelegateCommand`, `DelegateCommand<T>`, `BaseAsyncDelegateCommand`, `AsyncDelegateCommand`, `AsyncDelegateCommand<T>`, `IAsyncCommand`, `DelegateCommandExecution`, `DelegateCommandFactory` |
-| Aspect | `CommandAttribute`, `CommandAttribute.DiagnosticReporter` |
-| Configuration | `CommandOptions`, `CommandOptionsBuilder`, `CommandExtensions` (`ConfigureCommand`), `CommandNamingConvention` |
-| Command naming conventions | `Implementation/CommandNamingConvention/*` |
-| Shared internal code | `Implementation/NamingConvention/*`, `Diagnostics`, `Suppressions`, `StringHelper`, `FormattingExtensions` |
+| Aspect | `CommandAttribute` |
+| Configuration | `CommandOptions`, `CommandOptionsBuilder`, `CommandExtensions` (`ConfigureCommand`), the command naming conventions (section 5) |
+| Implementation | The description of the default command convention for `Metalama.Extensions.NamingConventions`, and the diagnostics LAMA5201, LAMA5202 and LAMA5208 |
 | Assembly attributes | The `AspectOrder` that orders `[Observable]` before `[Command]` |
 
-The package references `Metalama.Framework` only. It declares
-`<InternalsVisibleTo Include="Metalama.Patterns.Wpf" />` so that the dependency property aspect keeps using the
-shared internal code. The test projects that need internal access are added the same way.
+The package references `Metalama.Framework` and `Metalama.Extensions.NamingConventions`.
 
-### 3.2. Metalama.Patterns.Wpf
+### 3.3. Metalama.Patterns.Wpf
 
 | Kind | Content |
 |---|---|
 | Aspect | `DependencyPropertyAttribute` |
-| Configuration | `DependencyPropertyOptions`, `DependencyPropertyOptionsBuilder`, `DependencyPropertyExtensions`, `DependencyPropertyNamingConvention` |
-| Implementation | `DependencyPropertyAspectBuilder` (all partial files), `DependencyPropertyAssets`, `Implementation/DependencyPropertyNamingConvention/*`, `ChangeHandlerSignatureKind`, `ValidationHandlerSignatureKind` |
+| Configuration | `DependencyPropertyOptions`, `DependencyPropertyOptionsBuilder`, `DependencyPropertyExtensions`, the dependency property naming conventions (section 5) |
+| Implementation | `DependencyPropertyAspectBuilder` (all partial files), `DependencyPropertyAssets`, the description of the default dependency property convention, `ChangeHandlerSignatureKind`, `ValidationHandlerSignatureKind` |
 | Assembly attributes | The `AspectOrder` that orders contracts around `[DependencyProperty]` |
 
-The package references `Metalama.Patterns.Commands` and `Metalama.Patterns.Contracts`. A WPF user who references
-`Metalama.Patterns.Wpf` therefore still receives the commands, with no change to the package references.
+The package references `Metalama.Patterns.Commands`, `Metalama.Patterns.Contracts` and
+`Metalama.Extensions.NamingConventions`. The code of `Metalama.Patterns.Wpf` does not use any type of
+`Metalama.Patterns.Commands`. The reference exists so that a WPF user who references `Metalama.Patterns.Wpf` still
+receives the commands, with no change to the package references.
 
-### 3.3. Package dependencies
+### 3.4. Package dependencies
 
 ```mermaid
 graph LR
     Wpf[Metalama.Patterns.Wpf] --> Commands[Metalama.Patterns.Commands]
     Wpf --> Contracts[Metalama.Patterns.Contracts]
+    Wpf --> NamingConventions[Metalama.Extensions.NamingConventions]
+    Commands --> NamingConventions
     Commands --> Framework[Metalama.Framework]
     Contracts --> Framework
+    NamingConventions --> Framework
 ```
 
-The shared internal code stays in `Metalama.Patterns.Commands` instead of a separate package. It is internal, it is
-used by only two packages, and every user of `Metalama.Patterns.Wpf` receives `Metalama.Patterns.Commands` anyway. A
-separate package would add one more package to build, version and publish for code that no user sees.
+`Metalama.Extensions` is built before `Metalama.Patterns` (`eng/src/Program.cs:127-128`), so the pattern libraries
+can reference `Metalama.Extensions.NamingConventions` as a package.
 
 ## 4. Namespaces and compatibility
 
 Decision: the public command types move from the `Metalama.Patterns.Wpf` and `Metalama.Patterns.Wpf.Configuration`
 namespaces to `Metalama.Patterns.Commands` and `Metalama.Patterns.Commands.Configuration`. `Metalama.Patterns.Wpf`
-contains no type forwarders for them. The internal code moves to `Metalama.Patterns.Commands.Implementation` and its
-child namespaces.
+contains no type forwarders for them. The internal code moves to `Metalama.Patterns.Commands.Implementation`.
 
 This decision breaks source and binary compatibility:
 
@@ -121,9 +147,35 @@ alternative was the only way to keep binary compatibility. It was rejected becau
 Avalonia, .NET MAUI or Windows Forms user would write `using Metalama.Patterns.Wpf;` to use commands. 2027.0 is a
 major version that already contains breaking changes to the package topology.
 
-The diagnostic IDs do not change (section 6), so suppressions in user code keep working.
+## 5. Naming-convention options
 
-## 5. Target frameworks and trimming
+`CommandNamingConvention` and `DependencyPropertyNamingConvention` are public records. Users create them to customize
+the conventions, with regular-expression patterns and a `{CommandName}` token
+(`Metalama.Patterns.Wpf/Configuration/CommandNamingConvention.cs:37-87`), and register them through
+`ConfigureCommand` and `ConfigureDependencyProperty`.
+
+The direction document leaves open whether these records are kept as a facade over the new API or replaced by its
+types (section 6, item 5 of [the direction document](naming-conventions.md)). The commands split adopts that
+decision. If the records are replaced, the replacement happens in the same release as the namespace change of
+section 4, so that users migrate their configuration code once.
+
+## 6. Diagnostics
+
+| ID | Today | After the split |
+|---|---|---|
+| LAMA5201, LAMA5202, LAMA5208 | `[Command]` | `Metalama.Patterns.Commands`, with the same IDs |
+| LAMA5203 to LAMA5207 | The internal naming-convention infrastructure, for both aspects | Replaced by the diagnostics of `Metalama.Extensions.NamingConventions` |
+
+The direction document leaves open whether LAMA5203 to LAMA5207 are retired or kept as aliases of the new
+diagnostics (section 5 of [the direction document](naming-conventions.md)). The IDs appear in the suppressions of
+user code, so retiring them is a breaking change that the release notes must list.
+
+`Metalama.Patterns.Wpf` keeps no diagnostic definition of its own, as today.
+
+`Metalama.Patterns/DiagnosticIds.md` lists only Contracts and Caching. The range 5200 to 5220 is added for
+`Metalama.Patterns.Commands`.
+
+## 7. Target frameworks and trimming
 
 `Metalama.Patterns.Commands` targets `net472;net10.0;netstandard2.0`, like the other pattern libraries. It does not
 set `UseWPF` or `EnableWindowsTargeting`.
@@ -132,27 +184,12 @@ The project sets `<IsTrimmable>true</IsTrimmable>` and `<IsAotCompatible>true</I
 target. .NET MAUI applications on iOS are compiled ahead of time, and .NET MAUI applications on Android and iOS are
 trimmed. The analyzers that these properties enable report any incompatible construct at build time. No pattern
 library sets these properties today, so the check must also cover the run-time Metalama assemblies that the woven
-code of the commands references.
+code of the commands references. `Metalama.Extensions.NamingConventions` contains only compile-time code, so the
+woven code does not reference it.
 
 `Metalama.Patterns.Wpf` keeps `net472;net10.0-windows`.
 
-## 6. Diagnostics
-
-`Implementation/Diagnostics.cs` defines eight diagnostics, and all of them move to `Metalama.Patterns.Commands` with
-their IDs unchanged:
-
-| ID | Used by |
-|---|---|
-| LAMA5201, LAMA5202, LAMA5208 | `[Command]` |
-| LAMA5203 to LAMA5207 | The naming-convention infrastructure, for both aspects |
-
-The diagnostics that are specific to dependency properties are reported through the naming-convention
-infrastructure, so `Metalama.Patterns.Wpf` keeps no diagnostic definition of its own.
-
-`Metalama.Patterns/DiagnosticIds.md` lists only Contracts and Caching. The range 5200 to 5220 is added for
-`Metalama.Patterns.Commands` and `Metalama.Patterns.Wpf`.
-
-## 7. Capturing the synchronization context
+## 8. Capturing the synchronization context
 
 `BaseDelegateCommand` captures `SynchronizationContext.Current` when the command is constructed. When no context is
 present, notifications run synchronously on the thread that raises them.
@@ -169,7 +206,7 @@ thread, so the context that is captured at this point is the correct one. The fi
 not change the behavior when the constructor already captures a context, and is covered by a unit test that
 constructs the command with no context and subscribes under a test synchronization context.
 
-## 8. Aspect ordering
+## 9. Aspect ordering
 
 `Metalama.Patterns.Wpf/AspectOrder.cs` names the aspect types as strings, so moving `CommandAttribute` does not
 cause a build error. The order between `ObservableAttribute` and `CommandAttribute` moves to
@@ -179,7 +216,7 @@ cause a build error. The order between `ObservableAttribute` and `CommandAttribu
 `Metalama.Patterns.Commands` does not reference `Metalama.Patterns.Observability`. The integration of `[Command]`
 with `[Observable]` relies on `INotifyPropertyChanged` only.
 
-## 9. Tests
+## 10. Tests
 
 | Today | After the split |
 |---|---|
@@ -187,14 +224,17 @@ with `[Observable]` relies on `INotifyPropertyChanged` only.
 | `Metalama.Patterns.Wpf.AspectTests/DependencyPropertyTests` | Stay in `Metalama.Patterns.Wpf.AspectTests` |
 | `Metalama.Patterns.Wpf.UnitTests/Command` and `Assets/Command` | `Metalama.Patterns.Commands.UnitTests`, targeting `net472;net10.0` |
 | `Metalama.Patterns.Wpf.UnitTests/DependencyProperty` and `Assets/DependencyProperty` | Stay in `Metalama.Patterns.Wpf.UnitTests` |
-| `Metalama.Patterns.Wpf.CompileTimeTests` (`DefaultCommandNamingConventionTests`) | `Metalama.Patterns.Commands.CompileTimeTests` |
+| `Metalama.Patterns.Wpf.CompileTimeTests` (`DefaultCommandNamingConventionTests`) | The cases move to the tests of `Metalama.Extensions.NamingConventions` (name patterns) and to `Metalama.Patterns.Commands.AspectTests` (the default command convention) |
 
-The expected outputs of the command aspect tests change only in the namespace of the referenced types. A test that
-shows another change indicates a defect in the move.
+The move of the command types changes the expected outputs of the command aspect tests only in the namespace of the
+referenced types. The port to `Metalama.Extensions.NamingConventions` changes the expected diagnostics of the tests in
+`CommandTests/NamingConvention`, `CommandTests/Diagnostics` and the corresponding dependency property tests. These
+changes must be reviewed one by one, because they are the evidence that the new resolver finds the same members as
+the old infrastructure.
 
 The command tests no longer require Windows, so they can run on Linux build agents.
 
-## 10. Relation to the compile-time topology
+## 11. Relation to the compile-time topology
 
 The compile-time topology ([compile-time projects](compile-time-projects.md) and the
 [study for Metalama.Patterns](compile-time-projects-patterns-study.md)) splits each pattern library into an
@@ -204,37 +244,46 @@ as one library and describes the command classes as WPF types; this document cor
 The split proposed here is compatible with that topology. When it is applied, `Metalama.Patterns.Commands.Redist`
 holds the `[Command]` attribute as a plain attribute and the run-time command types, and
 `Metalama.Patterns.Commands.CompileTime` holds the aspect, the options and the naming conventions.
-`Metalama.Patterns.Wpf` follows the same pattern for `[DependencyProperty]`. The study must be updated to list
-Commands as a separate library.
+`Metalama.Patterns.Wpf` follows the same pattern for `[DependencyProperty]`. Only the `CompileTime` packages
+reference `Metalama.Extensions.NamingConventions`, because it contains no run-time code. The study must be updated to
+list Commands as a separate library.
 
-## 11. Build, packaging and documentation
+## 12. Build, packaging and documentation
 
-- `Metalama.Patterns/Metalama.Patterns.sln`: add the new package and the three new test projects.
+- `Metalama.Patterns/Metalama.Patterns.sln`: add the new package and the new test projects.
 - `eng/src/Program.cs:159`: add `Metalama.Patterns.Commands.$(PackageVersion).nupkg` to the public artifacts.
 - `Metalama.Framework/src/Metalama.Framework.Analyzers/WellKnownDurableTypes.cs:91`: the comment names
-  `Metalama.Patterns.Wpf` as the owner of the naming conventions, and is updated.
+  `Metalama.Patterns.Wpf` as the owner of the naming conventions, and is updated to name
+  `Metalama.Extensions.NamingConventions`.
 - `Metalama.Patterns.Commands/README.md`: new. `Metalama.Patterns.Wpf/README.md`: restricted to dependency
   properties, with a reference to the new package.
 - The XML documentation of the command types describes them as WPF commands, for example
   `Metalama.Patterns.Wpf/CommandAttribute.cs:27`. It is rewritten in neutral terms.
 - `Metalama.Documentation`: the article `content/patterns/wpf/command.md` moves to a new section,
   `content/patterns/commands/`, with a short section on each supported framework. The samples move from
-  `code/Metalama.Documentation.SampleCode.Wpf` to a new sample project that does not reference WPF.
-  `content/api/patterns-api.md` lists the new package. The release notes of 2027.0 describe the break of section 4.
+  `code/Metalama.Documentation.SampleCode.Wpf` to a new sample project that does not reference WPF. The section on
+  customizing naming conventions is rewritten according to section 5. `content/api/patterns-api.md` lists the new
+  package. The release notes of 2027.0 describe the breaks of sections 4, 5 and 6.
 
-## 12. Open questions
+## 13. Open questions
 
-1. Whether the change of section 7 is part of this work or a separate issue. It is small and it is required for
+1. Whether the change of section 8 is part of this work or a separate issue. It is small and it is required for
    correct behavior on Windows Forms, so this document recommends to include it.
-2. Whether the trimming and ahead-of-time compilation properties of section 5 are checked on a .NET MAUI sample
+2. Whether the trimming and ahead-of-time compilation properties of section 7 are checked on a .NET MAUI sample
    application for iOS before the release, or only through the analyzers.
+3. The release in which `Metalama.Extensions.NamingConventions` becomes available. The commands split cannot ship
+   before it, so the two pieces of work must be planned together for 2027.0.
 
-## 13. Work plan
+## 14. Work plan
 
-1. Create `Metalama.Patterns.Commands` and move the files of section 3.1 to the namespaces of section 4.
-2. Make `Metalama.Patterns.Wpf` reference the new package, and verify that the dependency property aspect tests pass
-   with no change to their expected outputs.
-3. Split the test projects as described in section 9.
-4. Implement the change of section 7 with its unit test.
-5. Update the build, the packaging and the README files (section 11).
-6. Update the conceptual documentation and the samples in `Metalama.Documentation`.
+1. Design and implement `Metalama.Extensions.NamingConventions`, with the command conventions as its first consumer
+   (see section 6 of [the direction document](naming-conventions.md)).
+2. Create `Metalama.Patterns.Commands`, move the files of section 3.2 to the namespaces of section 4, and port the
+   command conventions to `Metalama.Extensions.NamingConventions`.
+3. Port the dependency property conventions of `Metalama.Patterns.Wpf` to `Metalama.Extensions.NamingConventions`,
+   make `Metalama.Patterns.Wpf` reference `Metalama.Patterns.Commands`, and remove the internal naming-convention
+   infrastructure.
+4. Split the test projects and review the changed diagnostics, as described in section 10.
+5. Implement the change of section 8 with its unit test.
+6. Update the build, the packaging and the README files (section 12).
+7. Update the conceptual documentation and the samples in `Metalama.Documentation`.

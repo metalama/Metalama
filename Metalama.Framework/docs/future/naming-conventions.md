@@ -174,6 +174,6 @@ suppressions of user code.
 
 ## 7. Relation to the commands split
 
-If this package exists, `Metalama.Patterns.Commands` and `Metalama.Patterns.Wpf` both reference it, and the question of
-where the naming-convention code lives disappears. If the commands split happens first, each package needs its own
-copy of the naming-convention code until both are ported to this package.
+The [commands split](commands-package.md) depends on this package. `Metalama.Patterns.Commands` and
+`Metalama.Patterns.Wpf` both reference it, and the internal naming-convention infrastructure of
+`Metalama.Patterns.Wpf` is removed. The commands split therefore cannot ship before this package.
