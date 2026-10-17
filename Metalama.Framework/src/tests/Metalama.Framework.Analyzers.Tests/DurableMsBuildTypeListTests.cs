@@ -7,7 +7,6 @@ using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
@@ -77,6 +76,27 @@ public sealed class DurableMsBuildTypeListTests
         return diagnostics.Where( d => d.Id.StartsWith( "LAMA087", StringComparison.Ordinal ) ).ToImmutableArray();
     }
 
+    /// <summary>
+    /// Writes a compiler-visible property in the form of the <c>.editorconfig</c> file that the build generates, parses
+    /// it with the parser of Roslyn, and returns the value that the analyzer receives.
+    /// </summary>
+    /// <remarks>
+    /// The items are joined with <c>,</c>, which is the separator of the targets of
+    /// <c>Metalama.CompilerVisibleProperties.props</c>. The parser of Roslyn treats <c>;</c> and <c>#</c> as the start
+    /// of a comment, so a test that sets the property value directly does not detect a separator that the parser
+    /// truncates.
+    /// </remarks>
+    private static string ReadThroughEditorConfig( string propertyName, params string[] items )
+    {
+        var text = $"is_global = true\nbuild_property.{propertyName} = {string.Join( ",", items )}\n";
+        var config = AnalyzerConfig.Parse( text, Path.Combine( Path.GetTempPath(), "Test.GeneratedMSBuildEditorConfig.editorconfig" ) );
+        var configSet = AnalyzerConfigSet.Create( ImmutableArray.Create( config ) );
+
+        Assert.True( configSet.GlobalConfigOptions.AnalyzerOptions.TryGetValue( $"build_property.{propertyName}", out var value ) );
+
+        return value;
+    }
+
     [Fact]
     public async Task WithoutTheItem_AnUnknownTypeIsNotDurable()
     {
@@ -95,11 +115,29 @@ public sealed class DurableMsBuildTypeListTests
     }
 
     [Fact]
-    public async Task TheListIsSemicolonSeparatedAndTrimmed()
+    public async Task TheListIsCommaSeparatedAndTrimmed()
     {
-        var diagnostics = await GetDiagnosticsAsync( " System.String ; Opaque ; ", null );
+        var diagnostics = await GetDiagnosticsAsync( " System.String , Opaque , ", null );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
+    }
+
+    [Fact]
+    public async Task SeveralMetalamaDurableTypeItems_AreAllHonoredAfterTheEditorConfigRoundTrip()
+    {
+        var diagnostics = await GetDiagnosticsAsync( ReadThroughEditorConfig( "MetalamaDurableTypes", "System.String", "Opaque" ), null );
+
+        Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
+    }
+
+    [Fact]
+    public async Task SeveralMetalamaNonDurableTypeItems_AreAllHonoredAfterTheEditorConfigRoundTrip()
+    {
+        var diagnostics = await GetDiagnosticsAsync( null, ReadThroughEditorConfig( "MetalamaNonDurableTypes", "System.String", "Marked" ) );
+
+        Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0879" );
+        Assert.Equal( 2, diagnostics.Length );
+        Assert.Contains( diagnostics, d => d.GetMessage().Contains( "Marked", StringComparison.Ordinal ) );
     }
 
     /// <remarks>

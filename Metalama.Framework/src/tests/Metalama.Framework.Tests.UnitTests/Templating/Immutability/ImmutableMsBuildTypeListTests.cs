@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
@@ -68,6 +69,27 @@ public sealed class ImmutableMsBuildTypeListTests : ImmutabilityTestBase
         return this.GetDiagnosticsAsync( code ?? _code, properties );
     }
 
+    /// <summary>
+    /// Writes a compiler-visible property in the form of the <c>.editorconfig</c> file that the build generates, parses
+    /// it with the parser of Roslyn, and returns the value that the analyzer receives.
+    /// </summary>
+    /// <remarks>
+    /// The items are joined with <c>,</c>, which is the separator of the targets of
+    /// <c>Metalama.CompilerVisibleProperties.props</c>. The parser of Roslyn treats <c>;</c> and <c>#</c> as the start
+    /// of a comment, so a test that sets the property value directly does not detect a separator that the parser
+    /// truncates.
+    /// </remarks>
+    private static string ReadThroughEditorConfig( string propertyName, params string[] items )
+    {
+        var text = $"is_global = true\nbuild_property.{propertyName} = {string.Join( ",", items )}\n";
+        var config = AnalyzerConfig.Parse( text, Path.Combine( Path.GetTempPath(), "Test.GeneratedMSBuildEditorConfig.editorconfig" ) );
+        var configSet = AnalyzerConfigSet.Create( ImmutableArray.Create( config ) );
+
+        Assert.True( configSet.GlobalConfigOptions.AnalyzerOptions.TryGetValue( $"build_property.{propertyName}", out var value ) );
+
+        return value;
+    }
+
     [Fact]
     public async Task WithoutTheItem_AnUnknownTypeIsMutable()
     {
@@ -86,9 +108,17 @@ public sealed class ImmutableMsBuildTypeListTests : ImmutabilityTestBase
     }
 
     [Fact]
-    public async Task TheListIsSemicolonSeparatedAndTrimmed()
+    public async Task TheListIsCommaSeparatedAndTrimmed()
     {
-        var diagnostics = await this.GetDiagnosticsWithItemsAsync( " System.String ; Opaque ; " );
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( " System.String , Opaque , " );
+
+        Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
+    }
+
+    [Fact]
+    public async Task SeveralMetalamaImmutableTypeItems_AreAllHonoredAfterTheEditorConfigRoundTrip()
+    {
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync( ReadThroughEditorConfig( "MetalamaImmutableTypes", "System.String", "Opaque" ) );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -146,6 +176,29 @@ public sealed class ImmutableMsBuildTypeListTests : ImmutabilityTestBase
 
         Assert.Single( withTheItem );
         Assert.Equal( "LAMA0880", withTheItem[0].Id );
+    }
+
+    [Fact]
+    public async Task SeveralMetalamaImmutableContractTypeItems_AreAllHonoredAfterTheEditorConfigRoundTrip()
+    {
+        const string code = """
+                            interface IOther { }
+
+                            interface IValidator { }
+
+                            class MyValidator : IValidator
+                            {
+                                public int Count;
+                            }
+                            """;
+
+        var diagnostics = await this.GetDiagnosticsWithItemsAsync(
+            null,
+            ReadThroughEditorConfig( "MetalamaImmutableContractTypes", "IOther", "IValidator" ),
+            code );
+
+        Assert.Single( diagnostics );
+        Assert.Equal( "LAMA0880", diagnostics[0].Id );
     }
 
     /// <summary>
