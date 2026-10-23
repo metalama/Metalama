@@ -66,6 +66,12 @@ internal sealed class InliningSpecification
     public string? ReturnLabelIdentifier { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the return statements of the inlined body that do not flow to the exit of the body are preserved.
+    /// This is possible when the replaced statement is directly followed by a return statement of the final method.
+    /// </summary>
+    public bool PreserveReturnStatements { get; }
+
+    /// <summary>
     /// Gets a symbol from intermediate compilation that will be inlined.
     /// </summary>
     public IntermediateSymbolSemantic<IMethodSymbol> TargetSemantic { get; }
@@ -81,9 +87,11 @@ internal sealed class InliningSpecification
         bool declareReturnVariable,
         string? returnVariableIdentifier,
         string? returnLabelIdentifier,
+        bool preserveReturnStatements,
         IntermediateSymbolSemantic<IMethodSymbol> targetSemantic )
     {
         Invariant.AssertNot( declareReturnVariable && returnVariableIdentifier == null );
+        Invariant.AssertNot( preserveReturnStatements && (useSimpleInlining || returnLabelIdentifier != null) );
         Invariant.AssertNot( targetSemantic.Kind == IntermediateSymbolSemanticKind.Final );
         Invariant.Assert( SymbolEqualityComparer.Default.Equals( targetSemantic.Symbol.ContainingType, destinationSemantic.Symbol.ContainingType ) );
 
@@ -97,6 +105,7 @@ internal sealed class InliningSpecification
         this.DeclareReturnVariable = declareReturnVariable;
         this.ReturnVariableIdentifier = returnVariableIdentifier;
         this.ReturnLabelIdentifier = returnLabelIdentifier;
+        this.PreserveReturnStatements = preserveReturnStatements;
         this.TargetSemantic = targetSemantic;
     }
 

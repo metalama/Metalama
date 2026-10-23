@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -166,6 +167,7 @@ internal sealed partial class LinkerAnalysisStep
                                     false,
                                     null,
                                     null,
+                                    false,
                                     targetSemantic ) );
 
                             VisitSemanticBody( destinationSemantic, targetSemantic, context.Recurse() );
@@ -186,6 +188,7 @@ internal sealed partial class LinkerAnalysisStep
                                     false,
                                     null,
                                     null,
+                                    false,
                                     targetSemantic ) );
 
                             VisitSemanticBody( destinationSemantic, targetSemantic, context.RecurseWithSimpleInlining() );
@@ -197,9 +200,16 @@ internal sealed partial class LinkerAnalysisStep
                                 throw new AssertionFailedException( $"No body analysis result for '{targetSemantic.Symbol}'." );
                             }
 
+                            // When a void method is inlined into an expression statement that is directly followed by a return statement
+                            // of the final method, the return statements of the inlined body have the same effect as the following return
+                            // statement. They can be preserved, and no return label is required.
+                            var preserveReturnStatements = context.UsingSimpleInlining
+                                                           && targetSemantic.Symbol.ReturnsVoid
+                                                           && IsFollowedByVoidReturnStatement( info.ReplacedRootNode );
+
                             // Allocate return label if and only if there is a return statement, removal of which would cause change in control flow in the inlined body.
                             var returnLabelIdentifier =
-                                bodyAnalysisResult.ReturnStatements.Any( s => !s.Value.FlowsToExitIfRewritten )
+                                !preserveReturnStatements && bodyAnalysisResult.ReturnStatements.Any( s => !s.Value.FlowsToExitIfRewritten )
                                     ? context.AllocateReturnLabel()
                                     : null;
 
@@ -217,6 +227,7 @@ internal sealed partial class LinkerAnalysisStep
                                     false,
                                     returnVariableIdentifier,
                                     returnLabelIdentifier,
+                                    preserveReturnStatements,
                                     targetSemantic ) );
 
                             VisitSemanticBody( destinationSemantic, targetSemantic, context.RecurseWithComplexInlining( returnVariableIdentifier ) );
@@ -224,6 +235,21 @@ internal sealed partial class LinkerAnalysisStep
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Determines whether a node is an expression statement that is directly followed by a <c>return;</c> statement in the same block.
+        /// </summary>
+        private static bool IsFollowedByVoidReturnStatement( SyntaxNode node )
+        {
+            if ( node is not ExpressionStatementSyntax { Parent: BlockSyntax block } expressionStatement )
+            {
+                return false;
+            }
+
+            var index = block.Statements.IndexOf( expressionStatement );
+
+            return index + 1 < block.Statements.Count && block.Statements[index + 1] is ReturnStatementSyntax { Expression: null };
         }
     }
 }

@@ -33,4 +33,17 @@ internal class Target
 
         Console.WriteLine( "method" );
     }
+
+    [LogAspect]
+    public void MethodWithExplicitReturn( int i )
+    {
+        if (i == 0)
+        {
+            return;
+        }
+
+        Console.WriteLine( "method" );
+
+        return;
+    }
 }
