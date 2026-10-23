@@ -177,6 +177,102 @@ public sealed class ImmutableTypeTests : ImmutabilityTestBase
             + "[ImmutableType] class Other { public readonly int X; } "
             + "[ImmutableType] class C { private readonly Other _v = null!; }" );
 
+    // ------------------------------------------------------------------------------------------------------------
+    // Inheritance from well-known types. The hierarchy is walked once, with the result cached for every type visited,
+    // and a mutable entry wins over an immutable one wherever the two appear.
+    // ------------------------------------------------------------------------------------------------------------
+
+    /// <remarks>
+    /// The mutable entry is two steps up, behind a user type that has no entry of its own.
+    /// </remarks>
+    [Fact]
+    public async Task ClassDerivedFromMutableCollectionThroughAnotherClass_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue + "class A : List<int> { } class B : A { } [ImmutableType] class C { private readonly B _v = null!; }",
+            "LAMA0882" );
+
+        Assert.Contains( "a mutable collection", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// The interface extends a well-known immutable interface and a well-known mutable one. The mutable entry wins,
+    /// whichever is visited first.
+    /// </remarks>
+    [Fact]
+    public async Task InterfaceExtendingImmutableAndMutableInterfaces_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "interface IBoth : Microsoft.CodeAnalysis.IOperation, IList<int> { } "
+            + "[ImmutableType] class C { private readonly IBoth _v = null!; }",
+            "LAMA0882" );
+
+        Assert.Contains( "a mutable collection", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// A user interface that extends a well-known immutable interface inherits its entry, like the symbol interfaces
+    /// of Roslyn itself do.
+    /// </remarks>
+    [Fact]
+    public async Task InterfaceExtendingImmutableInterface_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            _prologue
+            + "interface IOp : Microsoft.CodeAnalysis.IOperation { } "
+            + "[ImmutableType] class C { private readonly IOp _v = null!; }" );
+
+    /// <remarks>
+    /// An immutable entry that does not apply to derived types is not inherited, even though the base type itself has
+    /// an immutable verdict. This is why the hierarchy cache is distinct from the cache of verdicts.
+    /// </remarks>
+    [Fact]
+    public async Task ClassDerivedFromImmutableTypeWithoutDerivedTypes_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "class MyFormat : Microsoft.CodeAnalysis.SymbolDisplayFormat { } "
+            + "[ImmutableType] class C { private readonly MyFormat _v = null!; }",
+            "LAMA0882" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// The entry of <c>LocalizableString</c> does not apply to derived types, because a user-defined derived type can
+    /// hold mutable state, such as an array of format arguments.
+    /// </remarks>
+    [Fact]
+    public async Task ClassDerivedFromLocalizableString_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "sealed class MyString : Microsoft.CodeAnalysis.LocalizableString { "
+            + "private readonly object[] _arguments; "
+            + "public MyString( object[] arguments ) { this._arguments = arguments; } "
+            + "protected override string GetText( IFormatProvider? formatProvider ) => string.Format( formatProvider, \"{0}\", this._arguments ); "
+            + "protected override bool AreEqual( object? other ) => ReferenceEquals( this, other ); "
+            + "protected override int GetHash() => 0; } "
+            + "[ImmutableType] class C { private readonly MyString _v = null!; }",
+            "LAMA0882" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// Several types that share their ancestors, so that the walk of the shared part is served from the cache. The
+    /// verdicts must not depend on the order in which the types are evaluated.
+    /// </remarks>
+    [Fact]
+    public async Task SeveralTypesSharingAncestors_AreNotReported()
+        => await AssertNoDiagnosticAsync(
+            _prologue
+            + "using Microsoft.CodeAnalysis; using Microsoft.CodeAnalysis.CSharp; using Microsoft.CodeAnalysis.CSharp.Syntax; "
+            + "[ImmutableType] class C { "
+            + "private readonly TypeSyntax _a = null!; private readonly ClassDeclarationSyntax _b = null!; "
+            + "private readonly CSharpSyntaxNode _c = null!; private readonly SyntaxNode _d = null!; "
+            + "private readonly IMethodSymbol _e = null!; private readonly IPropertySymbol _f = null!; private readonly ISymbol _g = null!; }" );
+
     [Fact]
     public async Task TupleOfMutableElement_IsReported()
         => await AssertSingleDiagnosticAsync(
