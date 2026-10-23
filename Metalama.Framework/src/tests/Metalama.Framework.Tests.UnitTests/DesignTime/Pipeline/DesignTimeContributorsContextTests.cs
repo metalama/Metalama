@@ -127,6 +127,55 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
                                        """;
 
     /// <summary>
+    /// The code of a pipeline that has three high-level stages, because two weaver aspects are applied to the type <c>C</c>, and the aspect
+    /// <c>Aspect3</c>, which adds no contributor, is ordered between them.
+    /// </summary>
+    private const string _withTwoWeaversCode = _commonCode + """
+                                                            internal class Aspect3 : TypeAspect
+                                                            {
+                                                                [Introduce]
+                                                                public void IntroducedByAspect3() { }
+                                                            }
+
+                                                            [Aspect1]
+                                                            [WeaverAspect]
+                                                            [Aspect3]
+                                                            [WeaverAspect2]
+                                                            [Aspect2]
+                                                            public class C { }
+                                                            """;
+
+    /// <summary>
+    /// The two weaver aspects of <see cref="_withTwoWeaversCode"/>, which split the pipeline into three high-level stages.
+    /// </summary>
+    private const string _twoWeaversCode = """
+                                           using System.Threading.Tasks;
+                                           using Metalama.Framework.Aspects;
+                                           using Metalama.Framework.Engine;
+                                           using Metalama.Framework.Engine.AspectWeavers;
+
+                                           [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(WeaverAspect), typeof(Aspect3), typeof(WeaverAspect2), typeof(Aspect2) )]
+
+                                           [RequireAspectWeaver( "AspectWeaver" )]
+                                           internal class WeaverAspect : TypeAspect { }
+
+                                           [RequireAspectWeaver( "AspectWeaver2" )]
+                                           internal class WeaverAspect2 : TypeAspect { }
+
+                                           [MetalamaPlugIn]
+                                           internal class AspectWeaver : IAspectWeaver
+                                           {
+                                               public Task TransformAsync( AspectWeaverContext context ) => Task.CompletedTask;
+                                           }
+
+                                           [MetalamaPlugIn]
+                                           internal class AspectWeaver2 : IAspectWeaver
+                                           {
+                                               public Task TransformAsync( AspectWeaverContext context ) => Task.CompletedTask;
+                                           }
+                                           """;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DesignTimeContributorsContextTests"/> class.
     /// </summary>
     public DesignTimeContributorsContextTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
@@ -279,14 +328,28 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     }
 
     /// <summary>
-    /// Executes the compile-time pipeline on the given code, with the weaver in a separate file, and returns the recorder.
+    /// Verifies that the transitive contributors returned by the compile-time hook in the first stage are given to the transitive manifest when
+    /// two low-level aspect weavers split the pipeline into three high-level stages (issue #2108). The extension returns one transitive
+    /// contributor per contributor, and the first stage has the contributor of the fabric and the contributor of <c>Aspect2</c>.
     /// </summary>
-    private async Task<HookRecorder> ExecuteCompileTimeAsync( string code )
+    [Fact]
+    public async Task CompileTime_WithTwoLowLevelWeavers_TransitiveContributorsKept()
+    {
+        var recorder = await this.ExecuteCompileTimeAsync( _withTwoWeaversCode, _twoWeaversCode );
+
+        Assert.Equal( 2, Assert.Single( recorder.CompileTimeCalls ) );
+        Assert.Equal( 2, Assert.Single( recorder.ManifestContributorCounts ) );
+    }
+
+    /// <summary>
+    /// Executes the compile-time pipeline on the given code, with the weaver code in a separate file, and returns the recorder.
+    /// </summary>
+    private async Task<HookRecorder> ExecuteCompileTimeAsync( string code, string weaverCode = _weaverCode )
     {
         var recorder = new HookRecorder();
         using var testContext = this.CreateRecordingTestContext( recorder );
 
-        var compilation = CreateCompilation( testContext, new Dictionary<string, string> { ["code.cs"] = code, ["weaver.cs"] = _weaverCode } );
+        var compilation = CreateCompilation( testContext, new Dictionary<string, string> { ["code.cs"] = code, ["weaver.cs"] = weaverCode } );
 
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
         var reported = new List<Diagnostic>();
