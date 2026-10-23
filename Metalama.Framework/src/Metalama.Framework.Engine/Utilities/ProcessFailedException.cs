@@ -50,8 +50,9 @@ public sealed class ProcessFailedException : InvalidOperationException
     /// Gets the standard output and standard error of the process, one item per line.
     /// </summary>
     /// <remarks>
-    /// The collection is empty when the process was terminated because of a timeout, because the output of an
-    /// unfinished build is not meaningful.
+    /// When the process was terminated because of a timeout, the collection contains the output that the process
+    /// wrote before it was terminated. This output is incomplete, but it is the only record of what the process was
+    /// doing when it exceeded its time budget.
     /// </remarks>
     public ImmutableArray<string> Output { get; }
 
@@ -77,15 +78,22 @@ public sealed class ProcessFailedException : InvalidOperationException
         this.Output = output;
     }
 
-    internal static ProcessFailedException CreateTimeout( string fileName, string arguments, string workingDirectory, int timeout )
+    internal static ProcessFailedException CreateTimeout(
+        string fileName,
+        string arguments,
+        string workingDirectory,
+        int timeout,
+        ImmutableArray<string> output )
         => new(
-            $"The process '{fileName} {arguments}' did not complete in {timeout / 1000f} s.",
+            $"The process '{fileName} {arguments}' in '{workingDirectory}' did not complete in {timeout / 1000f} s and was terminated. "
+            + "Process output before termination:"
+            + Environment.NewLine + Environment.NewLine + string.Join( Environment.NewLine, output ),
             fileName,
             arguments,
             workingDirectory,
             null,
             timeout,
-            ImmutableArray<string>.Empty );
+            output );
 
     internal static ProcessFailedException CreateNonZeroExitCode(
         string fileName,

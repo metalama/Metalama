@@ -87,9 +87,22 @@ public sealed class MSBuildTool
 
         var lines = new List<string>();
 
+        // The standard output and the standard error are read on different threads, so access to the list is
+        // synchronized.
         void OnProcessDataReceived( object sender, DataReceivedEventArgs e )
         {
-            lines.Add( e.Data ?? "" );
+            lock ( lines )
+            {
+                lines.Add( e.Data ?? "" );
+            }
+        }
+
+        ImmutableArray<string> GetLines()
+        {
+            lock ( lines )
+            {
+                return lines.ToImmutableArray();
+            }
         }
 
         process.OutputDataReceived += OnProcessDataReceived;
@@ -110,7 +123,7 @@ public sealed class MSBuildTool
                 // ignored
             }
 
-            throw ProcessFailedException.CreateTimeout( this._msBuildExePath, arguments, startInfo.WorkingDirectory, timeout );
+            throw ProcessFailedException.CreateTimeout( this._msBuildExePath, arguments, startInfo.WorkingDirectory, timeout, GetLines() );
         }
 
         if ( process.ExitCode != 0 )
@@ -121,7 +134,7 @@ public sealed class MSBuildTool
                 startInfo.WorkingDirectory,
                 process.ExitCode,
                 timeout,
-                lines.ToImmutableArray() );
+                GetLines() );
         }
     }
 }
