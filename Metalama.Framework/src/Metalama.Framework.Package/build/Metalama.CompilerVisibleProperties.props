@@ -74,14 +74,16 @@
         System.Collections.Generic.List`1. The non-durable list wins over the durable one.
 
         An analyzer can read an MSBuild property but not an MSBuild item, so each list is joined into a property
-        before the compiler-visible options are generated. A verdict that holds in general belongs in the
+        before the compiler-visible options are generated. The items are joined with a comma and not with the default
+        semicolon, because the compiler-visible options are written to an .editorconfig file, whose parser treats a
+        semicolon as the start of a comment. A full metadata name without an assembly name contains no comma. A verdict that holds in general belongs in the
         WellKnownDurableTypes table of Metalama.Framework.Analyzers rather than in a project file, so that every
         project benefits from it and the reasoning is recorded in one place.
     -->
     <Target Name="MetalamaComputeDurableTypeLists" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
         <PropertyGroup>
-            <MetalamaDurableTypes>@(MetalamaDurableType)</MetalamaDurableTypes>
-            <MetalamaNonDurableTypes>@(MetalamaNonDurableType)</MetalamaNonDurableTypes>
+            <MetalamaDurableTypes>@(MetalamaDurableType, ',')</MetalamaDurableTypes>
+            <MetalamaNonDurableTypes>@(MetalamaNonDurableType, ',')</MetalamaNonDurableTypes>
         </PropertyGroup>
     </Target>
 
@@ -120,8 +122,8 @@
     -->
     <Target Name="MetalamaComputeImmutableTypeLists" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
         <PropertyGroup>
-            <MetalamaImmutableTypes>@(MetalamaImmutableType)</MetalamaImmutableTypes>
-            <MetalamaImmutableContractTypes>@(MetalamaImmutableContractType)</MetalamaImmutableContractTypes>
+            <MetalamaImmutableTypes>@(MetalamaImmutableType, ',')</MetalamaImmutableTypes>
+            <MetalamaImmutableContractTypes>@(MetalamaImmutableContractType, ',')</MetalamaImmutableContractTypes>
         </PropertyGroup>
     </Target>
 

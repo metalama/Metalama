@@ -44,6 +44,15 @@ public sealed class BuildTouchFileTests : DesignTimeTestBase
 {
     public BuildTouchFileTests( ITestOutputHelper logger ) : base( logger ) { }
 
+    /// <summary>
+    /// The timeout of the tests that wait for the first execution of the design-time pipelines.
+    /// </summary>
+    /// <remarks>
+    /// The first execution includes the compilation of the compile-time project. On a loaded build agent, this has taken
+    /// more than 60 seconds.
+    /// </remarks>
+    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds( 180 );
+
     private const string _aspectCode = """
                                        using Metalama.Framework.Aspects;
                                        using Metalama.Framework.Code;
@@ -154,7 +163,7 @@ public sealed class BuildTouchFileTests : DesignTimeTestBase
     [Fact]
     public async Task SameVersionReference_ResumesAfterBuild()
     {
-        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 60 ) } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { Timeout = _timeout } );
 
         var aspectAssemblyName = "aspect_" + RandomIdGenerator.GenerateId();
         var targetAssemblyName = "target_" + RandomIdGenerator.GenerateId();
@@ -224,7 +233,7 @@ public sealed class BuildTouchFileTests : DesignTimeTestBase
     [Fact]
     public async Task SameVersionReference_FactoryDisposedDuringCacheReset_ReportsNoException()
     {
-        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 60 ) } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { Timeout = _timeout } );
 
         var aspectAssemblyName = "aspect_" + RandomIdGenerator.GenerateId();
         var targetAssemblyName = "target_" + RandomIdGenerator.GenerateId();
@@ -308,7 +317,7 @@ public sealed class BuildTouchFileTests : DesignTimeTestBase
     [Fact]
     public async Task OtherVersionReference_ResumesAfterBuild()
     {
-        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 60 ) } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { Timeout = _timeout } );
 
         var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
 

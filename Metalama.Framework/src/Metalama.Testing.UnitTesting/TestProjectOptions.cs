@@ -153,7 +153,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     private ImmutableArray<string> GetListProperty( string name )
         => this.TestContextOptions.Properties.TryGetValue( name, out var value )
-            ? value.Split( ';' ).Select( n => n.Trim() ).Where( n => n.Length > 0 ).ToImmutableArray()
+            ? value.Split( ',' ).Select( n => n.Trim() ).Where( n => n.Length > 0 ).ToImmutableArray()
             : ImmutableArray<string>.Empty;
 
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
