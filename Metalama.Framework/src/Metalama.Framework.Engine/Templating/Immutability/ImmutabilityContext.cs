@@ -398,6 +398,14 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 return inherited;
             }
 
+            // Rule 14b. A type that derives from or implements a well-known immutable type whose entry applies to
+            // derived types is immutable too. This is what classifies TypeSyntax, IMethodSymbol and CSharpCompilation
+            // through the entries of SyntaxNode, ISymbol and Compilation.
+            if ( IsDerivedFromImmutableType( namedType ) )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
             // Rule 15. A value type of namespace System is trusted, minus the names the patterns implementation
             // excludes. This is the widest rule of the table and it is kept as it is, deliberately, so that the two
             // implementations stay comparable. The known hole, ArraySegment<T>, is closed by a table entry above.
@@ -483,6 +491,35 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Determines whether a type derives from or implements a well-known immutable type whose entry applies to
+        /// derived types.
+        /// </summary>
+        private static bool IsDerivedFromImmutableType( INamedTypeSymbol type )
+        {
+            static bool IsImmutableForDerivedTypes( INamedTypeSymbol candidate )
+                => WellKnownImmutableTypes.TryGet( ImmutabilitySymbolFacts.GetFullMetadataName( candidate.OriginalDefinition ), out var entry )
+                   && entry is { Immutability: WellKnownImmutability.Immutable, AppliesToDerivedTypes: true };
+
+            for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
+            {
+                if ( IsImmutableForDerivedTypes( baseType ) )
+                {
+                    return true;
+                }
+            }
+
+            foreach ( var interfaceType in type.AllInterfaces )
+            {
+                if ( IsImmutableForDerivedTypes( interfaceType ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private StoredTypeParameters GetStoredTypeParameters( INamedTypeSymbol definition )

@@ -129,6 +129,9 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             void Immutable( string name, string? reason = null )
                 => table[name] = new WellKnownImmutabilityEntry( WellKnownImmutability.Immutable, reason );
 
+            void ImmutableWithDerivedTypes( string name )
+                => table[name] = new WellKnownImmutabilityEntry( WellKnownImmutability.Immutable, appliesToDerivedTypes: true );
+
             void NotImmutable( string name, string reason )
                 => table[name] = new WellKnownImmutabilityEntry( WellKnownImmutability.NotImmutable, reason );
 
@@ -252,16 +255,76 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             //
             // These stay firmly NotDurable in the sibling table. DurabilityImmutabilityDivergenceTests asserts both
             // halves so that the distinction cannot quietly collapse again.
+            //
+            // The entries of the roots also apply to the classes that derive from them and to the interfaces that
+            // extend them. A field is rarely typed as SyntaxNode or ISymbol itself, but as TypeSyntax or IMethodSymbol,
+            // so an exact match would have almost no effect. Roslyn does not let user code derive from these types in a
+            // supported way: the constructors of SyntaxNode are internal, and the documentation of the symbol and operation
+            // interfaces reserves their implementation to Roslyn.
             // ----------------------------------------------------------------------------------------------------
 
-            Immutable( "Microsoft.CodeAnalysis.Compilation" );
-            Immutable( "Microsoft.CodeAnalysis.SemanticModel" );
-            Immutable( "Microsoft.CodeAnalysis.SyntaxNode" );
-            Immutable( "Microsoft.CodeAnalysis.SyntaxTree" );
-            Immutable( "Microsoft.CodeAnalysis.ISymbol" );
-            Immutable( "Microsoft.CodeAnalysis.Location" );
-            Immutable( "Microsoft.CodeAnalysis.Text.SourceText" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.Compilation" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.SemanticModel" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.SyntaxNode" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.SyntaxTree" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.ISymbol" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.Location" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.Text.SourceText" );
             Immutable( "Microsoft.CodeAnalysis.SyntaxAnnotation" );
+
+            // The operation tree is built once from a bound tree and is never modified. Every interface that describes a
+            // kind of operation extends IOperation.
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.IOperation" );
+
+            // ----------------------------------------------------------------------------------------------------
+            // Other Roslyn types that are immutable by construction.
+            //
+            // Unlike the roots above, some of these types are not bound to a compilation, so the durability table may
+            // classify them differently. Types whose instances can change, such as Workspace and SyntaxEditor, are
+            // deliberately absent.
+            // ----------------------------------------------------------------------------------------------------
+
+            // A diagnostic and its descriptor are created with all their properties and expose no setter. The
+            // implementations of Diagnostic are internal to Roslyn, so the entry applies to derived types.
+            Immutable( "Microsoft.CodeAnalysis.DiagnosticDescriptor" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.Diagnostic" );
+
+            // A localizable string resolves its text from its constructor arguments and exposes no setter. Its
+            // OnException event is the only state that can change, and it does not change the text. The entry applies
+            // to LocalizableResourceString and to the other derived types.
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.LocalizableString" );
+
+            // The syntax value types are read-only structs that reference nodes of an immutable syntax tree.
+            // The type argument of the syntax lists is constrained to SyntaxNode, which is immutable with its derived
+            // types, so it does not need to be examined.
+            Immutable( "Microsoft.CodeAnalysis.SyntaxToken" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxTrivia" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxNodeOrToken" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxTokenList" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxTriviaList" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxList`1" );
+            Immutable( "Microsoft.CodeAnalysis.SeparatedSyntaxList`1" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxNodeOrTokenList" );
+
+            // The text positions and changes are read-only structs of strings and integers.
+            Immutable( "Microsoft.CodeAnalysis.Text.TextSpan" );
+            Immutable( "Microsoft.CodeAnalysis.Text.LinePosition" );
+            Immutable( "Microsoft.CodeAnalysis.Text.LinePositionSpan" );
+            Immutable( "Microsoft.CodeAnalysis.Text.TextChange" );
+            Immutable( "Microsoft.CodeAnalysis.FileLinePositionSpan" );
+
+            // The options are modified only through With- methods, which return a new instance. The entries apply to
+            // CSharpParseOptions and CSharpCompilationOptions.
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.ParseOptions" );
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.CompilationOptions" );
+
+            // A display format is modified only through With- methods, which return a new instance.
+            Immutable( "Microsoft.CodeAnalysis.SymbolDisplayFormat" );
+
+            // The attribute data and its constants are created by the compiler from the metadata or the source, and
+            // expose no setter. The implementations of AttributeData are internal to Roslyn.
+            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.AttributeData" );
+            Immutable( "Microsoft.CodeAnalysis.TypedConstant" );
 
             return table;
         }
