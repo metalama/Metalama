@@ -27,7 +27,7 @@
         <PackageReference Include="Metalama.Framework.Sdk" ExcludeAssets="build;buildTransitive" />
         
         <!-- Required to force LinqPad to load this package instead of the one of the SDK directory. -->
-        <PackageReference Include="Microsoft.Extensions.Logging" />
+        <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="$(MicrosoftExtensionsLoggingWorkspacesVersion)" />
         
         <InternalsVisibleTo Include="Metalama.LinqPad.Tests" />
 
