@@ -290,9 +290,11 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.Diagnostic" );
 
             // A localizable string resolves its text from its constructor arguments and exposes no setter. Its
-            // OnException event is the only state that can change, and it does not change the text. The entry applies
-            // to LocalizableResourceString and to the other derived types.
-            ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.LocalizableString" );
+            // OnException event is the only state that can change, and it does not change the text. The entry does not
+            // apply to derived types, because a user-defined derived type can hold mutable state, such as an array of
+            // format arguments. LocalizableResourceString is sealed, so it is registered explicitly.
+            Immutable( "Microsoft.CodeAnalysis.LocalizableString" );
+            Immutable( "Microsoft.CodeAnalysis.LocalizableResourceString" );
 
             // The syntax value types are read-only structs that reference nodes of an immutable syntax tree.
             // The type argument of the syntax lists is constrained to SyntaxNode, which is immutable with its derived

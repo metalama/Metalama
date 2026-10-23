@@ -239,6 +239,27 @@ public sealed class ImmutableTypeTests : ImmutabilityTestBase
     }
 
     /// <remarks>
+    /// The entry of <c>LocalizableString</c> does not apply to derived types, because a user-defined derived type can
+    /// hold mutable state, such as an array of format arguments.
+    /// </remarks>
+    [Fact]
+    public async Task ClassDerivedFromLocalizableString_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "sealed class MyString : Microsoft.CodeAnalysis.LocalizableString { "
+            + "private readonly object[] _arguments; "
+            + "public MyString( object[] arguments ) { this._arguments = arguments; } "
+            + "protected override string GetText( IFormatProvider? formatProvider ) => string.Format( formatProvider, \"{0}\", this._arguments ); "
+            + "protected override bool AreEqual( object? other ) => ReferenceEquals( this, other ); "
+            + "protected override int GetHash() => 0; } "
+            + "[ImmutableType] class C { private readonly MyString _v = null!; }",
+            "LAMA0882" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
     /// Several types that share their ancestors, so that the walk of the shared part is served from the cache. The
     /// verdicts must not depend on the order in which the types are evaluated.
     /// </remarks>
@@ -246,7 +267,7 @@ public sealed class ImmutableTypeTests : ImmutabilityTestBase
     public async Task SeveralTypesSharingAncestors_AreNotReported()
         => await AssertNoDiagnosticAsync(
             _prologue
-            + "using Microsoft.CodeAnalysis; using Microsoft.CodeAnalysis.CSharp.Syntax; "
+            + "using Microsoft.CodeAnalysis; using Microsoft.CodeAnalysis.CSharp; using Microsoft.CodeAnalysis.CSharp.Syntax; "
             + "[ImmutableType] class C { "
             + "private readonly TypeSyntax _a = null!; private readonly ClassDeclarationSyntax _b = null!; "
             + "private readonly CSharpSyntaxNode _c = null!; private readonly SyntaxNode _d = null!; "
