@@ -68,6 +68,11 @@ internal sealed partial class LinkerAnalysisStep
         /// initializer member), and looking for object creation and <c>with</c> expressions
         /// targeting types implementing <c>IInitializable</c>.
         /// </summary>
+        /// <remarks>
+        /// Call sites in local functions and lambdas are attributed to the enclosing member. The substitutions
+        /// are indexed by the member whose body the linker rewrites. A local function is a part of this body,
+        /// not a separate member.
+        /// </remarks>
         private sealed class CallSiteWalker : CSharpSyntaxWalker
         {
             private readonly SemanticModel _semanticModel;
@@ -146,12 +151,6 @@ internal sealed partial class LinkerAnalysisStep
                         this._semanticModel.GetDeclaredSymbol( indexer )?.GetMethod,
                     _ => null
                 };
-
-            public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
-            {
-                var localFunctionSymbol = this._semanticModel.GetDeclaredSymbol( node );
-                this.VisitWithContainingSymbol( node, localFunctionSymbol, base.VisitLocalFunctionStatement );
-            }
 
             public override void VisitEqualsValueClause( EqualsValueClauseSyntax node )
             {
