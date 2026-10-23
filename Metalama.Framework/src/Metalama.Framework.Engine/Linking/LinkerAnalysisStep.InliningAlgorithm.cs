@@ -249,7 +249,14 @@ internal sealed partial class LinkerAnalysisStep
 
             var index = block.Statements.IndexOf( expressionStatement );
 
-            return index + 1 < block.Statements.Count && block.Statements[index + 1] is ReturnStatementSyntax { Expression: null };
+            if ( index + 1 >= block.Statements.Count )
+            {
+                return false;
+            }
+
+            var nextStatement = block.Statements[index + 1];
+
+            return nextStatement.IsKind( SyntaxKind.ReturnStatement ) && nextStatement is ReturnStatementSyntax { Expression: null };
         }
     }
 }
