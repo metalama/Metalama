@@ -8,16 +8,14 @@ internal class TargetClass
     {
       if (x == 42)
       {
-        goto __aspect_return_1;
+        return;
       }
       x--;
     }
     if (x > 0)
     {
-      goto __aspect_return_1;
     }
-    __aspect_return_1:
-      return;
+    return;
   }
   [Override]
   public int Method(int x)
