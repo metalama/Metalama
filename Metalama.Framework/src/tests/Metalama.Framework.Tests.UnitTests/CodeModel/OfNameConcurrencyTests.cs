@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Concurrent;
@@ -17,26 +18,69 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// </summary>
 public sealed class OfNameConcurrencyTests : UnitTestClass
 {
-    private const int _typeCount = 80;
+    private const int _memberCount = 80;
     private const int _threadCount = 16;
     private const int _iterationCount = 100;
 
     [Fact]
     public void NamespaceTypesOfName_ConcurrentWithEnumeration()
     {
-        using var testContext = this.CreateTestContext();
-
         var code = new StringBuilder();
         code.AppendLine( "namespace N1 {" );
 
-        for ( var i = 0; i < _typeCount; i++ )
+        for ( var i = 0; i < _memberCount; i++ )
         {
-            code.AppendLine( $"  public class T{i} {{ }}" );
+            code.AppendLine( $"  public class M{i} {{ }}" );
         }
 
         code.AppendLine( "}" );
 
-        var roslynCompilation = testContext.CreateCSharpCompilation( code.ToString() );
+        this.RunConcurrentLookups(
+            code.ToString(),
+            compilation =>
+            {
+                var types = compilation.GlobalNamespace.Namespaces.OfName( "N1" )!.Types;
+
+                return ( name => types.OfName( name ).Any(), name => types.Any( t => t.Name == name + "Extensions" ) );
+            } );
+    }
+
+    [Fact]
+    public void TypeMethodsOfName_ConcurrentWithEnumeration()
+    {
+        var code = new StringBuilder();
+        code.AppendLine( "public class C {" );
+
+        for ( var i = 0; i < _memberCount; i++ )
+        {
+            code.AppendLine( $"  public void M{i}() {{ }}" );
+        }
+
+        code.AppendLine( "}" );
+
+        this.RunConcurrentLookups(
+            code.ToString(),
+            compilation =>
+            {
+                var methods = compilation.Types.OfName( "C" ).Single().Methods;
+
+                return ( name => methods.OfName( name ).Any(), name => methods.Any( m => m.Name == name + "Extensions" ) );
+            } );
+    }
+
+    /// <summary>
+    /// Looks up members named <c>M0</c> to <c>M79</c> from several threads, and enumerates the collection after each lookup.
+    /// </summary>
+    /// <param name="code">The source code, which must declare the members <c>M0</c> to <c>M79</c> in a single collection.</param>
+    /// <param name="getOperations">A function that returns, for a compilation, a delegate that looks up a name with <c>OfName</c>,
+    /// and a delegate that enumerates the same collection.</param>
+    private void RunConcurrentLookups(
+        string code,
+        Func<ICompilation, (Func<string, bool> OfNameAny, Func<string, bool> Scan)> getOperations )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var roslynCompilation = testContext.CreateCSharpCompilation( code );
         var misses = new ConcurrentBag<string>();
         var exceptions = new ConcurrentBag<Exception>();
 
@@ -44,8 +88,7 @@ public sealed class OfNameConcurrencyTests : UnitTestClass
         {
             // Each iteration uses a new compilation model, so the collection starts incomplete.
             var compilation = testContext.CreateCompilationModel( roslynCompilation );
-            var ns = compilation.GlobalNamespace.Namespaces.OfName( "N1" )!;
-            var types = ns.Types;
+            var (ofNameAny, scan) = getOperations( compilation );
 
             using var barrier = new Barrier( _threadCount );
 
@@ -58,17 +101,17 @@ public sealed class OfNameConcurrencyTests : UnitTestClass
                             {
                                 barrier.SignalAndWait();
 
-                                for ( var i = index; i < _typeCount; i += _threadCount )
+                                for ( var i = index; i < _memberCount; i += _threadCount )
                                 {
-                                    var name = $"T{i}";
+                                    var name = $"M{i}";
 
-                                    if ( !types.OfName( name ).Any() )
+                                    if ( !ofNameAny( name ) )
                                     {
                                         misses.Add( name );
                                     }
 
                                     // Enumerating the collection completes it.
-                                    _ = types.Any( t => t.Name == name + "Extensions" );
+                                    _ = scan( name );
                                 }
                             }
                             catch ( Exception e )
@@ -89,11 +132,11 @@ public sealed class OfNameConcurrencyTests : UnitTestClass
             }
 
             // After all threads are done, every lookup must succeed.
-            for ( var i = 0; i < _typeCount; i++ )
+            for ( var i = 0; i < _memberCount; i++ )
             {
-                var name = $"T{i}";
+                var name = $"M{i}";
 
-                if ( !types.OfName( name ).Any() )
+                if ( !ofNameAny( name ) )
                 {
                     misses.Add( name + " (after completion)" );
                 }
