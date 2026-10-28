@@ -20,6 +20,7 @@ namespace Metalama.Patterns.Caching;
 [RunTimeOrCompileTime]
 [PublicAPI]
 [ImmutableType]
+[Durable]
 public record CacheItemConfiguration : ICacheItemConfiguration
 {
     /// <inheritdoc />

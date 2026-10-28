@@ -18,6 +18,7 @@ namespace Metalama.Extensions.DependencyInjection;
 [CompileTime]
 [PublicAPI]
 [ImmutableType]
+[Durable]
 public sealed record DependencyOptions
 {
     /// <summary>
