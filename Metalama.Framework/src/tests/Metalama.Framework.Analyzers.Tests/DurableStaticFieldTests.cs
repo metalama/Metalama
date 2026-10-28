@@ -112,6 +112,16 @@ public sealed class DurableStaticFieldTests : DurableAnalyzerTestBase
                 + "private static readonly DiagnosticDefinition _warning = new( \"MY002\", Severity.Warning, \"Warning\" ); "
                 + "private static readonly SuppressionDefinition _suppression = new( \"CS0169\" );" ) );
 
+    /// <summary>
+    /// The type argument of a diagnostic definition is the type of the message arguments, which the definition does not
+    /// store. It is often a code model declaration.
+    /// </summary>
+    [Fact]
+    public async Task CompileTime_DiagnosticDefinitionOfCodeModelArguments_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            CompileTime(
+                "private static readonly DiagnosticDefinition<(IType Type, IDeclaration Declaration)> _error = new( \"MY001\", Severity.Error, \"{0} {1}\" );" ) );
+
     [Fact]
     public async Task CompileTime_InstanceField_IsNotReportedByThisRule()
         => await AssertNoDiagnosticAsync( CompileTime( "private readonly ISymbol? _symbol;" ) );

@@ -190,6 +190,13 @@ namespace Metalama.Framework.Analyzers.Durability
             // The wrapper by which an author asserts durability that cannot be established.
             Durable( "Metalama.Framework.Utilities.DurableDangerous`1" );
 
+            // A diagnostic definition stores its identifier, its severity and its message format. Its type argument is
+            // the type of the arguments of the message, which only WithArguments receives, so it is a phantom. The
+            // class is marked [Durable], but a project that references Metalama.Framework does not see its private
+            // fields, so it would assume that the type argument is stored. Aspects routinely keep a definition whose
+            // arguments are code model declarations in a static field.
+            Durable( "Metalama.Framework.Diagnostics.DiagnosticDefinition`1" );
+
             // ---------------------------------------------------------------------------------------------------
             // Boundaries: project-scoped or process-wide infrastructure, mirroring UserCodeRetentionPolicy.IsBoundary.
             // ---------------------------------------------------------------------------------------------------
