@@ -74,6 +74,26 @@ public sealed class ImmutableStaticFieldTests : ImmutabilityTestBase
                 "private static readonly int _a = 1; private static readonly string _b = \"\"; "
                 + "private static readonly ImmutableArray<int> _c = ImmutableArray<int>.Empty; public static string P { get; } = \"\";" ) );
 
+    /// <remarks>
+    /// The two fields reported in metalama/Metalama.Community#117, which had to be declared with
+    /// <c>MetalamaImmutableType</c> items. A Roslyn type that derives from a well-known immutable type is immutable
+    /// too.
+    /// </remarks>
+    [Fact]
+    public async Task CompileTime_ReadOnlyFieldsOfRoslynTypes_AreNotReported()
+        => await AssertNoDiagnosticAsync(
+            "using Microsoft.CodeAnalysis; using Microsoft.CodeAnalysis.CSharp.Syntax; "
+            + CompileTime( "private static readonly DiagnosticDescriptor? _descriptor; private static readonly TypeSyntax? _type;" ) );
+
+    /// <remarks>
+    /// A type whose instances can change is not registered, even when it belongs to Roslyn.
+    /// </remarks>
+    [Fact]
+    public async Task CompileTime_FieldOfMutableRoslynType_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            "using Microsoft.CodeAnalysis.Diagnostics; " + CompileTime( "private static readonly AnalysisContext? _context;" ),
+            "LAMA0890" );
+
     [Fact]
     public async Task CompileTime_ConstField_IsNotReported()
         => await AssertNoDiagnosticAsync( CompileTime( "private const int Count = 1;" ) );

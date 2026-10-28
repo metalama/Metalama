@@ -42,6 +42,10 @@ public sealed class DurabilityImmutabilityDivergenceTests : ImmutabilityTestBase
                      using System.Collections.Generic;
                      using Metalama.Framework.Utilities;
                      using Microsoft.CodeAnalysis;
+                     using Microsoft.CodeAnalysis.CSharp;
+                     using Microsoft.CodeAnalysis.CSharp.Syntax;
+                     using Microsoft.CodeAnalysis.Operations;
+                     using Microsoft.CodeAnalysis.Text;
 
                      [Durable]
                      [ImmutableType]
@@ -128,6 +132,79 @@ public sealed class DurabilityImmutabilityDivergenceTests : ImmutabilityTestBase
         var (durability, immutability) = await GetVerdictsAsync( memberDeclaration );
 
         Assert.True( durability, "A Roslyn object should not be durable." );
+        Assert.False( immutability, "A Roslyn object should be immutable." );
+    }
+
+    /// <remarks>
+    /// The Roslyn entries of the immutability table also cover the types that derive from them and the interfaces that
+    /// extend them. Without that, the entry of <c>SyntaxNode</c> would not cover <c>TypeSyntax</c>, and the entry
+    /// would have almost no effect, because a field is rarely typed as <c>SyntaxNode</c> itself.
+    /// </remarks>
+    [Theory]
+    [InlineData( "private readonly TypeSyntax? _type;" )]
+    [InlineData( "private readonly MethodDeclarationSyntax? _method;" )]
+    [InlineData( "private readonly CSharpSyntaxNode? _csharpNode;" )]
+    [InlineData( "private readonly IMethodSymbol? _methodSymbol;" )]
+    [InlineData( "private readonly ITypeSymbol? _typeSymbol;" )]
+    [InlineData( "private readonly INamedTypeSymbol? _namedTypeSymbol;" )]
+    [InlineData( "private readonly CSharpCompilation? _csharpCompilation;" )]
+    [InlineData( "private readonly SemanticModel? _semanticModel;" )]
+    [InlineData( "private readonly SourceText? _text;" )]
+    public async Task ARoslynObjectOfADerivedType_IsNotDurableButIsImmutable( string memberDeclaration )
+    {
+        var (durability, immutability) = await GetVerdictsAsync( memberDeclaration );
+
+        Assert.True( durability, "A Roslyn object should not be durable." );
+        Assert.False( immutability, "A Roslyn object should be immutable." );
+    }
+
+    /// <remarks>
+    /// These types of the public Roslyn API are immutable by construction. They are bound to a compilation, to a syntax
+    /// tree or to an operation tree, so they are not durable.
+    /// </remarks>
+    [Theory]
+    [InlineData( "private readonly Diagnostic? _diagnostic;" )]
+    [InlineData( "private readonly SyntaxToken _token;" )]
+    [InlineData( "private readonly SyntaxTrivia _trivia;" )]
+    [InlineData( "private readonly SyntaxNodeOrToken _nodeOrToken;" )]
+    [InlineData( "private readonly SyntaxTokenList _tokens;" )]
+    [InlineData( "private readonly SyntaxTriviaList _triviaList;" )]
+    [InlineData( "private readonly SyntaxList<StatementSyntax> _statements;" )]
+    [InlineData( "private readonly SeparatedSyntaxList<ParameterSyntax> _parameters;" )]
+    [InlineData( "private readonly SyntaxNodeOrTokenList _nodesOrTokens;" )]
+    [InlineData( "private readonly AttributeData? _attribute;" )]
+    [InlineData( "private readonly TypedConstant _constant;" )]
+    [InlineData( "private readonly IOperation? _operation;" )]
+    [InlineData( "private readonly IInvocationOperation? _invocation;" )]
+    public async Task AnotherRoslynObject_IsNotDurableButIsImmutable( string memberDeclaration )
+    {
+        var (durability, immutability) = await GetVerdictsAsync( memberDeclaration );
+
+        Assert.True( durability, "A Roslyn object should not be durable." );
+        Assert.False( immutability, "A Roslyn object should be immutable." );
+    }
+
+    /// <remarks>
+    /// These types of the public Roslyn API are immutable by construction and are not bound to a compilation.
+    /// </remarks>
+    [Theory]
+    [InlineData( "private readonly DiagnosticDescriptor? _descriptor;" )]
+    [InlineData( "private readonly LocalizableString? _localizableString;" )]
+    [InlineData( "private readonly LocalizableResourceString? _localizableResourceString;" )]
+    [InlineData( "private readonly TextSpan _span;" )]
+    [InlineData( "private readonly LinePosition _linePosition;" )]
+    [InlineData( "private readonly LinePositionSpan _linePositionSpan;" )]
+    [InlineData( "private readonly FileLinePositionSpan _fileLinePositionSpan;" )]
+    [InlineData( "private readonly TextChange _change;" )]
+    [InlineData( "private readonly ParseOptions? _parseOptions;" )]
+    [InlineData( "private readonly CSharpParseOptions? _csharpParseOptions;" )]
+    [InlineData( "private readonly CompilationOptions? _compilationOptions;" )]
+    [InlineData( "private readonly CSharpCompilationOptions? _csharpCompilationOptions;" )]
+    [InlineData( "private readonly SymbolDisplayFormat? _format;" )]
+    public async Task AnUnboundRoslynObject_IsImmutable( string memberDeclaration )
+    {
+        var (_, immutability) = await GetVerdictsAsync( memberDeclaration );
+
         Assert.False( immutability, "A Roslyn object should be immutable." );
     }
 
