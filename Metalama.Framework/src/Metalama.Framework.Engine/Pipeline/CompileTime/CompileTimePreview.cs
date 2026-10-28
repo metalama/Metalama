@@ -2,9 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -29,22 +29,20 @@ internal sealed class CompileTimePreview
 {
     public const string ManifestFileName = "preview.json";
 
-    // Paths are compared without regard to case, because the command and the compiler can spell the same path differently on Windows.
-    private static readonly StringComparer _pathComparer = StringComparer.OrdinalIgnoreCase;
-
     private readonly string _outputPath;
 
-    // The requested paths, normalized, each with the path of the syntax tree it maps to, or null if no tree of the compilation has this path.
-    private readonly ImmutableArray<(string RequestedPath, string? SyntaxTreePath)> _files;
+    // The requested paths, normalized, each with the document it maps to, or the default key if it maps to no document of the compilation.
+    private readonly ImmutableArray<(string RequestedPath, DocumentKey Document)> _files;
 
-    private CompileTimePreview( string outputPath, ImmutableArray<(string RequestedPath, string? SyntaxTreePath)> files )
+    private CompileTimePreview( string outputPath, ImmutableArray<(string RequestedPath, DocumentKey Document)> files )
     {
         this._outputPath = outputPath;
         this._files = files;
 
-        this.ObservedSyntaxTreePaths = files.Select( f => f.SyntaxTreePath )
-            .WhereNotNull()
-            .ToImmutableHashSet( _pathComparer );
+        // The set compares ordinally, as DocumentKey does, because two paths that differ in case are two files on Linux.
+        this.ObservedSyntaxTreePaths = files.Where( f => !f.Document.IsDefault )
+            .Select( f => f.Document.Path )
+            .ToImmutableHashSet( StringComparer.Ordinal );
     }
 
     /// <summary>
@@ -66,15 +64,8 @@ internal sealed class CompileTimePreview
 
         var outputPath = projectOptions.PreviewOutputPath ?? Path.GetDirectoryName( Path.GetFullPath( listPath ) )!;
 
-        var syntaxTreePathsByFullPath = new Dictionary<string, string>( _pathComparer );
-
-        foreach ( var syntaxTree in compilation.SyntaxTrees )
-        {
-            if ( TryGetFullPath( syntaxTree.FilePath, out var fullPath ) )
-            {
-                syntaxTreePathsByFullPath[fullPath] = syntaxTree.FilePath;
-            }
-        }
+        // The index resolves the syntax trees that share a path into one document, as the pipeline does.
+        var documents = compilation.GetIndexedSyntaxTrees().Keys;
 
         var files = File.ReadAllLines( listPath )
             .SelectAsArray( line => line.Trim() )
@@ -84,11 +75,46 @@ internal sealed class CompileTimePreview
                 {
                     var requestedPath = TryGetFullPath( line, out var fullPath ) ? fullPath : line;
 
-                    return (requestedPath, syntaxTreePathsByFullPath.TryGetValue( requestedPath, out var syntaxTreePath ) ? syntaxTreePath : null);
+                    return (requestedPath, FindDocument( documents, requestedPath ));
                 } )
             .ToImmutableArray();
 
         return new CompileTimePreview( outputPath, files );
+    }
+
+    /// <summary>
+    /// Finds the document of the compilation that a requested path names, or returns the default key.
+    /// </summary>
+    /// <remarks>
+    /// The command-line compiler spells the paths of the documents as full paths. A path that matches no document exactly
+    /// still matches the document whose full path differs from it in case only, provided there is exactly one, because the
+    /// user may spell a path in another case on Windows. Two such documents are two files, and then neither is chosen.
+    /// </remarks>
+    private static DocumentKey FindDocument( IEnumerable<DocumentKey> documents, string requestedPath )
+    {
+        DocumentKey caseInsensitiveMatch = default;
+        var caseInsensitiveMatchCount = 0;
+
+        foreach ( var document in documents )
+        {
+            if ( !TryGetFullPath( document.Path, out var documentFullPath ) )
+            {
+                continue;
+            }
+
+            if ( string.Equals( documentFullPath, requestedPath, StringComparison.Ordinal ) )
+            {
+                return document;
+            }
+
+            if ( string.Equals( documentFullPath, requestedPath, StringComparison.OrdinalIgnoreCase ) )
+            {
+                caseInsensitiveMatch = document;
+                caseInsensitiveMatchCount++;
+            }
+        }
+
+        return caseInsensitiveMatchCount == 1 ? caseInsensitiveMatch : default;
     }
 
     private static bool TryGetFullPath( string path, out string fullPath )
@@ -125,21 +151,16 @@ internal sealed class CompileTimePreview
     {
         Directory.CreateDirectory( this._outputPath );
 
-        var transformedSyntaxTrees = compilation.Compilation.SyntaxTrees
-            .Where( this.IsObserved )
-            .ToDictionary( t => t.FilePath, _pathComparer );
-
-        var initialSyntaxTrees = compilation.InitialCompilation.SyntaxTrees
-            .Where( this.IsObserved )
-            .ToDictionary( t => t.FilePath, _pathComparer );
+        // Both lookups go through the index of documents, which resolves the syntax trees that share a path.
+        var initialSyntaxTrees = compilation.InitialCompilation.GetIndexedSyntaxTrees();
 
         var manifestFiles = new List<PreviewManifestFile>( this._files.Length );
 
         for ( var i = 0; i < this._files.Length; i++ )
         {
-            var (requestedPath, syntaxTreePath) = this._files[i];
+            var (requestedPath, document) = this._files[i];
 
-            if ( syntaxTreePath == null || !transformedSyntaxTrees.TryGetValue( syntaxTreePath, out var transformedSyntaxTree ) )
+            if ( document.IsDefault || !compilation.TryGetSyntaxTree( document, out var transformedSyntaxTree ) )
             {
                 manifestFiles.Add( new PreviewManifestFile( requestedPath, null, false ) );
 
@@ -148,7 +169,7 @@ internal sealed class CompileTimePreview
 
             var text = transformedSyntaxTree.GetText();
 
-            var isTransformed = !initialSyntaxTrees.TryGetValue( syntaxTreePath, out var initialSyntaxTree )
+            var isTransformed = !initialSyntaxTrees.TryGetValue( document, out var initialSyntaxTree )
                                 || !initialSyntaxTree.GetText().ContentEquals( text );
 
             // Each file gets its own directory, so that two requested files with the same name do not collide.

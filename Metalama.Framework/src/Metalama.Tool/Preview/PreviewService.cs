@@ -2,13 +2,17 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using SharpCrafters.Aspects.Introspection.Query.Projects;
 using SharpCrafters.Backstage.Commands;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Maintenance;
 using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
@@ -59,15 +63,22 @@ internal sealed class PreviewService
         var projectPath = settings.Project != null ? Path.GetFullPath( settings.Project ) : FindProject( files[0] );
         var projectDirectory = Path.GetDirectoryName( projectPath )!;
 
-        var targetFramework = settings.Framework ?? this.GetDefaultTargetFramework( projectPath, settings );
+        // MSBuild runs in the process, so the MSBuild of a .NET SDK must be registered before any of its types is loaded.
+        var registration = DotNetSdkLocator.EnsureRegistered();
 
-        var tempDirectory = Path.Combine( Path.GetTempPath(), "Metalama", "Preview", Guid.NewGuid().ToString( "N" ) );
-        Directory.CreateDirectory( tempDirectory );
+        if ( registration.Failure != null )
+        {
+            throw new CommandException( registration.Failure );
+        }
+
+        var (compilerPath, compilerArguments) = GetCompilerCommandLine( projectPath, settings );
+
+        // Each preview gets a directory of its own, which is deleted at the end, and otherwise by the clean-up of Backstage.
+        var tempDirectory = this._context.ServiceProvider.GetRequiredBackstageService<ITempFileManager>()
+            .GetTempDirectory( "Preview", CleanUpStrategy.Always, Guid.NewGuid().ToString( "N" ) );
 
         try
         {
-            var (compilerPath, compilerArguments) = this.GetCompilerCommandLine( projectPath, targetFramework, settings );
-
             // The compiler options of the preview are passed in a global analyzer configuration file of their own, rather than as
             // MSBuild properties, so that the configuration file that MSBuild generates in obj, which is an input of the build,
             // is not changed. Its global_level makes these values win over the empty ones of that file.
@@ -87,10 +98,11 @@ internal sealed class PreviewService
                  """ );
 
             var responseFilePath = Path.Combine( tempDirectory, "compiler.rsp" );
+
             // The arguments are already quoted as the compiler expects in a response file.
             File.WriteAllLines( responseFilePath, compilerArguments.Where( IsKeptCompilerArgument ) );
 
-            var compilerOutput = this.RunCompiler( compilerPath, projectDirectory, responseFilePath, globalConfigPath );
+            var compilerOutput = RunCompiler( compilerPath, projectDirectory, responseFilePath, globalConfigPath );
 
             var manifestPath = Path.Combine( outputDirectory, _manifestFileName );
 
@@ -132,7 +144,7 @@ internal sealed class PreviewService
             }
             catch ( IOException )
             {
-                // The directory is in the temporary directory, so it does not matter much if it cannot be deleted.
+                // The clean-up of Backstage deletes the directory later.
             }
         }
     }
@@ -156,131 +168,52 @@ internal sealed class PreviewService
         throw new CommandException( $"No project was found for '{file}'. Use --project to specify it." );
     }
 
-    private string GetDefaultTargetFramework( string projectPath, PreviewCommandSettings settings )
+    // Not inlined, so that the types of MSBuild, which CompilerCommandLineReader uses, are not loaded before the SDK is registered.
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    private static (string CompilerPath, IReadOnlyList<string> Arguments) GetCompilerCommandLine( string projectPath, PreviewCommandSettings settings )
     {
-        var properties = this.RunMSBuild( projectPath, settings, null, new Dictionary<string, string>(), ["TargetFramework", "TargetFrameworks"], [] )
-            .Properties;
+        var reader = new CompilerCommandLineReader( projectPath, settings.Configuration );
 
-        var targetFramework = properties.GetValueOrDefault( "TargetFramework" );
-
-        if ( string.IsNullOrEmpty( targetFramework ) )
+        if ( !settings.NoRestore )
         {
-            targetFramework = properties.GetValueOrDefault( "TargetFrameworks" )
-                ?.Split( ';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries )
-                .FirstOrDefault();
+            reader.Restore();
         }
 
-        if ( string.IsNullOrEmpty( targetFramework ) )
-        {
-            throw new CommandException( $"Cannot determine the target framework of '{projectPath}'. Use --framework to specify it." );
-        }
+        var targetFramework = settings.Framework
+                              ?? reader.GetDefaultTargetFramework()
+                              ?? throw new CommandException(
+                                  $"Cannot determine the target framework of '{projectPath}'. Use --framework to specify it." );
 
-        return targetFramework;
-    }
+        var commandLine = reader.Read( targetFramework );
 
-    private (string CompilerPath, IReadOnlyList<string> Arguments) GetCompilerCommandLine(
-        string projectPath,
-        string targetFramework,
-        PreviewCommandSettings settings )
-    {
-        // This is what Roslyn's MSBuildWorkspace does to get the command line without compiling: the Compile target resolves the
-        // references, then CoreCompile runs the Csc task, which returns its arguments instead of starting the compiler.
-        // CoreCompile alone would not resolve the references. NonExistentFile is an input of CoreCompile that never exists, so
-        // that CoreCompile is not skipped when the project is up to date. DesignTimeBuild is not set, because the Metalama
-        // targets then add items that a real build does not have.
-        Dictionary<string, string> properties = new()
-        {
-            ["TargetFramework"] = targetFramework,
-            ["SkipCompilerExecution"] = "true",
-            ["ProvideCommandLineArgs"] = "true",
-            ["BuildProjectReferences"] = "false",
-            ["BuildingProject"] = "false",
-            ["NonExistentFile"] = @"__NonExistentSubDir__\__NonExistentFile__"
-        };
-
-        var result = this.RunMSBuild(
-            projectPath,
-            settings,
-            "Compile",
-            properties,
-            ["RoslynCompilerType", "RoslynTasksAssembly"],
-            ["CscCommandLineArgs"] );
-
-        if ( result.Properties.GetValueOrDefault( "RoslynCompilerType" ) != "Metalama" )
+        if ( commandLine.RoslynCompilerType != "Metalama" )
         {
             throw new CommandException( $"The project '{projectPath}' does not use the Metalama compiler, so it cannot be previewed." );
         }
 
-        var tasksAssembly = result.Properties.GetValueOrDefault( "RoslynTasksAssembly" );
-
-        if ( string.IsNullOrEmpty( tasksAssembly ) )
+        if ( string.IsNullOrEmpty( commandLine.RoslynTasksAssembly ) )
         {
             throw new CommandException( "Cannot locate the Metalama compiler: the RoslynTasksAssembly property is empty." );
         }
 
-        var compilerPath = Path.Combine( Path.GetDirectoryName( tasksAssembly )!, "bincore", "csc.dll" );
+        var compilerPath = Path.Combine( Path.GetDirectoryName( commandLine.RoslynTasksAssembly )!, "bincore", "csc.dll" );
 
         if ( !File.Exists( compilerPath ) )
         {
             throw new CommandException( $"Cannot locate the Metalama compiler: '{compilerPath}' does not exist." );
         }
 
-        var arguments = result.Items.GetValueOrDefault( "CscCommandLineArgs" )?.Select( i => i.Identity ).ToList() ?? [];
-
-        if ( arguments.Count == 0 )
+        if ( commandLine.Arguments.Count == 0 )
         {
             throw new CommandException( $"MSBuild did not return the command line of the compiler for '{projectPath}'." );
         }
 
-        return (compilerPath, arguments);
+        return (compilerPath, commandLine.Arguments);
     }
 
-    private MSBuildResult RunMSBuild(
-        string projectPath,
-        PreviewCommandSettings settings,
-        string? target,
-        IReadOnlyDictionary<string, string> properties,
-        IReadOnlyList<string> requestedProperties,
-        IReadOnlyList<string> requestedItems )
+    private static IReadOnlyList<string> RunCompiler( string compilerPath, string workingDirectory, string responseFilePath, string globalConfigPath )
     {
-        var arguments = new List<string> { "msbuild", projectPath, "-nologo" };
-
-        if ( target != null )
-        {
-            arguments.Add( $"-t:{target}" );
-
-            if ( !settings.NoRestore )
-            {
-                arguments.Add( "-restore" );
-            }
-        }
-
-        if ( settings.Configuration != null )
-        {
-            arguments.Add( $"-p:Configuration={settings.Configuration}" );
-        }
-
-        arguments.AddRange( properties.Select( p => $"-p:{p.Key}={p.Value}" ) );
-        arguments.AddRange( requestedProperties.Select( p => $"-getProperty:{p}" ) );
-        arguments.AddRange( requestedItems.Select( i => $"-getItem:{i}" ) );
-
-        var (exitCode, output) = RunProcess( "dotnet", arguments, Path.GetDirectoryName( projectPath )! );
-
-        // With several -getProperty or -getItem options, MSBuild writes a JSON object, but restore may write other lines before it.
-        var jsonStart = output.IndexOf( '{', StringComparison.Ordinal );
-
-        if ( exitCode != 0 || jsonStart < 0 )
-        {
-            this.Error.WriteLine( output );
-
-            throw new CommandException( $"MSBuild failed on '{projectPath}'." );
-        }
-
-        return JsonSerializer.Deserialize<MSBuildResult>( output[jsonStart..], _jsonOptions )!;
-    }
-
-    private IReadOnlyList<string> RunCompiler( string compilerPath, string workingDirectory, string responseFilePath, string globalConfigPath )
-    {
+        // /shared runs the compilation in the compiler server, which keeps Metalama loaded between previews.
         // /skipanalyzers+ removes the analyzers, but keeps the source transformers. It comes after the response file so that it wins.
         var (_, output) = RunProcess(
             "dotnet",
@@ -378,15 +311,6 @@ internal sealed class PreviewService
             }
         }
     }
-
-    private sealed record MSBuildResult( Dictionary<string, string>? Properties, Dictionary<string, List<MSBuildItem>>? Items )
-    {
-        public Dictionary<string, string> Properties { get; } = Properties ?? [];
-
-        public Dictionary<string, List<MSBuildItem>> Items { get; } = Items ?? [];
-    }
-
-    private sealed record MSBuildItem( string Identity );
 
     private sealed record PreviewManifest( List<PreviewManifestFile> Files );
 

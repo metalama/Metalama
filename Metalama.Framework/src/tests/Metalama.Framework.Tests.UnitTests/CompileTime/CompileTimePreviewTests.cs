@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Testing.UnitTesting;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -93,6 +94,47 @@ public sealed class CompileTimePreviewTests : UnitTestClass
 
         // The other file is not written.
         Assert.Single( Directory.GetFiles( outputDirectory, "*.cs", SearchOption.AllDirectories ) );
+    }
+
+    [Fact]
+    public async Task SyntaxTreesSharingThePreviewedPathAreOneDocument()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var outputDirectory = Path.Combine( testContext.BaseDirectory, "preview" );
+        var filesListPath = Path.Combine( testContext.BaseDirectory, "files.txt" );
+        var previewedPath = Path.GetFullPath( "Previewed.cs" );
+        await File.WriteAllLinesAsync( filesListPath, [previewedPath], TestContext.Current.CancellationToken );
+
+        var compilation = testContext.CreateCSharpCompilation(
+            new Dictionary<string, string> { ["Aspect.cs"] = _aspectCode, ["Previewed.cs"] = _previewedCode } );
+
+        // Roslyn accepts two distinct syntax trees with the same path. Metalama treats them as one document, represented by the first.
+        var duplicate = SyntaxFactory.ParseSyntaxTree(
+            _otherCode,
+            (CSharpParseOptions) compilation.SyntaxTrees.First().Options,
+            "Previewed.cs",
+            cancellationToken: TestContext.Current.CancellationToken );
+
+        compilation = compilation.AddSyntaxTrees( duplicate );
+
+        var serviceProvider = testContext.ServiceProvider.WithService(
+            new PreviewTestProjectOptions( testContext.ProjectOptions, filesListPath, outputDirectory ),
+            true );
+
+        var pipeline = new CompileTimeAspectPipeline( serviceProvider );
+        var diagnostics = new DiagnosticBag();
+
+        await pipeline.ExecuteAsync( diagnostics.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
+
+        Assert.Contains( diagnostics, d => d.Id == "LAMA0121" );
+
+        using var manifest = JsonDocument.Parse( await File.ReadAllTextAsync( Path.Combine( outputDirectory, "preview.json" ), TestContext.Current.CancellationToken ) );
+        var file = Assert.Single( manifest.RootElement.GetProperty( "files" ).EnumerateArray() );
+        var previewedOutput = await File.ReadAllTextAsync( file.GetProperty( "outputPath" ).GetString()!, TestContext.Current.CancellationToken );
+
+        Assert.Contains( "Entering M", previewedOutput, StringComparison.Ordinal );
+        Assert.DoesNotContain( "Other", previewedOutput, StringComparison.Ordinal );
     }
 
     private sealed class PreviewTestProjectOptions : ProjectOptionsWrapper
