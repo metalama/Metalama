@@ -4,16 +4,16 @@
 
 using SharpCrafters.Aspects.Introspection.Query.Projects;
 using SharpCrafters.Backstage.Commands;
+using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
 using SharpCrafters.Backstage.Maintenance;
+using SharpCrafters.Backstage.Utilities;
 using Spectre.Console;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.Json;
 
 namespace Metalama.Tool.Preview;
@@ -102,7 +102,7 @@ internal sealed class PreviewService
             // The arguments are already quoted as the compiler expects in a response file.
             File.WriteAllLines( responseFilePath, compilerArguments.Where( IsKeptCompilerArgument ) );
 
-            var compilerOutput = RunCompiler( compilerPath, projectDirectory, responseFilePath, globalConfigPath );
+            var compilerOutput = this.RunCompiler( compilerPath, projectDirectory, responseFilePath, globalConfigPath );
 
             var manifestPath = Path.Combine( outputDirectory, _manifestFileName );
 
@@ -211,16 +211,20 @@ internal sealed class PreviewService
         return (compilerPath, commandLine.Arguments);
     }
 
-    private static IReadOnlyList<string> RunCompiler( string compilerPath, string workingDirectory, string responseFilePath, string globalConfigPath )
+    private IReadOnlyList<string> RunCompiler( string compilerPath, string workingDirectory, string responseFilePath, string globalConfigPath )
     {
         // /shared runs the compilation in the compiler server, which keeps Metalama loaded between previews.
         // /skipanalyzers+ removes the analyzers, but keeps the source transformers. It comes after the response file so that it wins.
-        var (_, output) = RunProcess(
-            "dotnet",
-            ["exec", compilerPath, "/noconfig", "/nologo", "/shared", $"@{responseFilePath}", "/skipanalyzers+", $"/analyzerconfig:{globalConfigPath}"],
-            workingDirectory );
+        var commandLine =
+            $"exec \"{compilerPath}\" /noconfig /nologo /shared \"@{responseFilePath}\" /skipanalyzers+ \"/analyzerconfig:{globalConfigPath}\"";
 
-        // The exit code is not significant: the compiler always fails, because of the LAMA0121 error that stops it.
+        // The command line is logged, not written to the console, and the default options keep the environment variables that
+        // the registration of MSBuild set in this process away from the compiler.
+        var logger = this._context.ServiceProvider.GetLoggerFactory().GetLogger( "Preview" );
+
+        // The exit code and the result are not significant: the compiler always fails, because of the LAMA0121 error that stops it.
+        ToolInvocationHelper.InvokeTool( logger, "dotnet", commandLine, workingDirectory, out _, out var output, ToolInvocationOptions.Default with { Silent = true } );
+
         return output.Split( ['\r', '\n'], StringSplitOptions.RemoveEmptyEntries );
     }
 
@@ -271,46 +275,6 @@ internal sealed class PreviewService
            && !argument.StartsWith( "/doc:", StringComparison.OrdinalIgnoreCase )
            && !argument.StartsWith( "/errorlog:", StringComparison.OrdinalIgnoreCase )
            && !argument.Equals( "/noconfig", StringComparison.OrdinalIgnoreCase );
-
-    private static (int ExitCode, string Output) RunProcess( string fileName, IEnumerable<string> arguments, string workingDirectory )
-    {
-        var startInfo = new ProcessStartInfo( fileName )
-        {
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
-        };
-
-        foreach ( var argument in arguments )
-        {
-            startInfo.ArgumentList.Add( argument );
-        }
-
-        using var process = Process.Start( startInfo ) ?? throw new CommandException( $"Cannot start '{fileName}'." );
-
-        var output = new StringBuilder();
-        process.OutputDataReceived += ( _, e ) => AppendLine( e.Data );
-        process.ErrorDataReceived += ( _, e ) => AppendLine( e.Data );
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        process.WaitForExit();
-
-        return (process.ExitCode, output.ToString());
-
-        void AppendLine( string? line )
-        {
-            if ( line != null )
-            {
-                lock ( output )
-                {
-                    output.AppendLine( line );
-                }
-            }
-        }
-    }
 
     private sealed record PreviewManifest( List<PreviewManifestFile> Files );
 
