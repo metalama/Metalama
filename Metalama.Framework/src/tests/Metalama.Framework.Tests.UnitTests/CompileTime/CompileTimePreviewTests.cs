@@ -61,7 +61,7 @@ public sealed class CompileTimePreviewTests : UnitTestClass
         var outputDirectory = Path.Combine( testContext.BaseDirectory, "preview" );
         var filesListPath = Path.Combine( testContext.BaseDirectory, "files.txt" );
         var previewedPath = Path.GetFullPath( "Previewed.cs" );
-        await File.WriteAllLinesAsync( filesListPath, [previewedPath], TestContext.Current.CancellationToken );
+        File.WriteAllLines( filesListPath, new[] { previewedPath } );
 
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Aspect.cs"] = _aspectCode, ["Previewed.cs"] = _previewedCode, ["Other.cs"] = _otherCode } );
@@ -79,13 +79,13 @@ public sealed class CompileTimePreviewTests : UnitTestClass
         Assert.False( result.IsSuccessful );
         Assert.Equal( ["LAMA0121"], diagnostics.Where( d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error ).Select( d => d.Id ) );
 
-        using var manifest = JsonDocument.Parse( await File.ReadAllTextAsync( Path.Combine( outputDirectory, "preview.json" ), TestContext.Current.CancellationToken ) );
+        using var manifest = JsonDocument.Parse( File.ReadAllText( Path.Combine( outputDirectory, "preview.json" ) ) );
         var file = Assert.Single( manifest.RootElement.GetProperty( "files" ).EnumerateArray() );
 
         Assert.Equal( previewedPath, file.GetProperty( "sourcePath" ).GetString() );
         Assert.True( file.GetProperty( "isTransformed" ).GetBoolean() );
 
-        var previewedOutput = await File.ReadAllTextAsync( file.GetProperty( "outputPath" ).GetString()!, TestContext.Current.CancellationToken );
+        var previewedOutput = File.ReadAllText( file.GetProperty( "outputPath" ).GetString()! );
 
         // The previewed file is linked and formatted.
         Assert.Contains( "Entering M", previewedOutput, StringComparison.Ordinal );
@@ -104,7 +104,7 @@ public sealed class CompileTimePreviewTests : UnitTestClass
         var outputDirectory = Path.Combine( testContext.BaseDirectory, "preview" );
         var filesListPath = Path.Combine( testContext.BaseDirectory, "files.txt" );
         var previewedPath = Path.GetFullPath( "Previewed.cs" );
-        await File.WriteAllLinesAsync( filesListPath, [previewedPath], TestContext.Current.CancellationToken );
+        File.WriteAllLines( filesListPath, new[] { previewedPath } );
 
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Aspect.cs"] = _aspectCode, ["Previewed.cs"] = _previewedCode } );
@@ -129,9 +129,9 @@ public sealed class CompileTimePreviewTests : UnitTestClass
 
         Assert.Contains( diagnostics, d => d.Id == "LAMA0121" );
 
-        using var manifest = JsonDocument.Parse( await File.ReadAllTextAsync( Path.Combine( outputDirectory, "preview.json" ), TestContext.Current.CancellationToken ) );
+        using var manifest = JsonDocument.Parse( File.ReadAllText( Path.Combine( outputDirectory, "preview.json" ) ) );
         var file = Assert.Single( manifest.RootElement.GetProperty( "files" ).EnumerateArray() );
-        var previewedOutput = await File.ReadAllTextAsync( file.GetProperty( "outputPath" ).GetString()!, TestContext.Current.CancellationToken );
+        var previewedOutput = File.ReadAllText( file.GetProperty( "outputPath" ).GetString()! );
 
         Assert.Contains( "Entering M", previewedOutput, StringComparison.Ordinal );
         Assert.DoesNotContain( "Other", previewedOutput, StringComparison.Ordinal );
@@ -187,7 +187,7 @@ public sealed class CompileTimePreviewTests : UnitTestClass
     {
         var outputDirectory = Path.Combine( testContext.BaseDirectory, "preview" );
         var filesListPath = Path.Combine( testContext.BaseDirectory, "files.txt" );
-        await File.WriteAllLinesAsync( filesListPath, [Path.GetFullPath( previewedFile )], TestContext.Current.CancellationToken );
+        File.WriteAllLines( filesListPath, new[] { Path.GetFullPath( previewedFile ) } );
 
         var compilation = testContext.CreateCSharpCompilation( code );
 
@@ -200,10 +200,10 @@ public sealed class CompileTimePreviewTests : UnitTestClass
 
         Assert.Equal( ["LAMA0121"], diagnostics.Where( d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error ).Select( d => d.Id ) );
 
-        using var manifest = JsonDocument.Parse( await File.ReadAllTextAsync( Path.Combine( outputDirectory, "preview.json" ), TestContext.Current.CancellationToken ) );
+        using var manifest = JsonDocument.Parse( File.ReadAllText( Path.Combine( outputDirectory, "preview.json" ) ) );
         var file = Assert.Single( manifest.RootElement.GetProperty( "files" ).EnumerateArray() );
 
-        return await File.ReadAllTextAsync( file.GetProperty( "outputPath" ).GetString()!, TestContext.Current.CancellationToken );
+        return File.ReadAllText( file.GetProperty( "outputPath" ).GetString()! );
     }
 
     private sealed class PreviewTestProjectOptions : ProjectOptionsWrapper
