@@ -22,14 +22,28 @@ namespace Metalama.Framework.Engine.CodeModel
         /// </summary>
         private sealed class CompleteImpl : PartialCompilation
         {
-            public CompleteImpl( CompilationContext compilationContext, Lazy<DerivedTypeIndex> derivedTypeIndex, ImmutableArray<ManagedResource> resources )
-                : base( compilationContext, derivedTypeIndex, resources ) { }
+            // The paths that IsSyntaxTreeObserved accepts, or null if all are. A complete compilation has a filter only in a preview,
+            // which runs the aspects on the whole project but links and formats only the previewed files.
+            private readonly ImmutableHashSet<string>? _observedSyntaxTreePaths;
+
+            public CompleteImpl(
+                CompilationContext compilationContext,
+                Lazy<DerivedTypeIndex> derivedTypeIndex,
+                ImmutableArray<ManagedResource> resources,
+                ImmutableHashSet<string>? observedSyntaxTreePaths = null )
+                : base( compilationContext, derivedTypeIndex, resources )
+            {
+                this._observedSyntaxTreePaths = observedSyntaxTreePaths;
+            }
 
             private CompleteImpl(
-                PartialCompilation baseCompilation,
+                CompleteImpl baseCompilation,
                 IReadOnlyCollection<SyntaxTreeTransformation>? modifications,
                 ImmutableArray<ManagedResource> resources )
-                : base( baseCompilation, modifications, resources ) { }
+                : base( baseCompilation, modifications, resources )
+            {
+                this._observedSyntaxTreePaths = baseCompilation._observedSyntaxTreePaths;
+            }
 
             /// <remarks>
             /// Materialized only if the obsolete property is actually read, which no code of this repository does any
@@ -54,11 +68,12 @@ namespace Metalama.Framework.Engine.CodeModel
             public override ImmutableHashSet<INamespaceSymbol> Namespaces
                 => this.Compilation.SourceModule.GlobalNamespace.SelectManyRecursive( n => n.GetNamespaceMembers() ).ToImmutableHashSet();
 
-            internal override bool IsSyntaxTreeObserved( string syntaxTreePath ) => true;
+            internal override bool IsSyntaxTreeObserved( string syntaxTreePath )
+                => this._observedSyntaxTreePaths == null || this._observedSyntaxTreePaths.Contains( syntaxTreePath );
 
             public override bool IsPartial => false;
 
-            internal override bool HasObservabilityFilter => false;
+            internal override bool HasObservabilityFilter => this._observedSyntaxTreePaths != null;
 
             public override PartialCompilation Update(
                 IReadOnlyCollection<SyntaxTreeTransformation>? transformations = null,

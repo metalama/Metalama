@@ -228,6 +228,28 @@ namespace Metalama.Framework.Engine.CodeModel
         public static PartialCompilation CreateComplete( Compilation compilation, ImmutableArray<ManagedResource> resources = default )
             => CreateComplete( compilation.RemoveDuplicatePathSyntaxTrees().GetCompilationContext(), resources );
 
+        /// <summary>
+        /// Creates a <see cref="PartialCompilation"/> that represents a complete compilation, but in which only some syntax trees
+        /// are observed, i.e. linked. The aspects run on the whole compilation. This is used by the command-line preview.
+        /// </summary>
+        /// <param name="compilation">The complete compilation.</param>
+        /// <param name="observedSyntaxTreePaths">The paths of the syntax trees for which <see cref="IsSyntaxTreeObserved"/> returns <see langword="true"/>.
+        /// The comparer of the set is used to match paths.</param>
+        /// <param name="resources">The managed resources of the compilation.</param>
+        public static PartialCompilation CreateComplete(
+            Compilation compilation,
+            ImmutableHashSet<string> observedSyntaxTreePaths,
+            ImmutableArray<ManagedResource> resources = default )
+        {
+            var compilationContext = compilation.RemoveDuplicatePathSyntaxTrees().GetCompilationContext();
+
+            return new CompleteImpl(
+                compilationContext,
+                new Lazy<DerivedTypeIndex>( () => GetDerivedTypeIndex( compilationContext.Compilation ) ),
+                resources,
+                observedSyntaxTreePaths );
+        }
+
         private static PartialCompilation CreateComplete( CompilationContext compilationContext, ImmutableArray<ManagedResource> resources = default )
             => new CompleteImpl( compilationContext, new Lazy<DerivedTypeIndex>( () => GetDerivedTypeIndex( compilationContext.Compilation ) ), resources );
 
