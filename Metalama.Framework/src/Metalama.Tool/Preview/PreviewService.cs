@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Metalama.Tool.Preview;
 
@@ -33,6 +34,13 @@ internal sealed class PreviewService
     private const string _manifestFileName = "preview.json";
 
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    // A diagnostic of the compiler is written as `<location>: <severity> <id>: <message>`, or as `<severity> <id>: <message>` when
+    // it has no location. The severity and the identifier are read from this prefix only, so that a path or a message that contains
+    // an identifier is not mistaken for it.
+    private static readonly Regex _diagnosticRegex = new(
+        @"(?:^|: )(?<severity>error|warning|info) (?<id>[A-Za-z]+[0-9]+)\s*:",
+        RegexOptions.CultureInvariant );
 
     private readonly ExtendedCommandContext _context;
 
@@ -115,14 +123,19 @@ internal sealed class PreviewService
 
             foreach ( var line in compilerOutput.Where( l => !string.IsNullOrWhiteSpace( l ) ) )
             {
-                if ( line.Contains( _previewCompletedDiagnosticId, StringComparison.Ordinal ) )
-                {
-                    continue;
-                }
+                var diagnostic = _diagnosticRegex.Match( line );
 
-                if ( line.Contains( ": error ", StringComparison.Ordinal ) )
+                if ( diagnostic.Success )
                 {
-                    hasErrors = true;
+                    if ( diagnostic.Groups["id"].Value == _previewCompletedDiagnosticId )
+                    {
+                        continue;
+                    }
+
+                    if ( diagnostic.Groups["severity"].Value == "error" )
+                    {
+                        hasErrors = true;
+                    }
                 }
 
                 this.Error.WriteLine( line );

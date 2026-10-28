@@ -137,6 +137,75 @@ public sealed class CompileTimePreviewTests : UnitTestClass
         Assert.DoesNotContain( "Other", previewedOutput, StringComparison.Ordinal );
     }
 
+    [Fact]
+    public async Task TransformationsOfOtherFilesThatThePreviewedFileDependsOnAreApplied()
+    {
+        // The aspect makes TargetCode implement IInitializable. The creation of TargetCode in the previewed Caller.cs is linked
+        // only if TargetCode, declared in a file that is not previewed, implements the interface in the intermediate compilation.
+        const string aspectCode = """
+                                  using Metalama.Framework.Advising;
+                                  using Metalama.Framework.Aspects;
+                                  using Metalama.Framework.Code;
+
+                                  public class TheAspect : TypeAspect
+                                  {
+                                      public override void BuildAspect( IAspectBuilder<INamedType> builder )
+                                          => builder.AddInitializer( nameof(InitializerTemplate), InitializerKind.AfterObjectInitializer );
+
+                                      [Template]
+                                      private void InitializerTemplate() => System.Console.WriteLine( "Initialized!" );
+                                  }
+                                  """;
+
+        const string targetCode = """
+                                  [TheAspect]
+                                  public class TargetCode { }
+                                  """;
+
+        const string callerCode = """
+                                  public class Caller
+                                  {
+                                      public void Method()
+                                      {
+                                          var t = new TargetCode();
+                                      }
+                                  }
+                                  """;
+
+        using var testContext = this.CreateTestContext();
+
+        var previewedOutput = await PreviewAsync(
+            testContext,
+            new Dictionary<string, string> { ["Aspect.cs"] = aspectCode, ["Target.cs"] = targetCode, ["Caller.cs"] = callerCode },
+            "Caller.cs" );
+
+        Assert.Contains( ".WithInitialize()", previewedOutput, StringComparison.Ordinal );
+    }
+
+    // Previews one file and returns its transformed code.
+    private static async Task<string> PreviewAsync( MetalamaTestContext testContext, Dictionary<string, string> code, string previewedFile )
+    {
+        var outputDirectory = Path.Combine( testContext.BaseDirectory, "preview" );
+        var filesListPath = Path.Combine( testContext.BaseDirectory, "files.txt" );
+        await File.WriteAllLinesAsync( filesListPath, [Path.GetFullPath( previewedFile )], TestContext.Current.CancellationToken );
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        var serviceProvider = testContext.ServiceProvider.WithService(
+            new PreviewTestProjectOptions( testContext.ProjectOptions, filesListPath, outputDirectory ),
+            true );
+
+        var diagnostics = new DiagnosticBag();
+        await new CompileTimeAspectPipeline( serviceProvider ).ExecuteAsync( diagnostics.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
+
+        Assert.Equal( ["LAMA0121"], diagnostics.Where( d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error ).Select( d => d.Id ) );
+
+        using var manifest = JsonDocument.Parse( await File.ReadAllTextAsync( Path.Combine( outputDirectory, "preview.json" ), TestContext.Current.CancellationToken ) );
+        var file = Assert.Single( manifest.RootElement.GetProperty( "files" ).EnumerateArray() );
+
+        return await File.ReadAllTextAsync( file.GetProperty( "outputPath" ).GetString()!, TestContext.Current.CancellationToken );
+    }
+
     private sealed class PreviewTestProjectOptions : ProjectOptionsWrapper
     {
         private readonly string _filesListPath;

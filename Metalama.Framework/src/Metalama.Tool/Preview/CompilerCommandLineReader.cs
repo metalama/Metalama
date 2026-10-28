@@ -86,7 +86,8 @@ internal sealed class CompilerCommandLineReader
         // references, then CoreCompile runs the Csc task, which returns its arguments instead of starting the compiler.
         // CoreCompile alone would not resolve the references. NonExistentFile is an input of CoreCompile that never exists, so
         // that CoreCompile is not skipped when the project is up to date. DesignTimeBuild is not set, because the Metalama
-        // targets then add items that a real build does not have.
+        // targets then add items that a real build does not have. MetalamaSkipTouchFiles keeps the Metalama targets from touching
+        // the file that tells the design-time pipeline that a build started, because this run is not a build.
         using var collection = new ProjectCollection();
 
         var project = this.CreateInstance(
@@ -98,7 +99,8 @@ internal sealed class CompilerCommandLineReader
                 ["ProvideCommandLineArgs"] = "true",
                 ["BuildProjectReferences"] = "false",
                 ["BuildingProject"] = "false",
-                ["NonExistentFile"] = @"__NonExistentSubDir__\__NonExistentFile__"
+                ["NonExistentFile"] = @"__NonExistentSubDir__\__NonExistentFile__",
+                ["MetalamaSkipTouchFiles"] = "true"
             } );
 
         this.Build( project, "Compile" );

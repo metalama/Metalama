@@ -75,6 +75,8 @@ namespace Metalama.Framework.Engine.CodeModel
 
             internal override bool HasObservabilityFilter => this._observedSyntaxTreePaths != null;
 
+            internal override bool DiscardsUnobservedTransformations => false;
+
             public override PartialCompilation Update(
                 IReadOnlyCollection<SyntaxTreeTransformation>? transformations = null,
                 ImmutableArray<ManagedResource> resources = default )

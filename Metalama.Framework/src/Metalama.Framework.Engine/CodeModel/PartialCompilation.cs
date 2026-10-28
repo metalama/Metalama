@@ -81,6 +81,18 @@ namespace Metalama.Framework.Engine.CodeModel
         /// </summary>
         internal abstract bool HasObservabilityFilter { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the transformations of the syntax trees that are not observed are discarded before the
+        /// linker injects them, as opposed to being injected and then left unlinked.
+        /// </summary>
+        /// <remarks>
+        /// A partial compilation discards them, because its syntax trees are a closure that does not depend on the others. A
+        /// complete compilation with an observability filter, used by the command-line preview, keeps them: the observed syntax
+        /// trees can depend on what the aspects add to the other ones, for instance on an interface that an aspect makes a type
+        /// implement, so the linker must inject them all. Only the linking of the syntax trees that are not observed is skipped.
+        /// </remarks>
+        internal virtual bool DiscardsUnobservedTransformations => this.HasObservabilityFilter;
+
         internal LanguageOptions LanguageOptions
         {
             get

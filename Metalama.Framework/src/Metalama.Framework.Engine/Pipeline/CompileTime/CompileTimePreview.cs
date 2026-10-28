@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 
@@ -86,12 +87,15 @@ internal sealed class CompileTimePreview
     /// Finds the document of the compilation that a requested path names, or returns the default key.
     /// </summary>
     /// <remarks>
-    /// The command-line compiler spells the paths of the documents as full paths. A path that matches no document exactly
-    /// still matches the document whose full path differs from it in case only, provided there is exactly one, because the
-    /// user may spell a path in another case on Windows. Two such documents are two files, and then neither is chosen.
+    /// The command-line compiler spells the paths of the documents as full paths. On Windows and macOS, whose file systems ignore
+    /// case by default, a path that matches no document exactly still matches the document whose full path differs from it in
+    /// case only, provided there is exactly one, because the user may spell a path in another case: both name the same file.
+    /// Elsewhere, two such paths are two files, so the fallback would preview a file that was not requested.
     /// </remarks>
     private static DocumentKey FindDocument( IEnumerable<DocumentKey> documents, string requestedPath )
     {
+        var allowsCaseInsensitiveMatch = RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) || RuntimeInformation.IsOSPlatform( OSPlatform.OSX );
+
         DocumentKey caseInsensitiveMatch = default;
         var caseInsensitiveMatchCount = 0;
 
@@ -107,7 +111,7 @@ internal sealed class CompileTimePreview
                 return document;
             }
 
-            if ( string.Equals( documentFullPath, requestedPath, StringComparison.OrdinalIgnoreCase ) )
+            if ( allowsCaseInsensitiveMatch && string.Equals( documentFullPath, requestedPath, StringComparison.OrdinalIgnoreCase ) )
             {
                 caseInsensitiveMatch = document;
                 caseInsensitiveMatchCount++;
