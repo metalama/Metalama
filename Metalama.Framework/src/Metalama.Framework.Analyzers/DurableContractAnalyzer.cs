@@ -77,7 +77,8 @@ namespace Metalama.Framework.Analyzers.Durability
                 CapturedValueIsNotDurable,
                 UnknownDeclaredTypeName,
                 RedundantDurableAttribute,
-                DurableMemberIsWritableFromOutside );
+                DurableMemberIsWritableFromOutside,
+                StaticMemberIsNotDurable );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -110,6 +111,9 @@ namespace Metalama.Framework.Analyzers.Durability
         private static void AnalyzeNamedType( SymbolAnalysisContext context, DurabilityContext durabilityContext )
         {
             var type = (INamedTypeSymbol) context.Symbol;
+
+            // The static members are examined whether or not the type is bound by the contract.
+            AnalyzeStaticMembers( context, durabilityContext, type );
 
             if ( !durabilityContext.IsSubjectToContract( type ) )
             {

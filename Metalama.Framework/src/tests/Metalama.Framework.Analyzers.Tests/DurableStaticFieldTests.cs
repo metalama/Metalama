@@ -16,6 +16,7 @@ public sealed class DurableStaticFieldTests : DurableAnalyzerTestBase
     private const string _preamble = """
                                      using Metalama.Framework.Aspects;
                                      using Metalama.Framework.Code;
+                                     using Metalama.Framework.Code.DeclarationBuilders;
                                      using Metalama.Framework.Diagnostics;
                                      using Metalama.Framework.Fabrics;
                                      using Metalama.Framework.Utilities;
