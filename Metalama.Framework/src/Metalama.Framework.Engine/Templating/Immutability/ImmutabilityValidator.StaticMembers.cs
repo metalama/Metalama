@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers.Durability;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
@@ -12,6 +13,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 {
     internal sealed partial class ImmutabilityValidator
     {
+        private DurabilityContext? _durabilityContext;
+
         /// <summary>
         /// Determines whether a type is loaded in the compiler process, that is, whether it is compile-time or
         /// run-time-or-compile-time.
@@ -21,7 +24,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
         /// <summary>
         /// Reports a static field, a static automatic property or a static field-like event of a compile-time or
-        /// run-time-or-compile-time type that is not read-only or is of a mutable type.
+        /// run-time-or-compile-time type that is not read-only, is of a mutable type, or is of a type that is not durable.
         /// </summary>
         /// <param name="member">The member, declared in the current syntax tree.</param>
         /// <param name="memberScope">The execution scope of the member.</param>
@@ -116,6 +119,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
             if ( verdict.IsImmutable )
             {
+                this.ValidateStaticMemberDurability( member, memberType, location, typeName );
+
                 return;
             }
 
@@ -130,6 +135,48 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                     : ImmutabilityDiagnosticDescriptors.StaticFieldMustBeRunTime.CreateRoslynDiagnostic(
                         location,
                         (typeName, member.Name, $"is of type '{memberTypeName}', which is not immutable (path: {chain})") ) );
+        }
+
+        /// <summary>
+        /// Reports a static member that is read-only and of an immutable type, but whose type is not durable (LAMA0892).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A static member outlives every compilation, so at design time a value that references a compilation, a syntax
+        /// tree, a symbol or a code model declaration keeps that compilation alive. Such a value is often immutable, which
+        /// is why this rule follows the immutability rules rather than replacing them.
+        /// </para>
+        /// <para>
+        /// The <c>[Durable]</c> attribute on the member waives the check on its declared type. The analyzer of
+        /// <c>Metalama.Framework.Analyzers</c> then verifies instead that every value assigned to the member is durable.
+        /// </para>
+        /// </remarks>
+        private void ValidateStaticMemberDurability( ISymbol member, ITypeSymbol memberType, Location? location, string typeName )
+        {
+            if ( DurabilityContext.HasDurableAttribute( member ) )
+            {
+                return;
+            }
+
+            // The context caches verdicts keyed by symbols, so it lives no longer than this validator, that is, than the
+            // validation of one syntax tree. It is created on first use because most trees have no static member to check.
+            this._durabilityContext ??= DurabilityContext.Create(
+                this._projectOptions?.DurableTypes ?? [],
+                this._projectOptions?.NonDurableTypes ?? [] );
+
+            var verdict = this._durabilityContext.GetVerdict( memberType );
+
+            if ( verdict.IsDurable )
+            {
+                return;
+            }
+
+            var chain = verdict.Prepend( member.Name ).Prepend( typeName ).FormatChain();
+
+            this._reportDiagnostic(
+                ImmutabilityDiagnosticDescriptors.StaticFieldIsNotDurable.CreateRoslynDiagnostic(
+                    location,
+                    (typeName, member.Name, DurabilityContext.GetDisplayName( memberType ), chain) ) );
         }
     }
 }

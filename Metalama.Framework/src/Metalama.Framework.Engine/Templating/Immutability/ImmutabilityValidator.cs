@@ -40,6 +40,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
     internal sealed partial class ImmutabilityValidator
     {
         private readonly ImmutabilityContext _context;
+        private readonly IProjectOptions? _projectOptions;
         private readonly ISymbolClassifier _classifier;
         private readonly SemanticModel _semanticModel;
         private readonly Action<Diagnostic> _reportDiagnostic;
@@ -52,11 +53,13 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
         private ImmutabilityValidator(
             ImmutabilityContext context,
+            IProjectOptions? projectOptions,
             ISymbolClassifier classifier,
             SemanticModel semanticModel,
             Action<Diagnostic> reportDiagnostic )
         {
             this._context = context;
+            this._projectOptions = projectOptions;
             this._classifier = classifier;
             this._semanticModel = semanticModel;
             this._reportDiagnostic = reportDiagnostic;
@@ -73,7 +76,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         {
             var context = ImmutabilityContext.Create( projectOptions );
 
-            return context == null ? null : new ImmutabilityValidator( context, classifier, semanticModel, reportDiagnostic );
+            return context == null ? null : new ImmutabilityValidator( context, projectOptions, classifier, semanticModel, reportDiagnostic );
         }
 
         private SyntaxTree SyntaxTree => this._semanticModel.SyntaxTree;

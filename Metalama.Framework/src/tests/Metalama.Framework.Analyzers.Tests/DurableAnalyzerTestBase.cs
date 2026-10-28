@@ -94,7 +94,7 @@ public abstract class DurableAnalyzerTestBase
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
         return diagnostics
-            .Where( d => d.Id.StartsWith( "LAMA087", StringComparison.Ordinal ) || d.Id == "LAMA0892" )
+            .Where( d => d.Id.StartsWith( "LAMA087", StringComparison.Ordinal ) )
             .OrderBy( d => d.Location.SourceSpan.Start )
             .ToImmutableArray();
     }

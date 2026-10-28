@@ -15,13 +15,6 @@
 
         <EnforceExtendedAnalyzerRules>True</EnforceExtendedAnalyzerRules>
 
-        <!-- LAMA0892 reports a static field of compile-time code whose type is not durable. Most projects of this
-             solution are compile-time code, and their static fields hold singletons of types that are not marked
-             [Durable], for instance stateless visitors and empty collections. Marking these types is a separate task,
-             so the rule is disabled in this solution. It stays enabled in the Extensions and Patterns solutions, whose
-             aspects are compile-time code in the same way as the aspects of a user project. -->
-        <NoWarn>$(NoWarn);LAMA0892</NoWarn>
-
     </PropertyGroup>
 
     <Import Project="../eng/Versions.props"/>

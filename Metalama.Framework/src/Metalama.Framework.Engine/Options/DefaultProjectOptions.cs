@@ -130,6 +130,10 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual ImmutableArray<string> ImmutableContractTypes => ImmutableArray<string>.Empty;
 
+    public virtual ImmutableArray<string> DurableTypes => ImmutableArray<string>.Empty;
+
+    public virtual ImmutableArray<string> NonDurableTypes => ImmutableArray<string>.Empty;
+
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => ImmutableArray<TargetedAssemblyReference>.Empty;
 
     public virtual ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies => ImmutableArray<TargetedAssemblyReference>.Empty;

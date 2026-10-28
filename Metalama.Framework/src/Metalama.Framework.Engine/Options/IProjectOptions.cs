@@ -365,6 +365,18 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<string> ImmutableContractTypes { get; }
 
     /// <summary>
+    /// Gets the full metadata names of the types that the project declares durable with the <c>MetalamaDurableType</c>
+    /// MSBuild item.
+    /// </summary>
+    ImmutableArray<string> DurableTypes { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the types that the project declares not durable with the
+    /// <c>MetalamaNonDurableType</c> MSBuild item.
+    /// </summary>
+    ImmutableArray<string> NonDurableTypes { get; }
+
+    /// <summary>
     /// Gets the kind of durable reference that the project produces. The default value is
     /// <see cref="Options.DurableRefKind.Default"/>, which lets the execution scenario select the representation.
     /// </summary>

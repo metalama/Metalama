@@ -240,6 +240,12 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override ImmutableArray<string> ImmutableContractTypes => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableContractTypes );
 
     [Memo]
+    public override ImmutableArray<string> DurableTypes => this.GetListOption( MSBuildPropertyNames.MetalamaDurableTypes );
+
+    [Memo]
+    public override ImmutableArray<string> NonDurableTypes => this.GetListOption( MSBuildPropertyNames.MetalamaNonDurableTypes );
+
+    [Memo]
     public override ImmutableArray<string> IgnoredWarnings
         => ParseIgnoredWarnings( this.GetStringOption( MSBuildPropertyNames.MetalamaIgnoredWarnings, string.Empty ) );
 

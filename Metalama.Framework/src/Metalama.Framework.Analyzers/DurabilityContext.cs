@@ -4,6 +4,7 @@
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -89,6 +90,21 @@ namespace Metalama.Framework.Analyzers.Durability
                 SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaDurableTypes" ),
                 SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaNonDurableTypes" ) );
         }
+
+        /// <summary>
+        /// Creates a context from the type names declared by the <c>MetalamaDurableType</c> and
+        /// <c>MetalamaNonDurableType</c> items, for a caller that reads them from its own options rather than from the
+        /// options of an analyzer.
+        /// </summary>
+        /// <remarks>
+        /// <c>ImmutabilityValidator</c> in <c>Metalama.Framework.Engine</c> calls this method to verify that the static
+        /// members of compile-time code are durable (LAMA0892). Its instance lives for the validation of one syntax
+        /// tree, for the same reason that the instance of the analyzer lives for one compilation.
+        /// </remarks>
+        public static DurabilityContext Create( IEnumerable<string> durableTypes, IEnumerable<string> nonDurableTypes )
+            => new(
+                new HashSet<string>( durableTypes, StringComparer.Ordinal ),
+                new HashSet<string>( nonDurableTypes, StringComparer.Ordinal ) );
 
         /// <summary>
         /// Gets the type names declared by the <c>MetalamaDurableType</c> item, so that the analyzer can report a name

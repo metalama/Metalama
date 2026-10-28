@@ -116,6 +116,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> ImmutableContractTypes => this.Wrapped.ImmutableContractTypes;
 
+    public virtual ImmutableArray<string> DurableTypes => this.Wrapped.DurableTypes;
+
+    public virtual ImmutableArray<string> NonDurableTypes => this.Wrapped.NonDurableTypes;
+
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
 
     public virtual ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;

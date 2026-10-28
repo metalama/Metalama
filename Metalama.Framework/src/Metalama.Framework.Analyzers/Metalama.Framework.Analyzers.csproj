@@ -31,6 +31,12 @@
              The tests read the well-known durability tables directly, because asserting the lists themselves is
              what keeps them from drifting. -->
         <InternalsVisibleTo Include="Metalama.Framework.Analyzers.Tests" />
+
+        <!-- The engine is the exception. It references this assembly to evaluate durability with DurabilityContext
+             rather than with a copy of it: ImmutabilityValidator verifies that the static members of compile-time code
+             are durable (LAMA0892), because only the engine knows the execution scope of a type. -->
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.5.0.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.5.12.0" />
     </ItemGroup>
 
 </Project>
