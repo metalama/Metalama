@@ -258,9 +258,10 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             //
             // The entries of the roots also apply to the classes that derive from them and to the interfaces that
             // extend them. A field is rarely typed as SyntaxNode or ISymbol itself, but as TypeSyntax or IMethodSymbol,
-            // so an exact match would have almost no effect. Roslyn does not let user code derive from these types in a
-            // supported way: the constructors of SyntaxNode are internal, and the documentation of the symbol and operation
-            // interfaces reserves their implementation to Roslyn.
+            // so an exact match would have almost no effect. The entries apply only to the derived types that Roslyn
+            // declares. User code can derive from SemanticModel, SyntaxTree, SourceText, Diagnostic and AttributeData,
+            // whose constructors are protected, and can implement the symbol and operation interfaces. Such a type can
+            // hold mutable state, so it must satisfy the normal rules.
             // ----------------------------------------------------------------------------------------------------
 
             ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.Compilation" );
@@ -284,8 +285,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             // deliberately absent.
             // ----------------------------------------------------------------------------------------------------
 
-            // A diagnostic and its descriptor are created with all their properties and expose no setter. The
-            // implementations of Diagnostic are internal to Roslyn, so the entry applies to derived types.
+            // A diagnostic and its descriptor are created with all their properties and expose no setter. The entry of
+            // Diagnostic applies to the derived types that Roslyn declares.
             Immutable( "Microsoft.CodeAnalysis.DiagnosticDescriptor" );
             ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.Diagnostic" );
 
@@ -324,7 +325,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             Immutable( "Microsoft.CodeAnalysis.SymbolDisplayFormat" );
 
             // The attribute data and its constants are created by the compiler from the metadata or the source, and
-            // expose no setter. The implementations of AttributeData are internal to Roslyn.
+            // expose no setter. The entry of AttributeData applies to the derived types that Roslyn declares.
             ImmutableWithDerivedTypes( "Microsoft.CodeAnalysis.AttributeData" );
             Immutable( "Microsoft.CodeAnalysis.TypedConstant" );
 

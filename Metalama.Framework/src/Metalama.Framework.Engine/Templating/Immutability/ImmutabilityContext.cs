@@ -396,7 +396,9 @@ namespace Metalama.Framework.Engine.Templating.Immutability
             // immutable too. The first half is what classifies every collection derived from List<T> without listing
             // it; the second half is what classifies TypeSyntax, IMethodSymbol and CSharpCompilation through the
             // entries of SyntaxNode, ISymbol and Compilation. A mutable entry anywhere in the hierarchy wins over an
-            // immutable one.
+            // immutable one. An inherited immutable entry applies only to a type that Roslyn declares, because user
+            // code can derive from some of these types, such as SourceText, and add mutable state. Such a type falls
+            // through to the rules below.
             var inherited = this.GetInheritedEntry( definition );
 
             switch ( inherited )
@@ -404,7 +406,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 case { Immutability: WellKnownImmutability.NotImmutable } mutableEntry:
                     return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( type ), mutableEntry.Reason );
 
-                case { Immutability: WellKnownImmutability.Immutable }:
+                case { Immutability: WellKnownImmutability.Immutable } when ImmutabilitySymbolFacts.IsDeclaredByRoslyn( definition ):
                     return ImmutabilityVerdict.Immutable;
             }
 

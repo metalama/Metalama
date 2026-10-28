@@ -30,8 +30,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
         /// <summary>
         /// Gets a value indicating whether the classification also applies to the classes that derive from the type and
-        /// to the interfaces that extend it. Relevant only when <see cref="Immutability"/> is
-        /// <see cref="WellKnownImmutability.Immutable"/>.
+        /// to the interfaces that extend it, provided that Roslyn declares them. Relevant only when
+        /// <see cref="Immutability"/> is <see cref="WellKnownImmutability.Immutable"/>.
         /// </summary>
         public bool AppliesToDerivedTypes { get; }
 

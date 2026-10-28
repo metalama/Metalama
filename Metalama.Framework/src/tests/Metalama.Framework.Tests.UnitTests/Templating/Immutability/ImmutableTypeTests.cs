@@ -212,15 +212,74 @@ public sealed class ImmutableTypeTests : ImmutabilityTestBase
     }
 
     /// <remarks>
-    /// A user interface that extends a well-known immutable interface inherits its entry, like the symbol interfaces
-    /// of Roslyn itself do.
+    /// A user interface that extends a well-known immutable interface does not inherit its entry, because the entry
+    /// applies only to the derived types that Roslyn declares. A user class can implement the interface and hold
+    /// mutable state.
     /// </remarks>
     [Fact]
-    public async Task InterfaceExtendingImmutableInterface_IsNotReported()
-        => await AssertNoDiagnosticAsync(
+    public async Task UserInterfaceExtendingImmutableRoslynInterface_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
             _prologue
             + "interface IOp : Microsoft.CodeAnalysis.IOperation { } "
-            + "[ImmutableType] class C { private readonly IOp _v = null!; }" );
+            + "[ImmutableType] class C { private readonly IOp _v = null!; }",
+            "LAMA0884" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// The entry of <c>SourceText</c> applies to the derived types that Roslyn declares, and not to a user-defined
+    /// derived type, which can hold mutable state.
+    /// </remarks>
+    [Fact]
+    public async Task UserClassDerivedFromSourceText_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "using Microsoft.CodeAnalysis.Text; "
+            + "sealed class MyText : SourceText { "
+            + "private readonly List<int> _lines = new(); "
+            + "public override char this[int position] => ' '; "
+            + "public override int Length => 0; "
+            + "public override System.Text.Encoding? Encoding => null; "
+            + "public override void CopyTo( int sourceIndex, char[] destination, int destinationIndex, int count ) { } } "
+            + "[ImmutableType] class C { private readonly MyText _v = null!; }",
+            "LAMA0882" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// A user-defined derived type is reported even when it derives from the well-known type through a type that Roslyn
+    /// declares, here <c>CSharpSyntaxTree</c>.
+    /// </remarks>
+    [Fact]
+    public async Task UserClassDerivedFromRoslynDerivedSyntaxTree_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "abstract class MyTree : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree { } "
+            + "[ImmutableType] class C { private readonly MyTree _v = null!; }",
+            "LAMA0884" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// A user-defined class that implements a symbol interface is reported, because it can hold mutable state.
+    /// </remarks>
+    [Fact]
+    public async Task UserClassImplementingSymbolInterface_IsReported()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "abstract class MySymbol : Microsoft.CodeAnalysis.IMethodSymbol { } "
+            + "[ImmutableType] class C { private readonly MySymbol _v = null!; }",
+            "LAMA0884" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
+    }
 
     /// <remarks>
     /// An immutable entry that does not apply to derived types is not inherited, even though the base type itself has
