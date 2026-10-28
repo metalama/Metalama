@@ -40,23 +40,23 @@ internal sealed class CompilerCommandLineReader
     }
 
     /// <summary>
-    /// Gets the target framework of the project, or the first one if it has several.
+    /// Gets the target frameworks of the project, in the order of the project file.
     /// </summary>
-    public string? GetDefaultTargetFramework()
+    public IReadOnlyList<string> GetTargetFrameworks()
     {
         using var collection = new ProjectCollection();
         var project = this.CreateInstance( collection, new Dictionary<string, string>() );
 
-        var targetFramework = project.GetPropertyValue( "TargetFramework" );
+        var targetFrameworks = project.GetPropertyValue( "TargetFrameworks" );
 
-        if ( string.IsNullOrEmpty( targetFramework ) )
+        if ( string.IsNullOrWhiteSpace( targetFrameworks ) )
         {
-            targetFramework = project.GetPropertyValue( "TargetFrameworks" )
-                .Split( ';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries )
-                .FirstOrDefault();
+            targetFrameworks = project.GetPropertyValue( "TargetFramework" );
         }
 
-        return string.IsNullOrEmpty( targetFramework ) ? null : targetFramework;
+        return targetFrameworks.Split( ';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries )
+            .Distinct( StringComparer.OrdinalIgnoreCase )
+            .ToList();
     }
 
     /// <summary>

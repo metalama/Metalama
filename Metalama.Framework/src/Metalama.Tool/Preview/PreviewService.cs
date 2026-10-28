@@ -99,8 +99,12 @@ internal sealed class PreviewService
 
             var responseFilePath = Path.Combine( tempDirectory, "compiler.rsp" );
 
-            // The arguments are already quoted as the compiler expects in a response file.
-            File.WriteAllLines( responseFilePath, compilerArguments.Where( IsKeptCompilerArgument ) );
+            // The arguments are already quoted as the compiler expects in a response file. The output assembly is redirected to the
+            // temporary directory, keeping its file name, which names the assembly: a version of Metalama that predates the preview
+            // ignores its options and emits the assembly, which must not overwrite the one of the build.
+            File.WriteAllLines(
+                responseFilePath,
+                compilerArguments.Where( IsKeptCompilerArgument ).Select( a => RedirectOutputAssembly( a, Path.Combine( tempDirectory, "bin" ) ) ) );
 
             var compilerOutput = this.RunCompiler( compilerPath, projectDirectory, responseFilePath, globalConfigPath );
 
@@ -179,10 +183,20 @@ internal sealed class PreviewService
             reader.Restore();
         }
 
-        var targetFramework = settings.Framework
-                              ?? reader.GetDefaultTargetFramework()
-                              ?? throw new CommandException(
-                                  $"Cannot determine the target framework of '{projectPath}'. Use --framework to specify it." );
+        var targetFrameworks = reader.GetTargetFrameworks();
+
+        if ( targetFrameworks.Count == 0 )
+        {
+            throw new CommandException( $"Cannot determine the target framework of '{projectPath}'." );
+        }
+
+        var targetFramework = settings.Framework ?? targetFrameworks[0];
+
+        if ( !targetFrameworks.Contains( targetFramework, StringComparer.OrdinalIgnoreCase ) )
+        {
+            throw new CommandException(
+                $"The project '{projectPath}' does not target '{targetFramework}'. Its target frameworks are: {string.Join( ", ", targetFrameworks )}." );
+        }
 
         var commandLine = reader.Read( targetFramework );
 
@@ -208,7 +222,47 @@ internal sealed class PreviewService
             throw new CommandException( $"MSBuild did not return the command line of the compiler for '{projectPath}'." );
         }
 
+        // The referenced projects are not built, so their assemblies must already exist. Without this check, the compiler would
+        // report a CS0006 error for each of them, which does not say what to do.
+        var missingReferences = commandLine.Arguments.Select( GetReferencePath )
+            .Where( path => path != null && !File.Exists( Path.Combine( Path.GetDirectoryName( projectPath )!, path ) ) )
+            .ToList();
+
+        if ( missingReferences.Count > 0 )
+        {
+            throw new CommandException(
+                $"Some referenced assemblies do not exist, probably because the projects that produce them have not been built. "
+                + $"Build them, then run the preview again. The missing assemblies are:{Environment.NewLine}  "
+                + string.Join( Environment.NewLine + "  ", missingReferences ) );
+        }
+
         return (compilerPath, commandLine.Arguments);
+    }
+
+    /// <summary>
+    /// Gets the path of the assembly that a <c>/reference</c> argument of the compiler names, or <c>null</c> if the argument is not
+    /// a reference. The argument has the form <c>/reference:[alias=]path</c>, where the path may be quoted.
+    /// </summary>
+    private static string? GetReferencePath( string argument )
+    {
+        const string prefix = "/reference:";
+
+        if ( !argument.StartsWith( prefix, StringComparison.OrdinalIgnoreCase ) )
+        {
+            return null;
+        }
+
+        var value = argument[prefix.Length..];
+
+        // An alias is an identifier before an equal sign, so it contains no character of a path.
+        var equal = value.IndexOf( '=', StringComparison.Ordinal );
+
+        if ( equal > 0 && value[..equal].IndexOfAny( ['\\', '/', ':', '"'] ) < 0 )
+        {
+            value = value[(equal + 1)..];
+        }
+
+        return value.Trim( '"' );
     }
 
     private IReadOnlyList<string> RunCompiler( string compilerPath, string workingDirectory, string responseFilePath, string globalConfigPath )
@@ -267,14 +321,29 @@ internal sealed class PreviewService
         }
     }
 
-    // The compiler stops before emitting, so the output options do not matter, but the documentation file, the reference assembly and
-    // the error log are removed to be sure that nothing of the build is overwritten. /out is kept, because it names the assembly.
-    // /noconfig is passed on the command line, where it is honored, instead of in the response file, where it is not.
+    // The compiler stops before emitting, but the documentation file, the reference assembly and the error log are removed, and the
+    // output assembly is redirected, to be sure that nothing of the build is overwritten. /noconfig is passed on the command line,
+    // where it is honored, instead of in the response file, where it is not.
     private static bool IsKeptCompilerArgument( string argument )
         => !argument.StartsWith( "/refout:", StringComparison.OrdinalIgnoreCase )
            && !argument.StartsWith( "/doc:", StringComparison.OrdinalIgnoreCase )
            && !argument.StartsWith( "/errorlog:", StringComparison.OrdinalIgnoreCase )
            && !argument.Equals( "/noconfig", StringComparison.OrdinalIgnoreCase );
+
+    // Moves the output assembly of an /out argument, and the symbol file that the compiler writes next to it, to another directory.
+    private static string RedirectOutputAssembly( string argument, string directory )
+    {
+        const string prefix = "/out:";
+
+        if ( !argument.StartsWith( prefix, StringComparison.OrdinalIgnoreCase ) )
+        {
+            return argument;
+        }
+
+        var fileName = Path.GetFileName( argument[prefix.Length..].Trim( '"' ) );
+
+        return $"{prefix}\"{Path.Combine( directory, fileName )}\"";
+    }
 
     private sealed record PreviewManifest( List<PreviewManifestFile> Files );
 
