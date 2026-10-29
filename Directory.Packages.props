@@ -95,6 +95,13 @@
     <!-- System.Buffers has no central pin, because only a few projects need a direct reference to resolve an
          MSB3277 conflict. This property is the version those projects override to. -->
     <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
+    <!-- Microsoft.CodeAnalysis.Workspaces.MSBuild 5.12 requires Microsoft.Extensions.Logging and
+         Microsoft.Extensions.Logging.Abstractions 10.0.10, above the 10.0.8 pinned below. Metalama.Framework.Workspaces
+         references both packages publicly at this version, because the dependency of Microsoft.CodeAnalysis.Workspaces.MSBuild
+         is private. Every project that references Metalama.Framework.Workspaces and one of the two packages directly must
+         override to this version, otherwise restore reports a package downgrade with NU1605. These projects target
+         net10.0 only and no design-time host loads them, so no binding redirect caps the version. -->
+    <MicrosoftExtensionsLoggingWorkspacesVersion>10.0.10</MicrosoftExtensionsLoggingWorkspacesVersion>
 
   </PropertyGroup>
   <ItemGroup>

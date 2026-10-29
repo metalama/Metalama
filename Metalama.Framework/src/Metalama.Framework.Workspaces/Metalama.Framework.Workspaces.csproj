@@ -78,6 +78,15 @@
 
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" GeneratePathProperty="True" PrivateAssets="all"/>
 
+        <!-- Microsoft.CodeAnalysis.Workspaces.MSBuild is private, so the package does not declare its dependencies.
+             MSBuildWorkspace requests Microsoft.Extensions.Logging and Microsoft.Extensions.Logging.Abstractions
+             10.0.0.0. When the application directory contains neither, Microsoft.Build.Locator resolves them from the
+             .NET SDK. When a dependency of the application brings an older version, the default load context lists
+             that version and rejects the copy of the SDK with a FileLoadException. These public references give the
+             application the version that MSBuildWorkspace requests. The version is explained in Directory.Packages.props. -->
+        <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="$(MicrosoftExtensionsLoggingWorkspacesVersion)" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="$(MicrosoftExtensionsLoggingWorkspacesVersion)" />
+
         <!-- The following reference handles [Memo] -->
         <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
