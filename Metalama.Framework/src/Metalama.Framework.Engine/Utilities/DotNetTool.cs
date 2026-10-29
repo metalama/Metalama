@@ -92,9 +92,22 @@ public sealed class DotNetTool
 
         var lines = new List<string>();
 
+        // The standard output and the standard error are read on different threads, so access to the list is
+        // synchronized.
         void OnProcessDataReceived( object sender, DataReceivedEventArgs e )
         {
-            lines.Add( e.Data ?? "" );
+            lock ( lines )
+            {
+                lines.Add( e.Data ?? "" );
+            }
+        }
+
+        ImmutableArray<string> GetLines()
+        {
+            lock ( lines )
+            {
+                return lines.ToImmutableArray();
+            }
         }
 
         process.OutputDataReceived += OnProcessDataReceived;
@@ -117,7 +130,7 @@ public sealed class DotNetTool
                 // ignored
             }
 
-            throw ProcessFailedException.CreateTimeout( startInfo.FileName, startInfo.Arguments, startInfo.WorkingDirectory, timeout );
+            throw ProcessFailedException.CreateTimeout( startInfo.FileName, startInfo.Arguments, startInfo.WorkingDirectory, timeout, GetLines() );
         }
 
         if ( process.ExitCode != 0 )
@@ -128,7 +141,7 @@ public sealed class DotNetTool
                 startInfo.WorkingDirectory,
                 process.ExitCode,
                 timeout,
-                lines.ToImmutableArray() );
+                GetLines() );
         }
     }
 }
