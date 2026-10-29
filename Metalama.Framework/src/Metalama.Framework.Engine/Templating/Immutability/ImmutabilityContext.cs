@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers.Durability;
 using Metalama.Framework.Engine.Options;
 using Microsoft.CodeAnalysis;
 using System;
@@ -16,8 +17,9 @@ namespace Metalama.Framework.Engine.Templating.Immutability
     /// </summary>
     /// <remarks>
     /// <para>
-    /// An instance holds caches keyed by symbols, so it retains the compilation of those symbols. It is created for one
-    /// validation of one syntax tree and is never stored beyond it, as <c>docs/design-time-memory.md</c> requires.
+    /// An instance holds caches keyed by symbols, so it retains the compilation of those symbols. It is created once per
+    /// compilation by <see cref="CompileTime.ClassifyingCompilationContext"/>, which lives exactly as long as the
+    /// compilation, and is shared by the validation of every syntax tree, which may run concurrently.
     /// </para>
     /// <para>
     /// No cycle can arise while evaluating a type, because the evaluation never descends into the members of a type:
@@ -57,8 +59,10 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
         private ImmutabilityContext(
             HashSet<string> additionalImmutableTypes,
-            HashSet<string> additionalContractTypes )
+            HashSet<string> additionalContractTypes,
+            StaticMemberDurabilityChecker durabilityChecker )
         {
+            this.DurabilityChecker = durabilityChecker;
             this._verdicts = new ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict>( SymbolEqualityComparer.Default );
             this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
             this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters>( SymbolEqualityComparer.Default );
@@ -84,8 +88,15 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
             return new ImmutabilityContext(
                 new HashSet<string>( options?.ImmutableTypes ?? [], StringComparer.Ordinal ),
-                new HashSet<string>( options?.ImmutableContractTypes ?? [], StringComparer.Ordinal ) );
+                new HashSet<string>( options?.ImmutableContractTypes ?? [], StringComparer.Ordinal ),
+                new StaticMemberDurabilityChecker( options?.DurableTypes ?? [], options?.NonDurableTypes ?? [] ) );
         }
+
+        /// <summary>
+        /// Gets the checker by which <see cref="ImmutabilityValidator"/> verifies that the static members of compile-time
+        /// code are durable (LAMA0892). It caches verdicts keyed by symbols, so it has the lifetime of this context.
+        /// </summary>
+        public StaticMemberDurabilityChecker DurabilityChecker { get; }
 
         /// <summary>
         /// Gets the type names declared by the <c>MetalamaImmutableType</c> item, so that a name that matches no type in

@@ -150,7 +150,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// </remarks>
         private void ValidateStaticMemberDurability( ISymbol member, ITypeSymbol memberType, Location? location, string typeName )
         {
-            if ( !this._durabilityChecker.IsNotDurable( member, memberType, typeName, out var memberTypeName, out var path ) )
+            if ( !this._context.DurabilityChecker.IsNotDurable( member, memberType, typeName, out var memberTypeName, out var path ) )
             {
                 return;
             }
