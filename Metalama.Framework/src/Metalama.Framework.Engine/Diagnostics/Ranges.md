@@ -13,7 +13,7 @@
 | 0500-0539 | Advices
 | 0540-0549 | Extension Block Introduction
 | 0600-0649 | Metalama.Compiler
-| 0650-0699 | Linker (0656-0669: primitives for extensions, such as call-site redirections)
+| 0650-0699 | Linker (0656: InitializeNotCalledInExpressionTree; 0657-0669: primitives for extensions, such as call-site redirections)
 | 0700      | Metalama.Framework
 | 0701-0749 | Extensions.DependencyInjection
 | 0750-0799 | Metalama.Framework

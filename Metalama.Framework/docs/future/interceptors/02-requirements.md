@@ -95,7 +95,7 @@ The baseline covers every requirement. The following gaps were not covered, or o
 | G15. Sharing mechanism with Validation. | Packaging uncertainty; the same bodies bound twice. | A shared scan pass (RC36). The extraction of a neutral package was withdrawn (RC47). | 9.2, 10.7.5 |
 | G16. A `TransitiveProjectFabric` cannot name a type of the consumer as the placement. | The cross-project scenario cannot be written. | `InterceptorPlacement.CallingType()` and `InterceptorPlacement.GeneratedStaticClass()`. | 5.6.3, 9.9 |
 | G17. Calls to members introduced by aspects bind in the IDE but not at build time. | Diagnostics in the IDE that the build does not report. | Phase B ignores targets declared only in generated trees. | 9.7.6 |
-| G18. No diagnostic range reserved. | Collisions. | LAMA1000 to 1049 for premium, LAMA0656 to 0669 for open-source primitives. | 9.11 |
+| G18. No diagnostic range reserved. | Collisions. | LAMA1000 to 1049 for premium, LAMA0657 to 0669 for open-source primitives. | 9.11 |
 | G19. Registration after `BuildAspect` through `builder.Outbound` is silently lost. | A registered interceptor disappears. | Open-source fix F12. | 10.10 |
 | G20. The default design-time bucket loses contributors. | Registrations disappear in the IDE. | Open-source fix of 10.8.3. | 10.8.3 |
 | G21. Method groups converted to delegates. | `list.Select( Transform )` escapes an interception that `list.Select( x => Transform( x ) )` receives, so two equivalent programs behave differently. | Method-reference sites are intercepted in version 1 (RC44). | 5.3.11, 6.4.12 |

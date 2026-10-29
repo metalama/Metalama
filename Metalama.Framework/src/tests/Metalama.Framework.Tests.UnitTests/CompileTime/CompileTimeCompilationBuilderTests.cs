@@ -2239,5 +2239,94 @@ public class ReferencedClass
                 project2.CompiledAssemblyPath,
                 StringComparer.OrdinalIgnoreCase );
         }
+
+        /// <summary>
+        /// Regression test for issue #2249: the compile-time project must apply the path map of the compilation to the source paths
+        /// of the manifest, to the <c>OriginalPath</c> attribute of fabrics, and to the source hash. Otherwise, the same source
+        /// built in two directories produces two different compile-time projects.
+        /// </summary>
+        [Fact]
+        public void PathMapIsAppliedToSourcePaths()
+        {
+            const string aspectCode = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+public class MyAspect : OverrideMethodAspect
+{
+    public override dynamic? OverrideMethod() => meta.Proceed();
+}
+";
+
+            const string fabricCode = @"
+using Metalama.Framework.Fabrics;
+
+public class MyFabric : ProjectFabric
+{
+    public override void AmendProject( IProjectAmender amender ) { }
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var domain = testContext.Domain;
+            var assemblyName = "PathMapTest_" + RandomIdGenerator.GenerateId();
+
+            CompileTimeProject BuildCompileTimeProject( string rootDirectory )
+            {
+                var sourceDirectory = Path.Combine( rootDirectory, "src", "Lib" );
+
+                var compilation = testContext.CreateCSharpCompilation(
+                    new Dictionary<string, string>
+                    {
+                        { Path.Combine( sourceDirectory, "Aspects.cs" ), aspectCode }, { Path.Combine( sourceDirectory, "Fabric.cs" ), fabricCode }
+                    },
+                    assemblyName: assemblyName );
+
+                // This is the path map that the compiler receives from /pathmap:<root>/=/_/.
+                var pathMap = ImmutableArray.Create( new KeyValuePair<string, string>( rootDirectory + Path.DirectorySeparatorChar, "/_/" ) );
+
+                compilation = compilation.WithOptions(
+                    compilation.Options.WithSourceReferenceResolver( new SourceFileResolver( ImmutableArray<string>.Empty, null, pathMap ) ) );
+
+                // Use a new builder for each build so that the in-memory cache is not used.
+                var builder = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+                DiagnosticBag diagnosticBag = new();
+
+                Assert.True(
+                    builder.TryGetCompileTimeProjectFromCompilation(
+                        compilation,
+                        null,
+                        diagnosticBag,
+                        false,
+                        testContext.CancellationToken,
+                        out var project ) );
+
+                Assert.NotNull( project );
+
+                return project;
+            }
+
+            var root1 = Path.Combine( testContext.BaseDirectory, "one", "repro" );
+            var root2 = Path.Combine( testContext.BaseDirectory, "two", "deeper", "repro" );
+
+            var project1 = BuildCompileTimeProject( root1 );
+            var project2 = BuildCompileTimeProject( root2 );
+
+            foreach ( var project in new[] { project1, project2 } )
+            {
+                // The source paths of the manifest must be mapped.
+                Assert.Equal(
+                    ["/_/src/Lib/Aspects.cs", "/_/src/Lib/Fabric.cs"],
+                    project.CodeFiles.SelectAsArray( f => f.SourcePath ).OrderBy( p => p, StringComparer.Ordinal ) );
+
+                // The OriginalPath attribute of the fabric must be mapped.
+                var transformedCode = project.CodeFiles.SelectAsArray( f => File.ReadAllText( Path.Combine( project.Directory!, f.TransformedPath ) ) );
+
+                Assert.Contains( transformedCode, c => c.Contains( @"OriginalPathAttribute(""/_/src/Lib/Fabric.cs"")", StringComparison.Ordinal ) );
+            }
+
+            // The source hash must not depend on the directory of the sources.
+            Assert.Equal( project1.Manifest!.SourceHash, project2.Manifest!.SourceHash );
+        }
     }
 }
