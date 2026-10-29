@@ -49,8 +49,8 @@ RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet
 ENV PATH="C:\Program Files\dotnet;${PATH}"
 
 
-# Install .NET Sdk 10.0.400
-RUN & .\dotnet-install.ps1 -Version 10.0.400 -InstallDir 'C:\Program Files\dotnet'
+# Install .NET Sdk 10.0.403
+RUN & .\dotnet-install.ps1 -Version 10.0.403 -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install .NET Sdk 11.0.100-rc.1.26425.128
