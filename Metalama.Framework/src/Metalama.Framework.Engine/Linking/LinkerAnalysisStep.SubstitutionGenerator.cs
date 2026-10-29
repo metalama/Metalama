@@ -367,6 +367,12 @@ internal sealed partial class LinkerAnalysisStep
                         var returnStatement = returnStatementRecord.Key;
                         var returnStatementProperties = returnStatementRecord.Value;
 
+                        if ( !returnStatementProperties.FlowsToExitIfRewritten && inliningSpecification.PreserveReturnStatements )
+                        {
+                            // The return statement has the same effect as the return statement that follows the replaced statement.
+                            continue;
+                        }
+
                         Invariant.AssertNot( !returnStatementProperties.FlowsToExitIfRewritten && inliningSpecification.ReturnLabelIdentifier == null );
 
                         AddSubstitution(

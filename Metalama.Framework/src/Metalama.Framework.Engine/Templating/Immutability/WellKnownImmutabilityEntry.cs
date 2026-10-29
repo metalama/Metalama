@@ -28,14 +28,23 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// </summary>
         public ImmutableArray<int> ArgumentMask { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the classification also applies to the classes that derive from the type and
+        /// to the interfaces that extend it, provided that Roslyn declares them. Relevant only when
+        /// <see cref="Immutability"/> is <see cref="WellKnownImmutability.Immutable"/>.
+        /// </summary>
+        public bool AppliesToDerivedTypes { get; }
+
         public WellKnownImmutabilityEntry(
             WellKnownImmutability immutability,
             string? reason = null,
-            ImmutableArray<int> argumentMask = default )
+            ImmutableArray<int> argumentMask = default,
+            bool appliesToDerivedTypes = false )
         {
             this.Immutability = immutability;
             this.Reason = reason;
             this.ArgumentMask = argumentMask;
+            this.AppliesToDerivedTypes = appliesToDerivedTypes;
         }
     }
 }
