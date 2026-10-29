@@ -218,15 +218,34 @@ public sealed partial class CodeFormatter : IProjectService
     }
 
     public Task<PartialCompilation> FormatAsync( IPartialCompilation compilation, CancellationToken cancellationToken = default )
-        => this.FormatAsync( (PartialCompilation) compilation, cancellationToken );
+        => this.FormatAsync( (PartialCompilation) compilation, null, cancellationToken );
 
-    internal async Task<PartialCompilation> FormatAsync( PartialCompilation compilation, CancellationToken cancellationToken = default )
+    /// <summary>
+    /// Formats the syntax trees of a <see cref="PartialCompilation"/>.
+    /// </summary>
+    /// <param name="compilation">The compilation.</param>
+    /// <param name="syntaxTreeFilter">A predicate selecting the trees to format, or <c>null</c> to format all of them. The other trees
+    /// remain in the workspace, so that the semantic model of the formatted ones can be resolved, but are not modified.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    internal async Task<PartialCompilation> FormatAsync(
+        PartialCompilation compilation,
+        Func<SyntaxTree, bool>? syntaxTreeFilter = null,
+        CancellationToken cancellationToken = default )
     {
-        var (project, syntaxTreeMap) = await WorkspaceHelper.CreateProjectFromCompilationAsync( compilation.Compilation, cancellationToken );
+        var (project, allSyntaxTreesMap) = await WorkspaceHelper.CreateProjectFromCompilationAsync( compilation.Compilation, cancellationToken );
+
+        var syntaxTreeMap = syntaxTreeFilter == null
+            ? allSyntaxTreesMap.ToList()
+            : allSyntaxTreesMap.Where( p => syntaxTreeFilter( p.Key ) ).ToList();
 
         List<SyntaxTreeTransformation> syntaxTreeReplacements = new( compilation.ModifiedSyntaxTrees.Count );
 
-        var formattedSolution = await this.FormatAsync( project.Solution, syntaxTreeMap.Values, null, false, cancellationToken );
+        var formattedSolution = await this.FormatAsync(
+            project.Solution,
+            syntaxTreeMap.SelectAsArray( p => p.Value ),
+            null,
+            false,
+            cancellationToken );
 
         foreach ( var syntaxTreePair in syntaxTreeMap )
         {

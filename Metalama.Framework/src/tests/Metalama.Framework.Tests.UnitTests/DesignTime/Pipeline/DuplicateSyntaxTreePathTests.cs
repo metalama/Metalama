@@ -91,7 +91,7 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
 
     /// <summary>
     /// The same site reached through the entry point that fails in production.
-    /// <c>DesignTimeAspectPipeline.ExecuteAsync</c> calls <see cref="PartialCompilation.CreateComplete"/> whenever the
+    /// <c>DesignTimeAspectPipeline.ExecuteAsync</c> calls <see cref="PartialCompilation.CreateComplete(Microsoft.CodeAnalysis.Compilation, System.Collections.Immutable.ImmutableArray{Metalama.Compiler.ManagedResource})"/> whenever the
     /// pipeline status is <c>Default</c>, which is the case on the first execution for a project and for every
     /// referenced project, so a single duplicated path stops the pipeline before it has produced anything.
     /// </summary>

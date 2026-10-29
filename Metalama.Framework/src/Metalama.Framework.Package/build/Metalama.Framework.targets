@@ -158,7 +158,11 @@
         </PropertyGroup>
     </Target>
 
-    <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile" Condition="'$(MetalamaBuildTouchFile)'!='' AND '$(MetalamaSourceGeneratorTouchFile)'!=''">
+    <!-- MetalamaSkipTouchFiles is set by `metalama preview`, which runs the Compile target only to read the command line of the
+         compiler. Such a run is not a build, so it must not touch MetalamaBuildTouchFile, which would make a paused design-time
+         pipeline resume. The property is not compiler-visible, so the generated analyzer configuration file, which is an input of
+         the build, does not change. -->
+    <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile" Condition="'$(MetalamaBuildTouchFile)'!='' AND '$(MetalamaSourceGeneratorTouchFile)'!='' AND '$(MetalamaSkipTouchFiles)'!='true'">
         <!-- MetalamaBuildTouchFile signals the design-time pipeline that a build of the project has started. The
              Touch task sets the timestamp of the file to the current time on every build, and a paused design-time
              pipeline resumes when its file system watcher observes the change. The pipeline receives the path of the

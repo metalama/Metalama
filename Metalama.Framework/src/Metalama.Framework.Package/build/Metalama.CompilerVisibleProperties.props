@@ -54,6 +54,9 @@
         <CompilerVisibleProperty Include="MetalamaImmutableContractTypes"/>
         <CompilerVisibleProperty Include="MetalamaEnforceImmutabilityContract"/>
         <CompilerVisibleProperty Include="MetalamaRequireOrderedAspects"/>
+        <!-- Set by `metalama preview`, normally through a global analyzer configuration file rather than MSBuild. -->
+        <CompilerVisibleProperty Include="MetalamaPreviewFiles"/>
+        <CompilerVisibleProperty Include="MetalamaPreviewOutputPath"/>
         <!-- The .NET SDK exports TargetFramework only when EnableNETAnalyzers is true. -->
         <CompilerVisibleProperty Include="TargetFramework"/>
         <!-- Set by the MetalamaComputeIgnoredWarnings target of Metalama.Framework.targets. -->
