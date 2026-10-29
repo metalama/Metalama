@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <!-- CA1822: IntroducedMethod is an aspect-introduced member; it must be instance-level. -->
     <NoWarn>CA1822</NoWarn>
+    <!-- This project deliberately references an old Metalama.Framework version, which may have security advisories. -->
+    <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
 
   <ItemGroup>
