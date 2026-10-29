@@ -68,6 +68,8 @@ public static class MSBuildPropertyNames
     public const string MetalamaImmutableContractTypes = nameof(MetalamaImmutableContractTypes);
     public const string MetalamaDurableTypes = nameof(MetalamaDurableTypes);
     public const string MetalamaNonDurableTypes = nameof(MetalamaNonDurableTypes);
+    public const string MetalamaPreviewFiles = nameof(MetalamaPreviewFiles);
+    public const string MetalamaPreviewOutputPath = nameof(MetalamaPreviewOutputPath);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -121,5 +123,7 @@ public static class MSBuildPropertyNames
         MetalamaImmutableTypes,
         MetalamaImmutableContractTypes,
         MetalamaDurableTypes,
-        MetalamaNonDurableTypes );
+        MetalamaNonDurableTypes,
+        MetalamaPreviewFiles,
+        MetalamaPreviewOutputPath );
 }

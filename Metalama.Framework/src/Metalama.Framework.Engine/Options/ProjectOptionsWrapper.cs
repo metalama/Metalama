@@ -88,6 +88,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual bool? WriteTransformedFiles => this.Wrapped.WriteTransformedFiles;
 
+    public virtual string? PreviewFilesListPath => this.Wrapped.PreviewFilesListPath;
+
+    public virtual string? PreviewOutputPath => this.Wrapped.PreviewOutputPath;
+
     public virtual bool IsTest => this.Wrapped.IsTest;
 
     public virtual string? AssemblyLocatorHooksDirectory => this.Wrapped.AssemblyLocatorHooksDirectory;

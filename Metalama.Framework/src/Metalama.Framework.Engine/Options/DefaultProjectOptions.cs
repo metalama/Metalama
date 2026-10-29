@@ -108,6 +108,10 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool? WriteTransformedFiles => false;
 
+    public virtual string? PreviewFilesListPath => null;
+
+    public virtual string? PreviewOutputPath => null;
+
     public virtual bool IsTest => false;
 
     public virtual string? AssemblyLocatorHooksDirectory => null;

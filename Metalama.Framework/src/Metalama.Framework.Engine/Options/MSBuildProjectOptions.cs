@@ -70,7 +70,12 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
     private CodeFormattingOptions GetTextOutputOptionsCore()
     {
-        if ( this.WriteTransformedFiles == true || this.DebugTransformedCode == true )
+        if ( this.PreviewFilesListPath != null )
+        {
+            // A preview always shows formatted code. Only the previewed files are formatted.
+            return CodeFormattingOptions.Formatted;
+        }
+        else if ( this.WriteTransformedFiles == true || this.DebugTransformedCode == true )
         {
             if ( this.GetBooleanOption( MSBuildPropertyNames.MetalamaFormatOutput ) )
             {
@@ -148,7 +153,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override int? ReferenceAssemblyRestoreTimeout => this.GetNullableInt32Option( MSBuildPropertyNames.MetalamaReferenceAssemblyRestoreTimeout );
 
     [Memo]
-    public override bool WriteHtml => this.GetBooleanOption( MSBuildPropertyNames.MetalamaWriteHtml );
+    public override bool WriteHtml => this.PreviewFilesListPath == null && this.GetBooleanOption( MSBuildPropertyNames.MetalamaWriteHtml );
 
     [Memo]
     public override bool WriteHtmlSymbols => this.GetBooleanOption( MSBuildPropertyNames.MetalamaWriteHtmlSymbols );
@@ -176,6 +181,12 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
     [Memo]
     public override bool? WriteTransformedFiles => this.GetBooleanOption( MSBuildPropertyNames.MetalamaEmitCompilerTransformedFiles );
+
+    [Memo]
+    public override string? PreviewFilesListPath => this.GetStringOption( MSBuildPropertyNames.MetalamaPreviewFiles );
+
+    [Memo]
+    public override string? PreviewOutputPath => this.GetStringOption( MSBuildPropertyNames.MetalamaPreviewOutputPath );
 
     [Memo]
     public override string? AssemblyLocatorHooksDirectory => this.GetStringOption( MSBuildPropertyNames.MetalamaAssemblyLocatorHooksDirectory );

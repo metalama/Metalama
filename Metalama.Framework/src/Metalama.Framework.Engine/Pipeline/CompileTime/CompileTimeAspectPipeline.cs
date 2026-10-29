@@ -111,7 +111,12 @@ public class CompileTimeAspectPipeline : AspectPipeline
         }
 
         var compilationContext = this.ServiceProvider.GetRequiredService<ClassifyingCompilationContextFactory>().GetInstance( compilation );
-        var partialCompilation = PartialCompilation.CreateComplete( compilation );
+        // In a preview, the aspects run on the whole compilation, but only the previewed syntax trees are observed, i.e. linked.
+        var preview = CompileTimePreview.Create( this.ProjectOptions, compilation );
+
+        var partialCompilation = preview == null
+            ? PartialCompilation.CreateComplete( compilation )
+            : PartialCompilation.CreateComplete( compilation, preview.ObservedSyntaxTreePaths );
 
         // Skip if Metalama has been disabled for this project.
         if ( !this.ProjectOptions.IsFrameworkEnabled )
@@ -197,6 +202,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
             partialCompilation,
             resources,
             configuration,
+            preview,
             cancellationToken );
 
         // If pipeline failed, cancel phase 2 and return early.
@@ -221,6 +227,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
         PartialCompilation compilation,
         ImmutableArray<ManagedResource> resources,
         AspectPipelineConfiguration configuration,
+        CompileTimePreview? preview,
         TestableCancellationToken cancellationToken )
     {
         try
@@ -243,7 +250,8 @@ public class CompileTimeAspectPipeline : AspectPipeline
             // Format the output.
             if ( this.ProjectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || this.ProjectOptions.WriteHtml )
             {
-                if ( !this.ProjectOptions.IsTest )
+                // A preview formats only the previewed files, so it does not slow the build down.
+                if ( !this.ProjectOptions.IsTest && preview == null )
                 {
                     diagnosticAdder.Report( GeneralDiagnosticDescriptors.CodeFormattingEnabled.CreateRoslynDiagnostic( null, default ) );
                 }
@@ -251,7 +259,24 @@ public class CompileTimeAspectPipeline : AspectPipeline
                 var codeFormatter = this.ServiceProvider.GetRequiredService<CodeFormatter>();
 
                 // ReSharper disable once AccessToModifiedClosure
-                resultPartialCompilation = await codeFormatter.FormatAsync( resultPartialCompilation, cancellationToken );
+                resultPartialCompilation = await codeFormatter.FormatAsync(
+                    resultPartialCompilation,
+                    preview == null ? null : new Func<SyntaxTree, bool>( preview.IsObserved ),
+                    cancellationToken );
+            }
+
+            // In a preview, write the previewed files and stop the compiler. The syntax trees that are not observed are not linked,
+            // so the compilation could not be emitted anyway.
+            if ( preview != null )
+            {
+                var rewrittenCompilation =
+                    (PartialCompilation) await RunTimeAssemblyRewriter.RewriteAsync( resultPartialCompilation, configuration.ServiceProvider );
+
+                var outputPath = preview.Write( rewrittenCompilation );
+
+                diagnosticAdder.Report( GeneralDiagnosticDescriptors.PreviewCompleted.CreateRoslynDiagnostic( null, outputPath ) );
+
+                return default;
             }
 
             // Write HTML (used only when building projects for documentation, not in tests).

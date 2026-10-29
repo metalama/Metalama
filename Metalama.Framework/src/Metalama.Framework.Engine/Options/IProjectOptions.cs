@@ -235,6 +235,18 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// </summary>
     bool? WriteTransformedFiles { get; }
 
+    /// <summary>
+    /// Gets the path of a file listing, one per line, the source files whose transformed code must be previewed, or <c>null</c>
+    /// when the compilation is not a preview. In a preview, the pipeline links, formats and writes only these files, and then
+    /// stops the compiler.
+    /// </summary>
+    string? PreviewFilesListPath { get; }
+
+    /// <summary>
+    /// Gets the path of the directory where the previewed files are written.
+    /// </summary>
+    string? PreviewOutputPath { get; }
+
     bool IsTest { get; }
 
     /// <summary>
