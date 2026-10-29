@@ -104,6 +104,22 @@ public sealed class DurableStaticFieldTests : ImmutabilityTestBase
             CompileTime( "private static readonly B? _b; } [CompileTime, ImmutableType] sealed class B {" ),
             "LAMA0892" );
 
+    /// <summary>
+    /// A static member of a generic type is stored once for each construction, and no construction site is verified, so
+    /// a type parameter is not durable there, whereas it is in an instance member.
+    /// </summary>
+    [Theory]
+    [InlineData( "T" )]
+    [InlineData( "ImmutableArray<T>" )]
+    public async Task GenericType_StaticFieldOfTypeParameter_IsReported( string fieldType )
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            _scopePrologue + "[CompileTime] class C<T> { private static readonly " + fieldType + "? _value; }",
+            "LAMA0892" );
+
+        Assert.Contains( "a static member of a generic type", message, StringComparison.Ordinal );
+    }
+
     // ------------------------------------------------------------------------------------------------------------
     // True negatives.
     // ------------------------------------------------------------------------------------------------------------
@@ -115,6 +131,29 @@ public sealed class DurableStaticFieldTests : ImmutabilityTestBase
                 "private static readonly int _a = 1; private static readonly string _b = \"\"; "
                 + "private static readonly ImmutableArray<string> _c = ImmutableArray<string>.Empty; public static string P { get; } = \"\"; "
                 + "private const int Count = 1;" ) );
+
+    /// <summary>
+    /// Immutable framework types that reach no compilation.
+    /// </summary>
+    [Theory]
+    [InlineData( "DateOnly" )]
+    [InlineData( "TimeOnly" )]
+    [InlineData( "System.Reflection.ConstructorInfo" )]
+    [InlineData( "System.Reflection.EventInfo" )]
+    [InlineData( "DiagnosticDescriptor" )]
+    [InlineData( "LocalizableString" )]
+    [InlineData( "SymbolDisplayFormat" )]
+    [InlineData( "Microsoft.CodeAnalysis.Text.TextChange" )]
+    public async Task CompileTime_StaticFieldOfImmutableFrameworkType_IsNotReported( string fieldType )
+        => await AssertNoDiagnosticAsync( CompileTime( "private static readonly " + fieldType + "? _value;" ) );
+
+    /// <summary>
+    /// The type argument of a generic type that does not store it, as in a diagnostic definition, is not examined.
+    /// </summary>
+    [Fact]
+    public async Task GenericType_StaticFieldOfDefinitionOfTypeParameter_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            _scopePrologue + "[CompileTime] class C<T> { private static readonly DiagnosticDefinition<T>? _error; }" );
 
     [Fact]
     public async Task CompileTime_DiagnosticAndSuppressionDefinitions_AreNotReported()

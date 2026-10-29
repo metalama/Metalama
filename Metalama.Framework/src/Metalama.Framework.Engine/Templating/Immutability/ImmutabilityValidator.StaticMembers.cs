@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers.Durability;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
@@ -13,8 +12,6 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 {
     internal sealed partial class ImmutabilityValidator
     {
-        private DurabilityContext? _durabilityContext;
-
         /// <summary>
         /// Determines whether a type is loaded in the compiler process, that is, whether it is compile-time or
         /// run-time-or-compile-time.
@@ -153,30 +150,15 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// </remarks>
         private void ValidateStaticMemberDurability( ISymbol member, ITypeSymbol memberType, Location? location, string typeName )
         {
-            if ( DurabilityContext.HasDurableAttribute( member ) )
+            if ( !this._durabilityChecker.IsNotDurable( member, memberType, typeName, out var memberTypeName, out var path ) )
             {
                 return;
             }
-
-            // The context caches verdicts keyed by symbols, so it lives no longer than this validator, that is, than the
-            // validation of one syntax tree. It is created on first use because most trees have no static member to check.
-            this._durabilityContext ??= DurabilityContext.Create(
-                this._projectOptions?.DurableTypes ?? [],
-                this._projectOptions?.NonDurableTypes ?? [] );
-
-            var verdict = this._durabilityContext.GetVerdict( memberType );
-
-            if ( verdict.IsDurable )
-            {
-                return;
-            }
-
-            var chain = verdict.Prepend( member.Name ).Prepend( typeName ).FormatChain();
 
             this._reportDiagnostic(
                 ImmutabilityDiagnosticDescriptors.StaticFieldIsNotDurable.CreateRoslynDiagnostic(
                     location,
-                    (typeName, member.Name, DurabilityContext.GetDisplayName( memberType ), chain) ) );
+                    (typeName, member.Name, memberTypeName, path) ) );
         }
     }
 }

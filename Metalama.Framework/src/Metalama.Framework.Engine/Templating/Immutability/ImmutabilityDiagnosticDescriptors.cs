@@ -149,7 +149,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// Reported only for a member that is read-only and of an immutable type, because LAMA0889, LAMA0890 or LAMA0891
         /// is reported otherwise. An immutable type can still retain a compilation: a symbol, a syntax tree or a
         /// delegate cannot change, but it keeps alive everything it references. Durability is evaluated by
-        /// <c>DurabilityContext</c> of <c>Metalama.Framework.Analyzers</c>.
+        /// <c>StaticMemberDurabilityChecker</c> of <c>Metalama.Framework.Analyzers</c>.
         /// </remarks>
         internal static readonly DiagnosticDefinition<(string Type, string Member, string MemberType, string Path)> StaticFieldIsNotDurable
             = new(

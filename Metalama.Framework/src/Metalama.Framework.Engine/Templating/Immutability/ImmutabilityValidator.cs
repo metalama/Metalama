@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers.Durability;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
@@ -40,7 +41,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
     internal sealed partial class ImmutabilityValidator
     {
         private readonly ImmutabilityContext _context;
-        private readonly IProjectOptions? _projectOptions;
+        private readonly StaticMemberDurabilityChecker _durabilityChecker;
         private readonly ISymbolClassifier _classifier;
         private readonly SemanticModel _semanticModel;
         private readonly Action<Diagnostic> _reportDiagnostic;
@@ -53,13 +54,13 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
         private ImmutabilityValidator(
             ImmutabilityContext context,
-            IProjectOptions? projectOptions,
+            StaticMemberDurabilityChecker durabilityChecker,
             ISymbolClassifier classifier,
             SemanticModel semanticModel,
             Action<Diagnostic> reportDiagnostic )
         {
             this._context = context;
-            this._projectOptions = projectOptions;
+            this._durabilityChecker = durabilityChecker;
             this._classifier = classifier;
             this._semanticModel = semanticModel;
             this._reportDiagnostic = reportDiagnostic;
@@ -68,15 +69,21 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// <summary>
         /// Creates a validator for one syntax tree, or returns <c>null</c> when the project turns the contract off.
         /// </summary>
+        /// <param name="projectOptions">The options of the project.</param>
+        /// <param name="durabilityChecker">The checker of the durability of static members, which is shared by every syntax tree of the compilation.</param>
+        /// <param name="classifier">The classifier of execution scopes.</param>
+        /// <param name="semanticModel">The semantic model of the syntax tree.</param>
+        /// <param name="reportDiagnostic">The delegate that reports a diagnostic.</param>
         public static ImmutabilityValidator? Create(
             IProjectOptions? projectOptions,
+            StaticMemberDurabilityChecker durabilityChecker,
             ISymbolClassifier classifier,
             SemanticModel semanticModel,
             Action<Diagnostic> reportDiagnostic )
         {
             var context = ImmutabilityContext.Create( projectOptions );
 
-            return context == null ? null : new ImmutabilityValidator( context, projectOptions, classifier, semanticModel, reportDiagnostic );
+            return context == null ? null : new ImmutabilityValidator( context, durabilityChecker, classifier, semanticModel, reportDiagnostic );
         }
 
         private SyntaxTree SyntaxTree => this._semanticModel.SyntaxTree;

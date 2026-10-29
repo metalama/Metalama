@@ -60,11 +60,14 @@ namespace Metalama.Framework.Analyzers.Durability
         private readonly ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters> _storedTypeParameters;
         private readonly HashSet<string> _additionalDurableTypes;
         private readonly HashSet<string> _additionalNonDurableTypes;
+        private readonly bool _isStaticStorage;
 
         private DurabilityContext(
             HashSet<string> additionalDurableTypes,
-            HashSet<string> additionalNonDurableTypes )
+            HashSet<string> additionalNonDurableTypes,
+            bool isStaticStorage = false )
         {
+            this._isStaticStorage = isStaticStorage;
             this._verdicts = new ConcurrentDictionary<ITypeSymbol, DurabilityVerdict>( SymbolEqualityComparer.Default );
             this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
             this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters>( SymbolEqualityComparer.Default );
@@ -92,19 +95,18 @@ namespace Metalama.Framework.Analyzers.Durability
         }
 
         /// <summary>
-        /// Creates a context from the type names declared by the <c>MetalamaDurableType</c> and
-        /// <c>MetalamaNonDurableType</c> items, for a caller that reads them from its own options rather than from the
-        /// options of an analyzer.
+        /// Creates a context that evaluates the types of static members, from the type names declared by the
+        /// <c>MetalamaDurableType</c> and <c>MetalamaNonDurableType</c> items. Unlike the context of the analyzer, it
+        /// considers that a type parameter is not durable.
         /// </summary>
         /// <remarks>
-        /// <c>ImmutabilityValidator</c> in <c>Metalama.Framework.Engine</c> calls this method to verify that the static
-        /// members of compile-time code are durable (LAMA0892). Its instance lives for the validation of one syntax
-        /// tree, for the same reason that the instance of the analyzer lives for one compilation.
+        /// <see cref="StaticMemberDurabilityChecker"/> is the only caller.
         /// </remarks>
-        public static DurabilityContext Create( IEnumerable<string> durableTypes, IEnumerable<string> nonDurableTypes )
+        public static DurabilityContext CreateForStaticMembers( IEnumerable<string> durableTypes, IEnumerable<string> nonDurableTypes )
             => new(
                 new HashSet<string>( durableTypes, StringComparer.Ordinal ),
-                new HashSet<string>( nonDurableTypes, StringComparer.Ordinal ) );
+                new HashSet<string>( nonDurableTypes, StringComparer.Ordinal ),
+                isStaticStorage: true );
 
         /// <summary>
         /// Gets the type names declared by the <c>MetalamaDurableType</c> item, so that the analyzer can report a name
@@ -298,10 +300,16 @@ namespace Metalama.Framework.Analyzers.Durability
             }
 
             // Rule 6. A type parameter is durable inside the definition. The obligation moves to the construction
-            // site, where the type argument is known.
+            // site, where the type argument is known. No construction site is verified for a static member, whose
+            // value is stored once for each construction of the generic type, so a static member of type T is not
+            // durable.
             if ( type.TypeKind == TypeKind.TypeParameter )
             {
-                return DurabilityVerdict.Durable;
+                return this._isStaticStorage
+                    ? DurabilityVerdict.NotDurable(
+                        type.Name,
+                        "a static member of a generic type can store a value of any type argument" )
+                    : DurabilityVerdict.Durable;
             }
 
             // Rule 7. A tuple is durable when each of its elements is.
