@@ -66,6 +66,8 @@ public static class MSBuildPropertyNames
     public const string MetalamaEnforceImmutabilityContract = nameof(MetalamaEnforceImmutabilityContract);
     public const string MetalamaImmutableTypes = nameof(MetalamaImmutableTypes);
     public const string MetalamaImmutableContractTypes = nameof(MetalamaImmutableContractTypes);
+    public const string MetalamaDurableTypes = nameof(MetalamaDurableTypes);
+    public const string MetalamaNonDurableTypes = nameof(MetalamaNonDurableTypes);
     public const string MetalamaPreviewFiles = nameof(MetalamaPreviewFiles);
     public const string MetalamaPreviewOutputPath = nameof(MetalamaPreviewOutputPath);
 
@@ -120,6 +122,8 @@ public static class MSBuildPropertyNames
         MetalamaEnforceImmutabilityContract,
         MetalamaImmutableTypes,
         MetalamaImmutableContractTypes,
+        MetalamaDurableTypes,
+        MetalamaNonDurableTypes,
         MetalamaPreviewFiles,
         MetalamaPreviewOutputPath );
 }

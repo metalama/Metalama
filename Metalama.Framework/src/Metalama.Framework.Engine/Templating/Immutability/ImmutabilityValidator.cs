@@ -65,16 +65,17 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         /// <summary>
         /// Creates a validator for one syntax tree, or returns <c>null</c> when the project turns the contract off.
         /// </summary>
+        /// <param name="context">The context of the compilation, which is shared by every syntax tree, or <c>null</c> when the
+        /// project turns the contract off.</param>
+        /// <param name="classifier">The classifier of execution scopes.</param>
+        /// <param name="semanticModel">The semantic model of the syntax tree.</param>
+        /// <param name="reportDiagnostic">The delegate that reports a diagnostic.</param>
         public static ImmutabilityValidator? Create(
-            IProjectOptions? projectOptions,
+            ImmutabilityContext? context,
             ISymbolClassifier classifier,
             SemanticModel semanticModel,
             Action<Diagnostic> reportDiagnostic )
-        {
-            var context = ImmutabilityContext.Create( projectOptions );
-
-            return context == null ? null : new ImmutabilityValidator( context, classifier, semanticModel, reportDiagnostic );
-        }
+            => context == null ? null : new ImmutabilityValidator( context, classifier, semanticModel, reportDiagnostic );
 
         private SyntaxTree SyntaxTree => this._semanticModel.SyntaxTree;
 

@@ -40,6 +40,10 @@ public sealed class CacheParameterClassification
 
     internal IDiagnostic GetDiagnostic( IParameter parameter, ICacheParameterClassifier classifier ) => this._diagnostic!.Invoke( parameter, classifier );
 
+    // The type holds a delegate and is therefore not durable in general. These two instances hold no delegate, so they
+    // reference nothing that belongs to a compilation.
+#pragma warning disable LAMA0892
+
     /// <summary>
     /// Gets a classification indicating that the parameter should be included in the cache key using standard formatting.
     /// </summary>
@@ -50,6 +54,7 @@ public sealed class CacheParameterClassification
     /// The <see cref="NotCacheKeyAttribute"/> will be automatically added to the parameter.
     /// </summary>
     public static CacheParameterClassification ExcludeFromCacheKey { get; } = new();
+#pragma warning restore LAMA0892
 
     /// <summary>
     /// Creates a classification indicating that the method cannot be cached because of this parameter,

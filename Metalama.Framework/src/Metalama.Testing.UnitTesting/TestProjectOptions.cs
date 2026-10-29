@@ -151,6 +151,10 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override ImmutableArray<string> ImmutableContractTypes => this.GetListProperty( "MetalamaImmutableContractTypes" );
 
+    public override ImmutableArray<string> DurableTypes => this.GetListProperty( "MetalamaDurableTypes" );
+
+    public override ImmutableArray<string> NonDurableTypes => this.GetListProperty( "MetalamaNonDurableTypes" );
+
     private ImmutableArray<string> GetListProperty( string name )
         => this.TestContextOptions.Properties.TryGetValue( name, out var value )
             ? value.Split( ',' ).Select( n => n.Trim() ).Where( n => n.Length > 0 ).ToImmutableArray()

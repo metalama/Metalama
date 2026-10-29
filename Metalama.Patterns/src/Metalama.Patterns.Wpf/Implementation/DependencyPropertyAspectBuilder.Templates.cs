@@ -18,10 +18,10 @@ internal sealed partial class DependencyPropertyAspectBuilder
     {
         private Templates() { }
 
-        // TemplateProvider is a read-only wrapper around this stateless template class.
-#pragma warning disable LAMA0890
+        // TemplateProvider is a read-only wrapper around this stateless template class, so it is immutable and durable.
+#pragma warning disable LAMA0890, LAMA0892
         public static TemplateProvider Provider { get; } = TemplateProvider.FromInstance( new Templates() );
-#pragma warning restore LAMA0890
+#pragma warning restore LAMA0890, LAMA0892
 
         [Template]
         internal static dynamic? OverrideGetter(

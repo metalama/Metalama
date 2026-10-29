@@ -144,5 +144,21 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 + " Mark the member with [RunTime] so that it exists only at run time, or make it read-only and of an immutable type.",
                 "A mutable static field or automatic property of a run-time-or-compile-time type is not marked [RunTime].",
                 _category );
+
+        /// <remarks>
+        /// Reported only for a member that is read-only and of an immutable type, because LAMA0889, LAMA0890 or LAMA0891
+        /// is reported otherwise. An immutable type can still retain a compilation: a symbol, a syntax tree or a
+        /// delegate cannot change, but it keeps alive everything it references. Durability is evaluated by
+        /// <c>StaticMemberDurabilityChecker</c> of <c>Metalama.Framework.Analyzers</c>.
+        /// </remarks>
+        internal static readonly DiagnosticDefinition<(string Type, string Member, string MemberType, string Path)> StaticFieldIsNotDurable
+            = new(
+                "LAMA0892",
+                Warning,
+                "'{0}' is loaded in the compiler process, but its static member '{1}' is of type '{2}', which is not durable. "
+                + _staticBecause + " The member must therefore not reference a compilation, a syntax tree, a symbol or a "
+                + "code model declaration. Path: {3}.",
+                "A static field or automatic property of compile-time code is not durable.",
+                _category );
     }
 }

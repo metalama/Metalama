@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Templating.Immutability;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -19,11 +21,18 @@ internal sealed class ClassifyingCompilationContext
     {
         this.CompilationContext = compilationContext;
         this.SymbolClassifier = SymbolClassifier.GetSymbolClassifier( serviceProvider, compilationContext );
+        this.ImmutabilityContext = ImmutabilityContext.Create( serviceProvider.GetService<IProjectOptions>() );
     }
 
     public CompilationContext CompilationContext { get; }
 
     public SymbolClassifier SymbolClassifier { get; }
+
+    /// <summary>
+    /// Gets the context of the immutability and durability rules for this compilation, which is shared by the validation of
+    /// every syntax tree, or <c>null</c> when the project turns the contract off.
+    /// </summary>
+    public ImmutabilityContext? ImmutabilityContext { get; }
 
     public SemanticModelProvider SemanticModelProvider => this.CompilationContext.SemanticModelProvider;
 
