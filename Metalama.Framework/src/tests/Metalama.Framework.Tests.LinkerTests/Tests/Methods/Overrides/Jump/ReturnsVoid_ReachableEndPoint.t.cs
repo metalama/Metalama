@@ -12,18 +12,17 @@ internal class Target
         if (x == 0)
         {
           Console.WriteLine("Branch End");
-          goto __aspect_return_2;
+          goto __aspect_return_1;
         }
         else
         {
         }
         Console.WriteLine("Original End");
-        __aspect_return_2:
-          goto __aspect_return_1;
+        __aspect_return_1:
+          return;
       }
       Console.WriteLine("After1");
-      __aspect_return_1:
-        return;
+      return;
     }
     Console.WriteLine("After2");
   }
