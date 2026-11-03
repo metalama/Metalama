@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0037 on `StaticConstructorAspect`: `The aspect 'StaticConstructorAspect' cannot be applied to the constructor 'Folder.Folder(string)' because none of these conditions was fulfilled: { (a) 'Folder.Folder(string)' must be static, or (b) 'Folder.Folder(string)' must be private }.`

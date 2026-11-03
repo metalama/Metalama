@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using System;
 using System.Text;
 
 namespace Metalama.Framework.Engine.Templating.Immutability
@@ -58,6 +59,19 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                     => setMethod.DeclaredAccessibility != Accessibility.Private,
                 _ => false
             };
+
+        /// <summary>
+        /// Determines whether a type is declared in a Roslyn assembly, that is, in <c>Microsoft.CodeAnalysis</c> or in an
+        /// assembly whose name starts with <c>Microsoft.CodeAnalysis.</c>.
+        /// </summary>
+        /// <remarks>
+        /// The immutable entries of <see cref="WellKnownImmutableTypes"/> that apply to derived types rely on this test,
+        /// because user code can derive from some of their types, such as <c>SourceText</c> and <c>SyntaxTree</c>, and
+        /// add mutable state.
+        /// </remarks>
+        public static bool IsDeclaredByRoslyn( INamedTypeSymbol type )
+            => type.ContainingAssembly?.Name is { } assemblyName
+               && (assemblyName == "Microsoft.CodeAnalysis" || assemblyName.StartsWith( "Microsoft.CodeAnalysis.", StringComparison.Ordinal ));
 
         /// <summary>
         /// Returns the full metadata name of a type, that is, the name by which the tables and the MSBuild items refer to

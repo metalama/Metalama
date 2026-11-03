@@ -121,10 +121,13 @@ internal sealed class CompilationAspectSource : IAspectSource
                         requestedEligibility,
                         new DescribedObject<IDeclaration>( targetDeclaration ) )!;
 
+                    // Display the declarations without the changes of the aspects that ran before, for instance introduced parameters.
                     collector.Diagnostics.Report(
                         GeneralDiagnosticDescriptors.AspectNotEligibleOnTarget.CreateRoslynDiagnostic(
                             attribute.GetDiagnosticLocation(),
-                            (aspectClass.ShortName, targetDeclaration.DeclarationKind, targetDeclaration, reason) ) );
+                            (aspectClass.ShortName, targetDeclaration.DeclarationKind,
+                             DiagnosticArgumentTranslator.Translate( targetDeclaration, collector.InitialCompilation ),
+                             DiagnosticArgumentTranslator.Translate( reason, collector.InitialCompilation )) ) );
                 }
 
                 collector.AddAspectInstance( aspectInstance );

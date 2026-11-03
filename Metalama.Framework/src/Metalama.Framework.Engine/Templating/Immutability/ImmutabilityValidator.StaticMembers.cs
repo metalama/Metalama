@@ -21,7 +21,7 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
         /// <summary>
         /// Reports a static field, a static automatic property or a static field-like event of a compile-time or
-        /// run-time-or-compile-time type that is not read-only or is of a mutable type.
+        /// run-time-or-compile-time type that is not read-only, is of a mutable type, or is of a type that is not durable.
         /// </summary>
         /// <param name="member">The member, declared in the current syntax tree.</param>
         /// <param name="memberScope">The execution scope of the member.</param>
@@ -116,6 +116,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
             if ( verdict.IsImmutable )
             {
+                this.ValidateStaticMemberDurability( member, memberType, location, typeName );
+
                 return;
             }
 
@@ -130,6 +132,33 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                     : ImmutabilityDiagnosticDescriptors.StaticFieldMustBeRunTime.CreateRoslynDiagnostic(
                         location,
                         (typeName, member.Name, $"is of type '{memberTypeName}', which is not immutable (path: {chain})") ) );
+        }
+
+        /// <summary>
+        /// Reports a static member that is read-only and of an immutable type, but whose type is not durable (LAMA0892).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A static member outlives every compilation, so at design time a value that references a compilation, a syntax
+        /// tree, a symbol or a code model declaration keeps that compilation alive. Such a value is often immutable, which
+        /// is why this rule follows the immutability rules rather than replacing them.
+        /// </para>
+        /// <para>
+        /// The <c>[Durable]</c> attribute on the member waives the check on its declared type. The analyzer of
+        /// <c>Metalama.Framework.Analyzers</c> then verifies instead that every value assigned to the member is durable.
+        /// </para>
+        /// </remarks>
+        private void ValidateStaticMemberDurability( ISymbol member, ITypeSymbol memberType, Location? location, string typeName )
+        {
+            if ( !this._context.DurabilityChecker.IsNotDurable( member, memberType, typeName, out var memberTypeName, out var path ) )
+            {
+                return;
+            }
+
+            this._reportDiagnostic(
+                ImmutabilityDiagnosticDescriptors.StaticFieldIsNotDurable.CreateRoslynDiagnostic(
+                    location,
+                    (typeName, member.Name, memberTypeName, path) ) );
         }
     }
 }

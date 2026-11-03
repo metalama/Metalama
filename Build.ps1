@@ -20,6 +20,14 @@ if ($PSVersionTable.PSVersion -lt [Version]'7.4')
     exit 1
 }
 
+# A missing `dotnet` is not a native command failure: PowerShell reports it as a non-terminating error and leaves
+# $LASTEXITCODE untouched, so the script carried on and exited 0, and CI reported a build that did nothing as a success.
+if (-not (Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue))
+{
+    Write-Error "The .NET SDK was not found: 'dotnet' is not on the PATH. If this agent is meant to build in a container, run DockerBuild.ps1 instead."
+    exit 1
+}
+
 ####
 # These settings are replaced by the generate-scripts command.
 $EngPath = 'eng'

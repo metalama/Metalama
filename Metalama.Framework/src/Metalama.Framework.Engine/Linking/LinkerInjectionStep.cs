@@ -163,7 +163,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         IEnumerable<ISyntaxTreeTransformation> syntaxTreeTransformations;
 
-        if ( !input.FinalCompilationModel.PartialCompilation.HasObservabilityFilter )
+        if ( !input.FinalCompilationModel.PartialCompilation.DiscardsUnobservedTransformations )
         {
             syntaxTreeTransformations = input.Transformations.OfType<ISyntaxTreeTransformation>();
         }

@@ -50,7 +50,7 @@ var product = new Product( MetalamaDependencies.Metalama )
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
-                VisualStudioBuildToolsComponentVersion.v18_9,
+                VisualStudioBuildToolsComponentVersion.v18_11,
                 [
                     // Required to test MSBuild. Microsoft.NetCore.Component.SDK cannot be omitted: without it
                     // the MSBuild.exe of the Build Tools has no C:\BuildTools\MSBuild\Sdks directory and fails
@@ -76,7 +76,7 @@ var product = new Product( MetalamaDependencies.Metalama )
     },
     DotNetSdkVersion = new DotNetSdkVersion( dotNet11SdkVersion ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
-    MSBuildVersion = new Version( 18, 9 ),
+    MSBuildVersion = new Version( 18, 11 ),
     Solutions =
     [
         new DotNetSolution( "Metalama.Framework/Metalama.Framework.sln" )

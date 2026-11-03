@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0037 on `MethodParameterAspect`: `The aspect 'MethodParameterAspect' cannot be applied to the parameter 'Folder.Folder(string)/name' because the parent member 'Folder.Folder(string)' must be a method.`

@@ -31,10 +31,10 @@ RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -
 
 
 # Install VS Build Tools
-COPY VisualStudio.18.9.2.Release.chman /VisualStudio.18.9.2.Release.chman
+COPY VisualStudio.18.11.2.Release.chman /VisualStudio.18.11.2.Release.chman
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/18/stable/vs_buildtools.exe -OutFile C:\vs_buildtools.exe
 RUN $process = Start-Process C:\vs_buildtools.exe -NoNewWindow -Wait -PassThru `
-        -ArgumentList "--quiet", "--wait", "--norestart", "--nocache", "--installPath", "C:\BuildTools", "--installChannelUri", "C:\VisualStudio.18.9.2.Release.chman", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/fe4fb3e6-ea32-4ae3-b154-72821a274f0d/29d05070615bd4bbe095bee9716d248be7661e516424fb9d06597ce4f3ab99ca/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools"; `
+        -ArgumentList "--quiet", "--wait", "--norestart", "--nocache", "--installPath", "C:\BuildTools", "--installChannelUri", "C:\VisualStudio.18.11.2.Release.chman", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/9a3f23c2-cc94-49a0-88c0-f9f19f2ac9df/b7aefeb168ba0be6c55db436328ef42f1800013146390350aed9ecb6d39f9bd6/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools"; `
     if ($process.ExitCode -ne 0) { `
         Get-ChildItem "$env:TEMP\dd_*.log" -ErrorAction SilentlyContinue | ForEach-Object { `
             Write-Host "=== Contents of $($_.Name) ==="; `

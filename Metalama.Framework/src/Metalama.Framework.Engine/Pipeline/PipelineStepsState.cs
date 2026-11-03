@@ -248,7 +248,7 @@ internal sealed partial class PipelineStepsState
         IUserDiagnosticSink diagnosticSink,
         CancellationToken cancellationToken )
     {
-        var collector = new AspectInstanceCollector( aspectClass, compilation, diagnosticSink, cancellationToken );
+        var collector = new AspectInstanceCollector( aspectClass, compilation, this.FirstCompilation, diagnosticSink, cancellationToken );
 
         await this._concurrentTaskRunner.RunConcurrentlyAsync(
             aspectSources.Where( a => a.ContainsAspectClass( aspectClass ) ),

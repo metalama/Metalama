@@ -82,6 +82,8 @@ namespace Metalama.Framework.Analyzers.Durability
             Durable( "System.DateTime" );
             Durable( "System.DateTimeOffset" );
             Durable( "System.TimeSpan" );
+            Durable( "System.DateOnly" );
+            Durable( "System.TimeOnly" );
             Durable( "System.Version" );
             Durable( "System.Uri" );
             Durable( "System.Numerics.BigInteger" );
@@ -99,6 +101,8 @@ namespace Metalama.Framework.Analyzers.Durability
             Durable( "System.Reflection.MemberInfo" );
             Durable( "System.Reflection.MethodBase" );
             Durable( "System.Reflection.MethodInfo" );
+            Durable( "System.Reflection.ConstructorInfo" );
+            Durable( "System.Reflection.EventInfo" );
             Durable( "System.Reflection.FieldInfo" );
             Durable( "System.Reflection.PropertyInfo" );
             Durable( "System.Reflection.ParameterInfo" );
@@ -139,6 +143,14 @@ namespace Metalama.Framework.Analyzers.Durability
             Durable( "Microsoft.CodeAnalysis.ProjectId" );
             Durable( "Microsoft.CodeAnalysis.AssemblyIdentity" );
             Durable( "Microsoft.CodeAnalysis.SyntaxKind" );
+            Durable( "Microsoft.CodeAnalysis.Text.TextChange" );
+            Durable( "Microsoft.CodeAnalysis.SymbolDisplayFormat" );
+
+            // A descriptor holds its identifier, its category and its localizable strings, which hold strings or a
+            // resource manager. These are the immutable Roslyn types that compile-time code keeps in static fields.
+            Durable( "Microsoft.CodeAnalysis.DiagnosticDescriptor" );
+            Durable( "Microsoft.CodeAnalysis.LocalizableString" );
+            Durable( "Microsoft.CodeAnalysis.LocalizableResourceString" );
 
             // ---------------------------------------------------------------------------------------------------
             // Always durable: the durable identifiers of this codebase that cannot carry the attribute themselves.
@@ -189,6 +201,13 @@ namespace Metalama.Framework.Analyzers.Durability
 
             // The wrapper by which an author asserts durability that cannot be established.
             Durable( "Metalama.Framework.Utilities.DurableDangerous`1" );
+
+            // A diagnostic definition stores its identifier, its severity and its message format. Its type argument is
+            // the type of the arguments of the message, which only WithArguments receives, so it is a phantom. The
+            // class is marked [Durable], but a project that references Metalama.Framework does not see its private
+            // fields, so it would assume that the type argument is stored. Aspects routinely keep a definition whose
+            // arguments are code model declarations in a static field.
+            Durable( "Metalama.Framework.Diagnostics.DiagnosticDefinition`1" );
 
             // ---------------------------------------------------------------------------------------------------
             // Boundaries: project-scoped or process-wide infrastructure, mirroring UserCodeRetentionPolicy.IsBoundary.

@@ -46,6 +46,7 @@ namespace Metalama.Framework.Diagnostics;
 /// <seealso cref="Severity"/>
 /// <seealso href="@diagnostics"/>
 [ImmutableType]
+[Durable]
 public class DiagnosticDefinition<T> : IDiagnosticDefinition
     where T : notnull
 {

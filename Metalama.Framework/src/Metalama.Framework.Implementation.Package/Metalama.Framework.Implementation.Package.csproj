@@ -112,6 +112,17 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
                 Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Engine.$(ThisRoslynVersionNoPreview).pdb')"
                 PackagePath="lib/$(TargetFramework)" />
 
+            <!-- The engine evaluates the durability of static members with StaticMemberDurabilityChecker (LAMA0892). The
+                 Metalama.Framework package ships this assembly only as an analyzer, which is not on the load path of the
+                 engine. -->
+            <TfmSpecificPackageFile
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Analyzers.dll"
+                PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Analyzers.pdb"
+                Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Analyzers.pdb')"
+                PackagePath="lib/$(TargetFramework)" />
+
             <TfmSpecificPackageFile 
                 Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.ConfigurationFiles.dll" 
                 PackagePath="lib/$(TargetFramework)" />
