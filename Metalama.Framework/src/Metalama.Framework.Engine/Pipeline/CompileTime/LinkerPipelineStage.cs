@@ -40,19 +40,24 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             var initialCompilation = pipelineStepsResult.FirstCompilation;
             var finalCompilation = pipelineStepsResult.LastCompilation;
 
-            // Run the validators. They run in every high-level stage.
+            // Run the validators. They run once per pipeline execution, in the first high-level stage, because the contributors of the contributor
+            // sources (for instance fabrics) are replayed in every stage, and evaluating them again would report their diagnostics again.
+            // Their transitive contributors are carried to the result of the last stage below.
             var extensions = pipelineConfiguration.ServiceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
             var pipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
 
-            foreach ( var extension in extensions )
+            if ( this.IsFirstHighLevelStage )
             {
-                pipelineContributorsResult = pipelineContributorsResult.Concat(
-                    await extension.ExecutePipelineContributorsAsync(
-                        pipelineConfiguration,
-                        pipelineStepsResult.ExtensionContributors,
-                        initialCompilation,
-                        finalCompilation,
-                        cancellationToken ) );
+                foreach ( var extension in extensions )
+                {
+                    pipelineContributorsResult = pipelineContributorsResult.Concat(
+                        await extension.ExecutePipelineContributorsAsync(
+                            pipelineConfiguration,
+                            pipelineStepsResult.ExtensionContributors,
+                            initialCompilation,
+                            finalCompilation,
+                            cancellationToken ) );
+                }
             }
 
             // Run the extensions that produce transformations, after the validators and before the linker. They run once per pipeline execution, on
@@ -140,7 +145,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     input.ExternallyInheritableAspects.AddRange(
                         pipelineStepsResult.InheritableAspectInstances.SelectAsReadOnlyCollection( i => new InheritableAspectInstance( i ) ) ),
                     finalCompilation.Annotations,
-                    pipelineContributorsResult.TransitiveContributors,
+                    input.TransitiveContributors.AddRange( pipelineContributorsResult.TransitiveContributors ),
                     additionalCompilationOutputFiles: additionalCompilationOutputFiles != null
                         ? input.AdditionalCompilationOutputFiles.AddRange( additionalCompilationOutputFiles )
                         : input.AdditionalCompilationOutputFiles,

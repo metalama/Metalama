@@ -7,12 +7,17 @@
 		<ThisRoslynVersionProjectSuffix>.5.0.0</ThisRoslynVersionProjectSuffix>
 		<!-- This variant defines no constant. The sources that read or emit a C# 15 Roslyn member, their unit tests, and the
 		     aspect tests that need C# 15 or whose expected output differs between the variants, use
-		     ROSLYN_5_11_0_OR_GREATER, which the latest variant defines. See Directory.Packages.md. -->
+		     ROSLYN_5_12_0_OR_GREATER, which the latest variant defines. See Directory.Packages.md. -->
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.0 requires System.Text.Json >= 9.0.0, and the 9.0 line is
 		     also what the hosts of this variant provide. On .NET the payload does not embed System.Text.Json,
 		     because Roslyn provides it through the parent assembly load context, and assembly binding rolls
 		     forward and never back, so this variant must not reference a line above the one its hosts carry.
 		     9.0.10 is the highest patch of that line. -->
 		<SystemTextJsonVersion>9.0.10</SystemTextJsonVersion>
+		<!-- SystemTextJsonLatestVersion is the version that the test frameworks and the test projects of this variant
+		     reference. It must not exceed the System.Text.Json that the hosts of this variant provide, so that the
+		     tests run against the version the payload meets in a host. The hosts of this variant carry the 9.0 line,
+		     so the value is the same as SystemTextJsonVersion. -->
+		<SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
 	</PropertyGroup>
 </Project>

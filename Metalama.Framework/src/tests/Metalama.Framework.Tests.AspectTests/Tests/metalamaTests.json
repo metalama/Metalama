@@ -20,7 +20,11 @@
     "CS8625",  // Cannot convert null literal to non-nullable reference type
     "CS8631",  // Nullability of type argument doesn't match constraint type
     "CS8765",  // Nullability of type of parameter doesn't match overridden member
-    "CS8767"   // Nullability of reference types in parameter doesn't match implicitly implemented member
+    "CS8767",  // Nullability of reference types in parameter doesn't match implicitly implemented member
+    // The immutability rules of compile-time code. Test aspects routinely keep state in a way that these rules report,
+    // and the rules are tested in Metalama.Framework.Tests.UnitTests/Templating/Immutability.
+    "LAMA0880", "LAMA0881", "LAMA0882", "LAMA0883", "LAMA0884", "LAMA0886", "LAMA0887", "LAMA0888",
+    "LAMA0889", "LAMA0890", "LAMA0891"
  ],
  "MainMethod": "TestMain",
  "CheckMemoryLeaks": true,

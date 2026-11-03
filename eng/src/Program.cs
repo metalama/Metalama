@@ -23,7 +23,7 @@ using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Defin
 //
 // The product is therefore built with an SDK that no supported Visual Studio installs. The desktop MSBuild of the
 // container still builds with the SDK that Visual Studio ships, which is the .NET 10 one below.
-const string dotNet11SdkVersion = "11.0.100-rc.1.26425.128";
+const string dotNet11SdkVersion = "11.0.100-rc.2.26504.105";
 
 // The .NET 10 SDK, which stays installed beside the .NET 11 one. Every project of this repository targets net10.0,
 // and the .NET 11 SDK carries no .NET 10 runtime, so the tests and this project would have no runtime to execute
@@ -50,7 +50,7 @@ var product = new Product( MetalamaDependencies.Metalama )
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
-                VisualStudioBuildToolsComponentVersion.v18_9,
+                VisualStudioBuildToolsComponentVersion.v18_11,
                 [
                     // Required to test MSBuild. Microsoft.NetCore.Component.SDK cannot be omitted: without it
                     // the MSBuild.exe of the Build Tools has no C:\BuildTools\MSBuild\Sdks directory and fails
@@ -76,7 +76,7 @@ var product = new Product( MetalamaDependencies.Metalama )
     },
     DotNetSdkVersion = new DotNetSdkVersion( dotNet11SdkVersion ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
-    MSBuildVersion = new Version( 18, 9 ),
+    MSBuildVersion = new Version( 18, 11 ),
     Solutions =
     [
         new DotNetSolution( "Metalama.Framework/Metalama.Framework.sln" )

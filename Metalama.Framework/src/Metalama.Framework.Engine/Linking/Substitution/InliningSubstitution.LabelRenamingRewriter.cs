@@ -69,7 +69,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                 return rewrittenNode;
             }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
             public override SyntaxNode? VisitBreakStatement( BreakStatementSyntax node )
             {
                 var rewrittenNode = (BreakStatementSyntax) base.VisitBreakStatement( node ).AssertNotNull();

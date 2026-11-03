@@ -241,7 +241,7 @@ internal static class ModifierHelper
             // NamedTypeBuilder.IsClosed carries the same condition and throws when the value cannot be emitted, so a
             // type that reaches this method with the closed modifier requested is always produced by the variant that
             // can emit the keyword, which is the variant that a host offering C# 15 loads.
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
             var isClosed = namedType.IsClosed;
 
             if ( isClosed )

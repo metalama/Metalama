@@ -7,3 +7,7 @@ The `Metalama.Framework.Redist` package contains the redistributable components 
 ## Related Packages
 
 * `Metalama.Framework` is the package that contains all required development dependencies.
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.

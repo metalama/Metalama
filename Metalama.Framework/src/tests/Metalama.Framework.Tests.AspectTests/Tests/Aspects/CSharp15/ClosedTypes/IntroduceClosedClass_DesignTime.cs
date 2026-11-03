@@ -8,7 +8,7 @@
 // development environment consumes, and not the one that the compiler emits.
 // The closed modifier is a C# 15 feature, so the code of this test needs @LanguageVersion(15.0). Roslyn 5.11 declares
 // that version, where Roslyn 5.10 reached the feature through the preview version only. The metalamaTests.json of the
-// CSharp15 folder requires ROSLYN_5_11_0_OR_GREATER, so this test runs in the latest Roslyn variant only.
+// CSharp15 folder requires ROSLYN_5_12_0_OR_GREATER, so this test runs in the latest Roslyn variant only.
 // NET8_0_OR_GREATER is required because the compiler emits CompilerFeatureRequiredAttribute on the constructor of a
 // closed class, and .NET Framework does not declare that attribute.
 // @TestScenario(DesignTime)

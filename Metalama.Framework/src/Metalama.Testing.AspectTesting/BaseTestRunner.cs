@@ -1024,7 +1024,7 @@ internal abstract partial class BaseTestRunner
         => new(
             testInput.ProjectDirectory,
             testInput.ProjectProperties.TargetFramework,
-            testInput.Options.AddHtmlTitles.GetValueOrDefault() );
+            testInput.Options.AddHtmlTitles.GetValueOrDefault() ) { AddSymbols = testInput.Options.AddHtmlSymbols.GetValueOrDefault() };
 
     private async Task WriteHtmlAsync(
         Compilation compilationWithDesignTimeTrees,
@@ -1050,7 +1050,12 @@ internal abstract partial class BaseTestRunner
 
             this.Logger?.WriteLine( "HTML of input: " + testSyntaxTree.HtmlInputPath );
 
-            inputTextWriter = new StreamWriter( this._fileSystem.Open( testSyntaxTree.HtmlInputPath, FileMode.Create ) );
+            // Several tests can include the same file, so the file may have been written by another test of the run, maybe
+            // concurrently. In this case, the HTML is rendered to a null stream, so that the output HTML does not change.
+            var isFirstWriter = this._serviceProvider.GetService<TestOutputFileRegistry>()?.TryAdd( testSyntaxTree.HtmlInputPath ) ?? true;
+
+            inputTextWriter = new StreamWriter(
+                isFirstWriter ? this._fileSystem.Open( testSyntaxTree.HtmlInputPath, FileMode.Create ) : Stream.Null );
 
             // We must render the input buffer including all design-time syntax trees and suppressions
             // because it needs to look like what the user sees in the IDE.

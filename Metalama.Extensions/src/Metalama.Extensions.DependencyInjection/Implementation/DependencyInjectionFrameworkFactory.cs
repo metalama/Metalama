@@ -11,7 +11,10 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 [CompileTime]
 internal static class DependencyInjectionFrameworkFactory
 {
+    // This cache is keyed by the type of the framework, and its values do not depend on the compilation.
+#pragma warning disable LAMA0890
     private static readonly ConcurrentDictionary<Type, IDependencyInjectionFramework> _instances = new();
+#pragma warning restore LAMA0890
 
     public static IDependencyInjectionFramework GetInstance( Type type )
         => _instances.GetOrAdd( type, t => (IDependencyInjectionFramework) Activator.CreateInstance( t ) );

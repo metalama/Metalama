@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0035 on ``: `The aspect layers 'Metalama.Framework.Tests.AspectTests.Tests.Aspects.Order.UnorderedUsedReferencedAspects.LibraryAspect2' and 'Metalama.Framework.Tests.AspectTests.Tests.Aspects.Order.UnorderedUsedReferencedAspects.LibraryAspect1' are not strongly ordered. Add an [assembly: AspectOrder(...)] attribute to specify the order of these two layers, or set the MetalamaRequireOrderedAspects MSBuild property to False.`

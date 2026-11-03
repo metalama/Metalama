@@ -11,7 +11,7 @@ using System;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -70,7 +70,7 @@ public sealed class ClosedTypeTests : UnitTestClass
         Assert.False( compilation.Types.OfName( "IntroducedType" ).Single().IsClosed );
     }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
     // The writer refuses the closed modifier in the variant that cannot emit it, which is the variant that serves a
     // host whose Roslyn version does not offer C# 15, so the tests of the writer are compiled under the same
@@ -283,7 +283,7 @@ public sealed class ClosedTypeTests : UnitTestClass
         Assert.Throws<NotSupportedException>( () => builder.IsClosed = false );
     }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
     // The closed modifier is a C# 15 feature, so only the latest Roslyn variant parses it and only that variant reads
     // ITypeSymbol.IsClosed, under the same condition as the reader in SourceNamedTypeImpl. Roslyn 5.11 declares C# 15

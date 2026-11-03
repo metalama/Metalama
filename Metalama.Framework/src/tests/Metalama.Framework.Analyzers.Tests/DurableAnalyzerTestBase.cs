@@ -73,11 +73,13 @@ public abstract class DurableAnalyzerTestBase
     /// Whether the compilation references the assembly that declares the attribute. Passing <c>false</c> exercises the
     /// gate that makes the analyzer free for a project that does not use Metalama.
     /// </param>
+    /// <param name="languageVersion">The language version of the fragment. The default value is C# 12.</param>
     private protected static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(
         string code,
-        bool withMetalamaReference = true )
+        bool withMetalamaReference = true,
+        LanguageVersion languageVersion = LanguageVersion.CSharp12 )
     {
-        var parseOptions = new CSharpParseOptions( LanguageVersion.CSharp12 );
+        var parseOptions = new CSharpParseOptions( languageVersion );
         var syntaxTree = CSharpSyntaxTree.ParseText( code, parseOptions );
 
         var compilation = CSharpCompilation.Create(
@@ -101,9 +103,12 @@ public abstract class DurableAnalyzerTestBase
     /// Asserts that the fragment produces exactly one diagnostic, with the expected identifier, and returns its
     /// message so that a test may assert on the retention path.
     /// </summary>
-    private protected static async Task<string> AssertSingleDiagnosticAsync( string code, string expectedId )
+    private protected static async Task<string> AssertSingleDiagnosticAsync(
+        string code,
+        string expectedId,
+        LanguageVersion languageVersion = LanguageVersion.CSharp12 )
     {
-        var diagnostics = await GetDiagnosticsAsync( code );
+        var diagnostics = await GetDiagnosticsAsync( code, languageVersion: languageVersion );
 
         Assert.Single( diagnostics );
         Assert.Equal( expectedId, diagnostics[0].Id );
@@ -115,9 +120,12 @@ public abstract class DurableAnalyzerTestBase
     /// Asserts that the fragment produces no diagnostic at all. This is the assertion that matters most: a rule that
     /// fires where it should not is worse than one that stays silent.
     /// </summary>
-    private protected static async Task AssertNoDiagnosticAsync( string code, bool withMetalamaReference = true )
+    private protected static async Task AssertNoDiagnosticAsync(
+        string code,
+        bool withMetalamaReference = true,
+        LanguageVersion languageVersion = LanguageVersion.CSharp12 )
     {
-        var diagnostics = await GetDiagnosticsAsync( code, withMetalamaReference );
+        var diagnostics = await GetDiagnosticsAsync( code, withMetalamaReference, languageVersion );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -125,10 +133,12 @@ public abstract class DurableAnalyzerTestBase
     /// <summary>
     /// Creates a compilation with the standard references, for a test that inspects symbols rather than diagnostics.
     /// </summary>
-    private protected static CSharpCompilation CreateCompilation( string code )
+    private protected static CSharpCompilation CreateCompilation(
+        string code,
+        LanguageVersion languageVersion = LanguageVersion.CSharp12 )
         => CSharpCompilation.Create(
             "ProbeAssembly",
-            new[] { CSharpSyntaxTree.ParseText( code, new CSharpParseOptions( LanguageVersion.CSharp12 ) ) },
+            new[] { CSharpSyntaxTree.ParseText( code, new CSharpParseOptions( languageVersion ) ) },
             _references,
             new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
 }

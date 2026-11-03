@@ -1,0 +1,587 @@
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Analyzers.Durability;
+using Metalama.Framework.Engine.Options;
+using Microsoft.CodeAnalysis;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+
+namespace Metalama.Framework.Engine.Templating.Immutability
+{
+    /// <summary>
+    /// Decides whether a type is immutable, for one compilation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An instance holds caches keyed by symbols, so it retains the compilation of those symbols. It is created once per
+    /// compilation by <see cref="CompileTime.ClassifyingCompilationContext"/>, which lives exactly as long as the
+    /// compilation, and is shared by the validation of every syntax tree, which may run concurrently.
+    /// </para>
+    /// <para>
+    /// No cycle can arise while evaluating a type, because the evaluation never descends into the members of a type:
+    /// a type is immutable when it is marked or well known, and is otherwise not, so the recursion follows only
+    /// nullable arguments, tuple elements and type arguments, which form a finite tree, and base types and interfaces,
+    /// which form a finite hierarchy. The budget below therefore guards against pathological nesting rather than
+    /// against non-termination.
+    /// </para>
+    /// <para>
+    /// Deep immutability is nonetheless achieved, by closure over the marked types rather than by structural
+    /// inference: a marked type is itself verified, where it is declared, to have only read-only fields of immutable
+    /// types. Descending into an unmarked type instead would introduce real cycles, and would read the wrong field
+    /// list for a type of a referenced assembly, whose private fields a compilation created with
+    /// <c>MetadataImportOptions.Public</c> does not expose at all.
+    /// </para>
+    /// </remarks>
+    internal sealed class ImmutabilityContext
+    {
+        private const int _maxDepth = 20;
+
+        /// <summary>
+        /// The full metadata name of the marker.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately not <c>System.ComponentModel.ImmutableObjectAttribute</c>. That attribute exists to tell a
+        /// designer that an object has no editable sub-properties, it is applied in the wild for that reason, and it
+        /// says nothing about this contract. Matching it would check code whose author never opted in.
+        /// </remarks>
+        public const string ImmutableTypeAttributeMetadataName = "Metalama.Framework.Utilities.ImmutableTypeAttribute";
+
+        private readonly ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict> _verdicts;
+        private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
+        private readonly ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters> _storedTypeParameters;
+        private readonly ConcurrentDictionary<INamedTypeSymbol, WellKnownImmutabilityEntry?> _hierarchyEntries;
+        private readonly HashSet<string> _additionalImmutableTypes;
+        private readonly HashSet<string> _additionalContractTypes;
+
+        private ImmutabilityContext(
+            HashSet<string> additionalImmutableTypes,
+            HashSet<string> additionalContractTypes,
+            StaticMemberDurabilityChecker durabilityChecker )
+        {
+            this.DurabilityChecker = durabilityChecker;
+            this._verdicts = new ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict>( SymbolEqualityComparer.Default );
+            this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
+            this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters>( SymbolEqualityComparer.Default );
+            this._hierarchyEntries = new ConcurrentDictionary<INamedTypeSymbol, WellKnownImmutabilityEntry?>( SymbolEqualityComparer.Default );
+            this._additionalImmutableTypes = additionalImmutableTypes;
+            this._additionalContractTypes = additionalContractTypes;
+        }
+
+        /// <summary>
+        /// Creates the context of a compilation, or returns <c>null</c> when the project turns the contract off.
+        /// </summary>
+        /// <remarks>
+        /// The contract is written for user code. A project that implements the framework itself declares aspects,
+        /// fabrics and code-model types whose mutability is deliberate, and it sets
+        /// <c>MetalamaEnforceImmutabilityContract</c> to <c>false</c>.
+        /// </remarks>
+        public static ImmutabilityContext? Create( IProjectOptions? options )
+        {
+            if ( options is { EnforceImmutabilityContract: false } )
+            {
+                return null;
+            }
+
+            return new ImmutabilityContext(
+                new HashSet<string>( options?.ImmutableTypes ?? [], StringComparer.Ordinal ),
+                new HashSet<string>( options?.ImmutableContractTypes ?? [], StringComparer.Ordinal ),
+                new StaticMemberDurabilityChecker( options?.DurableTypes ?? [], options?.NonDurableTypes ?? [] ) );
+        }
+
+        /// <summary>
+        /// Gets the checker by which <see cref="ImmutabilityValidator"/> verifies that the static members of compile-time
+        /// code are durable (LAMA0892). It caches verdicts keyed by symbols, so it has the lifetime of this context.
+        /// </summary>
+        public StaticMemberDurabilityChecker DurabilityChecker { get; }
+
+        /// <summary>
+        /// Gets the type names declared by the <c>MetalamaImmutableType</c> item, so that a name that matches no type in
+        /// the compilation can be reported.
+        /// </summary>
+        public IEnumerable<string> ImmutableTypeNames => this._additionalImmutableTypes;
+
+        /// <summary>
+        /// Gets the type names declared by the <c>MetalamaImmutableContractType</c> item.
+        /// </summary>
+        public IEnumerable<string> ContractTypeNames => this._additionalContractTypes;
+
+        /// <summary>
+        /// Determines whether a symbol carries the marker.
+        /// </summary>
+        public static bool HasImmutableTypeAttribute( ISymbol symbol ) => TryGetImmutableTypeAttribute( symbol, out _ );
+
+        /// <summary>
+        /// Gets the application of the marker on a symbol, for a rule that needs to report on the attribute itself
+        /// rather than on the symbol.
+        /// </summary>
+        public static bool TryGetImmutableTypeAttribute( ISymbol symbol, [NotNullWhen( true )] out AttributeData? attribute )
+        {
+            foreach ( var candidate in symbol.GetAttributes() )
+            {
+                if ( candidate.AttributeClass is { } attributeClass
+                     && attributeClass.Name == "ImmutableTypeAttribute"
+                     && ImmutabilitySymbolFacts.GetFullMetadataName( attributeClass ) == ImmutableTypeAttributeMetadataName )
+                {
+                    attribute = candidate;
+
+                    return true;
+                }
+            }
+
+            attribute = null;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether a type is bound by the immutability contract.
+        /// </summary>
+        /// <remarks>
+        /// The contract propagates to implementations on purpose. <c>IAspect</c> states it on a public interface, and
+        /// an implementation that did not inherit the obligation would make the declaration worthless. There is no
+        /// per-type waiver: where the contract is genuinely not wanted on one declaration, the ordinary suppression
+        /// mechanisms apply.
+        /// </remarks>
+        public bool IsSubjectToContract( INamedTypeSymbol type )
+        {
+            if ( this._isSubjectToContract.TryGetValue( type, out var cached ) )
+            {
+                return cached;
+            }
+
+            var result = this.ComputeIsSubjectToContract( type );
+            this._isSubjectToContract.TryAdd( type, result );
+
+            return result;
+        }
+
+        private bool ComputeIsSubjectToContract( INamedTypeSymbol type )
+            => HasImmutableTypeAttribute( type ) || this.GetInheritedContractSource( type ) != null;
+
+        /// <summary>
+        /// Returns the base type or interface that binds a type to the contract whatever the type itself declares, or
+        /// <c>null</c> when nothing does.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the walk that <see cref="IsSubjectToContract"/> performs, factored out so that the rule reporting a
+        /// redundant marker cannot drift from it. That rule is sound exactly when it names the reason the contract
+        /// would apply with the marker deleted, so the two questions have to be answered by one piece of code.
+        /// </para>
+        /// <para>
+        /// Any interface that requires immutability binds the implementation, which is what makes marking
+        /// <c>IAspect</c> sufficient to check every aspect that anyone writes. The base types are searched before the
+        /// interfaces, and the interfaces named in the declaration before the ones inherited from them, so that a
+        /// message names what the author wrote wherever it can.
+        /// </para>
+        /// </remarks>
+        public INamedTypeSymbol? GetInheritedContractSource( INamedTypeSymbol type )
+        {
+            for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
+            {
+                if ( HasImmutableTypeAttribute( baseType ) || this.IsContractType( baseType ) )
+                {
+                    return baseType;
+                }
+            }
+
+            foreach ( var interfaceType in type.Interfaces )
+            {
+                if ( HasImmutableTypeAttribute( interfaceType ) || this.IsContractType( interfaceType ) )
+                {
+                    return interfaceType;
+                }
+            }
+
+            foreach ( var interfaceType in type.AllInterfaces )
+            {
+                if ( HasImmutableTypeAttribute( interfaceType ) || this.IsContractType( interfaceType ) )
+                {
+                    return interfaceType;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Determines whether a type binds its implementations to the contract without declaring the marker, because
+        /// it is named in the built-in table or by the <c>MetalamaImmutableContractType</c> item.
+        /// </summary>
+        private bool IsContractType( INamedTypeSymbol type )
+        {
+            var metadataName = ImmutabilitySymbolFacts.GetFullMetadataName( type.OriginalDefinition );
+
+            return WellKnownImmutabilityContractTypes.Contains( metadataName )
+                   || this._additionalContractTypes.Contains( metadataName );
+        }
+
+        /// <summary>
+        /// Evaluates the immutability of a type.
+        /// </summary>
+        public ImmutabilityVerdict GetVerdict( ITypeSymbol? type )
+        {
+            if ( type == null )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            if ( this._verdicts.TryGetValue( type, out var cached ) )
+            {
+                return cached;
+            }
+
+            var verdict = this.GetVerdictCore( type, 0 );
+
+            // The function is pure, so a racing duplicate computation is harmless and TryAdd is preferred over
+            // GetOrAdd with a recursive value factory.
+            this._verdicts.TryAdd( type, verdict );
+
+            return verdict;
+        }
+
+        private ImmutabilityVerdict GetVerdictCore( ITypeSymbol type, int depth )
+        {
+            if ( depth > _maxDepth )
+            {
+                // Silence is preferable to a chain that was cut short and would mislead.
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 0. Never report on code that does not compile.
+            if ( type.TypeKind == TypeKind.Error || type is IErrorTypeSymbol )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 1. The intrinsics, copied from ImmutabilityExtensions.GetImmutabilityKind. The list is deliberately
+            // the same one, and not a longer one: DateTime, IntPtr and UIntPtr are covered by rule 14 instead, which
+            // is how the patterns implementation reaches them too.
+            switch ( type.SpecialType )
+            {
+                case SpecialType.System_Boolean:
+                case SpecialType.System_Byte:
+                case SpecialType.System_Char:
+                case SpecialType.System_Decimal:
+                case SpecialType.System_Double:
+                case SpecialType.System_Int16:
+                case SpecialType.System_Int32:
+                case SpecialType.System_Int64:
+                case SpecialType.System_SByte:
+                case SpecialType.System_Single:
+                case SpecialType.System_String:
+                case SpecialType.System_UInt16:
+                case SpecialType.System_UInt32:
+                case SpecialType.System_UInt64:
+                case SpecialType.System_Void:
+                    return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 2. A delegate cannot be retargeted, an enumeration is a value, and a pointer is not an object.
+            //
+            // The delegate case is the sharpest disagreement with WellKnownDurableTypes, which rejects a delegate
+            // because it holds its target and its closure. Both verdicts are right for their own question.
+            if ( type.TypeKind is TypeKind.Delegate or TypeKind.Enum or TypeKind.Pointer or TypeKind.FunctionPointer )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 3. A nullable value type is exactly its underlying type, and adds no step to the chain. The
+            // patterns implementation reaches Nullable<T> through the blanket rule for value types of namespace
+            // System and therefore trusts it whatever T is; inspecting T costs one line and is strictly sounder.
+            if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableType )
+            {
+                return this.GetVerdictCore( nullableType.TypeArguments[0], depth + 1 );
+            }
+
+            // Rule 4. A tuple is immutable when each of its elements is. A faithful port of the patterns rules would
+            // classify every tuple as mutable, because ValueTuple is excluded from the blanket rule and is not a
+            // readonly struct. As the type of a read-only field a tuple cannot be reassigned, so that would be a
+            // false positive on almost every use.
+            if ( type.Kind == SymbolKind.NamedType && type is INamedTypeSymbol { IsTupleType: true } tupleType )
+            {
+                foreach ( var element in tupleType.TupleElements )
+                {
+                    var elementVerdict = this.GetVerdictCore( element.Type, depth + 1 );
+
+                    if ( !elementVerdict.IsImmutable )
+                    {
+                        return elementVerdict.Prepend( "." + element.Name );
+                    }
+                }
+
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 5. An array is never immutable: a read-only field typed as an array still lets every element be
+            // replaced. This is the second disagreement with the durability rules, which recurse into the element
+            // type instead.
+            if ( type is IArrayTypeSymbol )
+            {
+                return ImmutabilityVerdict.NotImmutable(
+                    ImmutabilitySymbolFacts.GetDisplayName( type ),
+                    "an array is mutable: its elements can be replaced. Use ImmutableArray<T>" );
+            }
+
+            // Rule 6. A type parameter is immutable inside the definition. The obligation moves to the construction
+            // site, where the type argument is known.
+            if ( type.TypeKind == TypeKind.TypeParameter )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 7. The static type says nothing about what may be stored.
+            if ( type.SpecialType == SpecialType.System_Object || type is IDynamicTypeSymbol )
+            {
+                return ImmutabilityVerdict.NotImmutable(
+                    type.Name.Length > 0 ? type.Name : "dynamic",
+                    "the static type does not constrain what may be stored" );
+            }
+
+            if ( type is not INamedTypeSymbol namedType )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            var definition = namedType.OriginalDefinition;
+            var metadataName = ImmutabilitySymbolFacts.GetFullMetadataName( definition );
+
+            // Rule 9. The project may declare a type it does not own to be immutable.
+            if ( this._additionalImmutableTypes.Contains( metadataName ) )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 11. An exact match in the built-in table, tested before the walk of the base types below, because
+            // a type may derive from a mutable one and still be immutable itself.
+            if ( WellKnownImmutableTypes.TryGet( metadataName, out var entry ) )
+            {
+                switch ( entry.Immutability )
+                {
+                    case WellKnownImmutability.Immutable:
+                        return ImmutabilityVerdict.Immutable;
+
+                    case WellKnownImmutability.NotImmutable:
+                        return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( type ), entry.Reason );
+
+                    case WellKnownImmutability.Transparent:
+                        return this.GetTransparentVerdict( namedType, entry, depth );
+                }
+            }
+
+            // Rule 13. The declaration is trusted here. It is verified separately, by the rule that walks the members
+            // of every type bound by the contract. A constructed generic is trusted only for the type arguments it
+            // does not store, so that a phantom parameter costs nothing and Box<StringBuilder> is still reported
+            // however well Box<T> itself satisfies its contract.
+            if ( this.IsSubjectToContract( namedType ) )
+            {
+                if ( namedType.IsGenericType && !namedType.TypeArguments.IsDefaultOrEmpty )
+                {
+                    var storedParameters = this.GetStoredTypeParameters( definition );
+
+                    for ( var i = 0; i < namedType.TypeArguments.Length; i++ )
+                    {
+                        if ( !storedParameters.IsStored( i ) )
+                        {
+                            continue;
+                        }
+
+                        var argumentVerdict = this.GetVerdictCore( namedType.TypeArguments[i], depth + 1 );
+
+                        if ( !argumentVerdict.IsImmutable )
+                        {
+                            return argumentVerdict.Prepend( ImmutabilitySymbolFacts.GetDisplayName( type ) );
+                        }
+                    }
+                }
+
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 14. A type that derives from or implements a well-known mutable type is mutable too, and a type
+            // that derives from or implements a well-known immutable type whose entry applies to derived types is
+            // immutable too. The first half is what classifies every collection derived from List<T> without listing
+            // it; the second half is what classifies TypeSyntax, IMethodSymbol and CSharpCompilation through the
+            // entries of SyntaxNode, ISymbol and Compilation. A mutable entry anywhere in the hierarchy wins over an
+            // immutable one. An inherited immutable entry applies only to a type that Roslyn declares, because user
+            // code can derive from some of these types, such as SourceText, and add mutable state. Such a type falls
+            // through to the rules below.
+            var inherited = this.GetInheritedEntry( definition );
+
+            switch ( inherited )
+            {
+                case { Immutability: WellKnownImmutability.NotImmutable } mutableEntry:
+                    return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( type ), mutableEntry.Reason );
+
+                case { Immutability: WellKnownImmutability.Immutable } when ImmutabilitySymbolFacts.IsDeclaredByRoslyn( definition ):
+                    return ImmutabilityVerdict.Immutable;
+            }
+
+            // Rule 15. A value type of namespace System is trusted, minus the names the patterns implementation
+            // excludes. This is the widest rule of the table and it is kept as it is, deliberately, so that the two
+            // implementations stay comparable. The known hole, ArraySegment<T>, is closed by a table entry above.
+            if ( namedType.IsValueType
+                 && namedType.ContainingNamespace is { IsGlobalNamespace: false } containingNamespace
+                 && containingNamespace.ToDisplayString() == "System"
+                 && !WellKnownImmutableTypes.NonImmutableSystemValueTypeNames.Contains( definition.Name ) )
+            {
+                return ImmutabilityVerdict.Immutable;
+            }
+
+            // The patterns implementation has a rule here that calls a readonly struct Shallow. It is deliberately not
+            // ported. This contract is deep or nothing: a readonly struct cannot be reassigned through one of its own
+            // fields, but a field of it typed as a mutable class still reaches a mutable object, so being a readonly
+            // struct says nothing this rule can accept. Such a type falls through to the last rule and is reported as
+            // not marked, which is both true and actionable -- marking it has the members verified.
+
+            // Rule 16. An interface or an abstract type has no members of its own to examine, so marking it does not
+            // check anything here; it requires every implementation to be immutable, which the rule that walks the
+            // members of a type bound by the contract then verifies. That is a different remedy from marking a class,
+            // so it carries its own diagnostic.
+            if ( namedType.TypeKind == TypeKind.Interface || namedType.IsAbstract )
+            {
+                return ImmutabilityVerdict.NotAnnotated(
+                    ImmutabilitySymbolFacts.GetDisplayName( type ),
+                    "an interface or abstract type that is not marked [ImmutableType]" );
+            }
+
+            // Rule 17. Immutability is opt-in.
+            return ImmutabilityVerdict.NotImmutable(
+                ImmutabilitySymbolFacts.GetDisplayName( type ),
+                "the type is not marked [ImmutableType]" );
+        }
+
+        /// <summary>
+        /// Evaluates a type whose immutability follows that of the type arguments selected by its mask.
+        /// </summary>
+        private ImmutabilityVerdict GetTransparentVerdict( INamedTypeSymbol type, WellKnownImmutabilityEntry entry, int depth )
+        {
+            var typeArguments = type.TypeArguments;
+
+            for ( var i = 0; i < typeArguments.Length; i++ )
+            {
+                if ( !entry.ArgumentMask.IsDefault && !entry.ArgumentMask.Contains( i ) )
+                {
+                    continue;
+                }
+
+                var argumentVerdict = this.GetVerdictCore( typeArguments[i], depth + 1 );
+
+                if ( !argumentVerdict.IsImmutable )
+                {
+                    return argumentVerdict.Prepend( ImmutabilitySymbolFacts.GetDisplayName( type ) );
+                }
+            }
+
+            return ImmutabilityVerdict.Immutable;
+        }
+
+        /// <summary>
+        /// Returns the well-known entry that a type inherits from its base types and interfaces: the entry of a mutable
+        /// type found anywhere in the hierarchy, otherwise the entry of an immutable type that applies to its derived
+        /// types, otherwise <c>null</c>.
+        /// </summary>
+        /// <remarks>
+        /// The hierarchy is visited through <see cref="GetHierarchyEntry"/>, which caches the result of every type it
+        /// visits, so that the ancestors shared by the syntax node classes or by the symbol interfaces are walked once
+        /// per context and not once per derived type. The method takes the original definition of the type, because a
+        /// constructed generic inherits exactly what its definition inherits.
+        /// </remarks>
+        private WellKnownImmutabilityEntry? GetInheritedEntry( INamedTypeSymbol definition )
+        {
+            WellKnownImmutabilityEntry? immutableEntry = null;
+
+            if ( definition.BaseType != null )
+            {
+                var baseEntry = this.GetHierarchyEntry( definition.BaseType.OriginalDefinition );
+
+                if ( baseEntry is { Immutability: WellKnownImmutability.NotImmutable } )
+                {
+                    return baseEntry;
+                }
+
+                immutableEntry ??= baseEntry;
+            }
+
+            foreach ( var interfaceType in definition.Interfaces )
+            {
+                var interfaceEntry = this.GetHierarchyEntry( interfaceType.OriginalDefinition );
+
+                if ( interfaceEntry is { Immutability: WellKnownImmutability.NotImmutable } )
+                {
+                    return interfaceEntry;
+                }
+
+                immutableEntry ??= interfaceEntry;
+            }
+
+            return immutableEntry;
+        }
+
+        /// <summary>
+        /// Returns the well-known entry that a type passes on to its derived types: its own entry when that entry is
+        /// mutable, otherwise the entry it inherits when that entry is mutable, otherwise its own entry when that entry
+        /// is immutable and applies to derived types, otherwise the entry it inherits.
+        /// </summary>
+        /// <remarks>
+        /// An immutable entry that does not apply to derived types is not passed on: a type derived from
+        /// <c>SyntaxAnnotation</c> is not immutable because <c>SyntaxAnnotation</c> is. Neither is the verdict of the
+        /// type itself, which may rest on a marker or on an exact match that says nothing about derived types, which is
+        /// why this cache exists separately from the verdicts.
+        /// </remarks>
+        private WellKnownImmutabilityEntry? GetHierarchyEntry( INamedTypeSymbol definition )
+        {
+            if ( this._hierarchyEntries.TryGetValue( definition, out var cached ) )
+            {
+                return cached;
+            }
+
+            WellKnownImmutabilityEntry? result;
+            var hasOwnEntry = WellKnownImmutableTypes.TryGet( ImmutabilitySymbolFacts.GetFullMetadataName( definition ), out var ownEntry );
+
+            if ( hasOwnEntry && ownEntry.Immutability == WellKnownImmutability.NotImmutable )
+            {
+                result = ownEntry;
+            }
+            else
+            {
+                var inheritedEntry = this.GetInheritedEntry( definition );
+
+                if ( inheritedEntry is { Immutability: WellKnownImmutability.NotImmutable } )
+                {
+                    result = inheritedEntry;
+                }
+                else if ( hasOwnEntry && ownEntry is { Immutability: WellKnownImmutability.Immutable, AppliesToDerivedTypes: true } )
+                {
+                    result = ownEntry;
+                }
+                else
+                {
+                    result = inheritedEntry;
+                }
+            }
+
+            // The function is pure, so a racing duplicate computation is harmless.
+            this._hierarchyEntries.TryAdd( definition, result );
+
+            return result;
+        }
+
+        private StoredTypeParameters GetStoredTypeParameters( INamedTypeSymbol definition )
+        {
+            if ( this._storedTypeParameters.TryGetValue( definition, out var cached ) )
+            {
+                return cached;
+            }
+
+            var result = ImmutabilitySymbolFacts.ComputeStoredTypeParameters( definition, _maxDepth );
+            this._storedTypeParameters.TryAdd( definition, result );
+
+            return result;
+        }
+    }
+}

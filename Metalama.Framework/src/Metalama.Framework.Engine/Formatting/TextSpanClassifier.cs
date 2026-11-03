@@ -122,7 +122,7 @@ namespace Metalama.Framework.Engine.Formatting
             }
         }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
         /// <summary>
         /// Classifies a compile-time union declaration, whose case list is carried by the parameter list of the header,
         /// as the positional parameters of a record are.

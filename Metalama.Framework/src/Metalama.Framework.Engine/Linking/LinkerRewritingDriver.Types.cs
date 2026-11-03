@@ -43,7 +43,7 @@ internal sealed partial class LinkerRewritingDriver
         return classDeclaration;
     }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
     /// <summary>
     /// Rewrites a union declaration, which the language reports as a struct and which therefore follows the rules of

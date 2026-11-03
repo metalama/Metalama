@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0105 on `int a = meta.CompileTime( 0 ), b = 0`: `The local variables 'a','b' cannot be declared in the same declaration because some of them are compile-time and others are run-time. Split the declaration into two declarations: one for the compile-time variables and one for the run-time variables.`

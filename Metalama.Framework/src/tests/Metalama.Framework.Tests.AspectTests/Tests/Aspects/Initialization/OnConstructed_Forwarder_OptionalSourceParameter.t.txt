@@ -1,0 +1,4 @@
+OnConstructed BaseClass
+OnConstructed BaseClass
+OnConstructed BaseClass
+OnConstructed DerivedClass

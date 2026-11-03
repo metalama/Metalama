@@ -155,6 +155,14 @@ Durability is **opt-in**: intrinsics are durable, a system collection is durable
 type that is neither marked nor in the analyzer's tables is not durable. Marking a type therefore propagates the
 obligation to the types of all of its members, which is the point.
 
+A C# 15 union is judged by its case types and not by its storage. The compiler lowers a union to a type whose only
+storage is an `object` property named `Value`, which says nothing about what the union may hold. A union is durable
+when each of its case types is durable. The case types are the parameter types of the public constructors that take
+one parameter or, for a union with a member provider interface, of its static `Create` methods. A union marked
+`[Durable]` reports each case type that is not durable with `LAMA0870`. Where a value is converted to a union at a
+position that requires durability, the analyzer evaluates the operand of the conversion, so a lambda cast to a
+delegate case is analysed for captures with `LAMA0878`. See [#2115](https://github.com/metalama/Metalama/issues/2115).
+
 **An interface may be marked, and that is how a member typed as an interface is made durable.** The attribute then
 means two things at once, and both are checked: a consumer of the interface may assume that any implementation is
 durable, and every implementation is required to be durable, which the analyzer verifies member by member exactly as

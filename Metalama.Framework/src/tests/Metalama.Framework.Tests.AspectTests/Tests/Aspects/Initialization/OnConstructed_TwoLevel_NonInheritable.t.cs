@@ -16,11 +16,14 @@ public class BaseClass
 }
 public class DerivedClass : BaseClass
 {
-  public DerivedClass([AspectGenerated] InitializationContext context = default) : base(0, context.Descend(InitializationSlot.OnConstructed))
+  public DerivedClass([AspectGenerated] InitializationContext context) : base(0, context.Descend(InitializationSlot.OnConstructed))
   {
     if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
       this.OnConstructed(context);
     }
+  }
+  public DerivedClass() : this(context: default)
+  {
   }
 }

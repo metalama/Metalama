@@ -1,7 +1,7 @@
 [TheAspect]
 public class Connection
 {
-  public Connection([AspectGenerated] InitializationContext context = default)
+  public Connection([AspectGenerated] InitializationContext context)
   {
     if (!context.IsHandled(InitializationSlot.OnConstructed))
     {
@@ -22,6 +22,9 @@ public class Connection
     {
       this.OnConstructed(context);
     }
+  }
+  public Connection() : this(context: default)
+  {
   }
   protected virtual void OnConstructed(InitializationContext context = default)
   {

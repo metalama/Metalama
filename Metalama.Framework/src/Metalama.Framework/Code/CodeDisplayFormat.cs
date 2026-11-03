@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 
 #pragma warning disable SA1623
 
@@ -13,6 +14,7 @@ namespace Metalama.Framework.Code
     /// exposed as properties, are currently supported.
     /// </summary>
     [CompileTime]
+    [ImmutableType]
     public sealed class CodeDisplayFormat
     {
         private readonly string _name;

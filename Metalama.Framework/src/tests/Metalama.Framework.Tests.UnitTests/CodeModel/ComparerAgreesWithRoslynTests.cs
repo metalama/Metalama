@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
-#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER && NET7_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 #endif
@@ -192,7 +192,7 @@ public sealed class ComparerAgreesWithRoslynTests : UnitTestClass
         Assert.Empty( mismatches );
     }
 
-#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER && NET7_0_OR_GREATER
 
     // The union is a C# 15 feature, so only the latest Roslyn variant parses it. The case is further restricted to
     // .NET 7 and later, because the compiler emits CompilerFeatureRequiredAttribute on the members of a union and

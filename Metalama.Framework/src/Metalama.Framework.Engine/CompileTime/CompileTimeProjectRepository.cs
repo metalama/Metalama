@@ -13,6 +13,12 @@ internal sealed partial class CompileTimeProjectRepository : IProjectService
 {
     public CompileTimeProject RootProject { get; }
 
+    /// <summary>
+    /// Gets the <see cref="CompileTimeDomain"/> into which the compile-time assemblies and the extension assemblies are loaded,
+    /// or <c>null</c> for a test instance.
+    /// </summary>
+    public CompileTimeDomain? Domain { get; }
+
     // Maps the identity of the run-time project to the compile-time project.
     private readonly Dictionary<AssemblyIdentity, CompileTimeProject?> _projects;
 
@@ -29,6 +35,7 @@ internal sealed partial class CompileTimeProjectRepository : IProjectService
         CompileTimeProject rootProject )
     {
         this.RootProject = rootProject;
+        this.Domain = domain;
         this._projects = projects;
 
         // Register assemblies into the domain.

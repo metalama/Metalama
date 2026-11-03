@@ -35,6 +35,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaCompileTimeAssemblies = nameof(MetalamaCompileTimeAssemblies);
     public const string MetalamaProjectReferenceNames = nameof(MetalamaProjectReferenceNames);
     public const string MetalamaWriteHtml = nameof(MetalamaWriteHtml);
+    public const string MetalamaWriteHtmlSymbols = nameof(MetalamaWriteHtmlSymbols);
     public const string ProjectAssetsFile = nameof(ProjectAssetsFile);
     public const string MetalamaReferenceAssemblyRestoreTimeout = nameof(MetalamaReferenceAssemblyRestoreTimeout);
     public const string MetalamaWriteLicenseUsageData = nameof(MetalamaWriteLicenseUsageData);
@@ -62,6 +63,13 @@ public static class MSBuildPropertyNames
     public const string MetalamaDiagnoseMemoryLeaks = nameof(MetalamaDiagnoseMemoryLeaks);
     public const string MetalamaDurableRefKind = nameof(MetalamaDurableRefKind);
     public const string MetalamaIgnoredWarnings = nameof(MetalamaIgnoredWarnings);
+    public const string MetalamaEnforceImmutabilityContract = nameof(MetalamaEnforceImmutabilityContract);
+    public const string MetalamaImmutableTypes = nameof(MetalamaImmutableTypes);
+    public const string MetalamaImmutableContractTypes = nameof(MetalamaImmutableContractTypes);
+    public const string MetalamaDurableTypes = nameof(MetalamaDurableTypes);
+    public const string MetalamaNonDurableTypes = nameof(MetalamaNonDurableTypes);
+    public const string MetalamaPreviewFiles = nameof(MetalamaPreviewFiles);
+    public const string MetalamaPreviewOutputPath = nameof(MetalamaPreviewOutputPath);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -86,6 +94,7 @@ public static class MSBuildPropertyNames
         MetalamaCompileTimePackages,
         MetalamaProjectReferenceNames,
         MetalamaWriteHtml,
+        MetalamaWriteHtmlSymbols,
         ProjectAssetsFile,
         MetalamaReferenceAssemblyRestoreTimeout,
         MetalamaWriteLicenseUsageData,
@@ -109,5 +118,12 @@ public static class MSBuildPropertyNames
         MetalamaCompilationScenario,
         MetalamaDiagnoseMemoryLeaks,
         MetalamaDurableRefKind,
-        MetalamaIgnoredWarnings );
+        MetalamaIgnoredWarnings,
+        MetalamaEnforceImmutabilityContract,
+        MetalamaImmutableTypes,
+        MetalamaImmutableContractTypes,
+        MetalamaDurableTypes,
+        MetalamaNonDurableTypes,
+        MetalamaPreviewFiles,
+        MetalamaPreviewOutputPath );
 }

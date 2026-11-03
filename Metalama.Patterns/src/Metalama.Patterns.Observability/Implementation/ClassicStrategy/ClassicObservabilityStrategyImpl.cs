@@ -11,6 +11,7 @@ using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Utilities;
 using Metalama.Patterns.Observability.Configuration;
 using Metalama.Patterns.Observability.Implementation.DependencyAnalysis;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
@@ -19,7 +20,7 @@ namespace Metalama.Patterns.Observability.Implementation.ClassicStrategy;
 internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategyImplementation
 {
     // The order in the array determines the priority.
-    private static readonly string[] _onPropertyChangedMethodNames = ["OnPropertyChanged", "NotifyOfPropertyChange", "RaisePropertyChanged"];
+    private static readonly ImmutableArray<string> _onPropertyChangedMethodNames = ["OnPropertyChanged", "NotifyOfPropertyChange", "RaisePropertyChanged"];
 
     private readonly Promise<ObservabilityTemplateArgs> _templateArgs = new();
     private readonly ObservabilityOptions _commonOptions;
@@ -875,7 +876,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategyI
                     Accessibility: Accessibility.Public or Accessibility.Protected,
                     ReturnType.SpecialType: SpecialType.Void
                 } )
-            .Select( m => (MethodNameIndex: Array.IndexOf( _onPropertyChangedMethodNames, m.Name ), Method: m) )
+            .Select( m => (MethodNameIndex: _onPropertyChangedMethodNames.IndexOf( m.Name ), Method: m) )
             .Where( x => x.MethodNameIndex >= 0 )
             .ToList();
 

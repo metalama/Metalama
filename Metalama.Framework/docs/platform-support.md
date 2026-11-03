@@ -125,11 +125,15 @@ fixed. A version at or above the floor that the test matrix does not exercise is
 defect specific to it is fixed; it is recorded in the baseline as a testing gap. Only the first of the two is
 reported by the build.
 
-The build reports the gap to the user. `Metalama.Framework.props` declares the platform matrix as a
-`MetalamaPlatformRequirement` item, and `Metalama.Framework.targets` compares the project against that item and
-reports `LAMA0600` for a target framework outside the matrix. An enabled target framework is inside the matrix
-and below the tested floor, which is a third state that the mechanism does not yet distinguish. Aligning the
-mechanism with this rule is tracked by issue [#2023](https://github.com/metalama/Metalama/issues/2023).
+`Metalama.Framework.props` declares the platform matrix as a `MetalamaPlatformRequirement` item, and
+`Metalama.Framework.targets` compares the project against that item. For each family of target frameworks, the
+`Minimum<Family>Version` metadata gives the oldest version that the build accepts, and the
+`MinimumSupported<Family>Version` metadata gives the floor of the supported set. The build reports `LAMA0600`
+for a target framework below the minimum, which is outside the matrix. It reports `LAMA0604` for a target
+framework at or above the minimum and below the supported floor, which is enabled and not supported. Under
+PB-2027.0, the minimum for .NET Framework is 4.7.2 and the supported floor is 4.8, so a project that targets
+`net472` reports `LAMA0604`. The warning is reported once for each affected target framework. See issue
+[#2023](https://github.com/metalama/Metalama/issues/2023).
 
 ## Denomination
 

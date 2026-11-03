@@ -38,13 +38,18 @@
         <!-- Make sure the dependencies to embed have been built. -->
         <MSBuild Projects="../Metalama.Framework.CompilerExtensions.Resources/Metalama.Framework.CompilerExtensions.Resources.csproj" Properties="Configuration=$(Configuration)" />
 
-        <!-- List of assemblies that should not be selected -->
+        <!-- List of assemblies that should not be selected. The patterns are anchored to the output directory of the
+             Resources project and not written as **/Metalama.*, because the MSBuild of the .NET SDK
+             11.0.100-rc.2.26504.105 no longer matches a pattern that starts with **/ against an item outside the
+             directory of this project. The unanchored patterns then excluded nothing, every assembly was embedded a
+             second time, and the compiler reported CS1508. -->
         <PropertyGroup>
+            <_ResourcesOutputDirectory>../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/</_ResourcesOutputDirectory>
             <AssembliesNotToEmbed>
-                **/Metalama.*;
-                **/SharpCrafters.*;
-                **/Microsoft.CodeAnalysis.*;
-                **/System.*;
+                $(_ResourcesOutputDirectory)*/Metalama.*;
+                $(_ResourcesOutputDirectory)*/SharpCrafters.*;
+                $(_ResourcesOutputDirectory)*/Microsoft.CodeAnalysis.*;
+                $(_ResourcesOutputDirectory)*/System.*;
             </AssembliesNotToEmbed>
         </PropertyGroup>
 

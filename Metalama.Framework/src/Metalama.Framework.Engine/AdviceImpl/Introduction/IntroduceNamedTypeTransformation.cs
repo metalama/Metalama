@@ -81,7 +81,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                 // A record is emitted as a record declaration whose class or struct keyword names the authoring
                 // form. Its positional parameter list is the parameter list of the primary constructor, and every
                 // member the compiler synthesizes from it is registered in the code model and emitted by nothing.
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
                 // A union declaration is a struct in the code model, so the union flag tells it apart. The emission
                 // is compiled into the latest Roslyn variant only, because that is the one that declares the syntax.

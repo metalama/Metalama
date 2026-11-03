@@ -753,7 +753,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node ) => this.VisitTypeDeclaration( node, n => base.VisitEnumDeclaration( n ) );
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
     /// <summary>
     /// Visits a union declaration, which is annotated with the scope of its declaration exactly as a struct
     /// declaration is.
@@ -1398,7 +1398,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     public override SyntaxNode VisitBreakStatement( BreakStatementSyntax node )
     {
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
         // A labeled break is reported instead of being classified. The label belongs to a loop whose scope may differ
         // from the scope of this statement, so the annotator cannot decide the scope of the statement. See section 5 of
@@ -1415,7 +1415,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     public override SyntaxNode VisitContinueStatement( ContinueStatementSyntax node )
     {
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
         // See the comment of VisitBreakStatement.
         if ( node.Name != null )
@@ -1843,15 +1843,22 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             var variableScopes = transformedVariables.SelectAsReadOnlyList( v => v.GetScopeFromAnnotation() ).Distinct().ToReadOnlyList();
 
+            TemplatingScope? variableScope;
+
             if ( variableScopes.Count != 1 )
             {
                 this.ReportDiagnostic(
                     TemplatingDiagnosticDescriptors.SplitVariables,
                     node,
                     string.Join( ",", node.Variables.SelectAsReadOnlyList( v => "'" + v.Identifier.Text + "'" ) ) );
-            }
 
-            var variableScope = variableScopes.Single();
+                // The error has been reported. Use the run-time scope as a fallback so that the annotator can continue.
+                variableScope = RunTimeOnly;
+            }
+            else
+            {
+                variableScope = variableScopes[0];
+            }
 
             // We don't use transformedType because we want to replace the type annotation to strictly RunTime and not, for instance, CompileTimeReturningRunTime.
             return node.Update( node.Type.AddScopeAnnotation( variableScope ), SeparatedList( transformedVariables ) ).AddScopeAnnotation( variableScope );

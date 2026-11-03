@@ -4,7 +4,8 @@
          evaluated on its own and reports its own package. The requirements below cover the rules that the
          requirement of Metalama.Framework does not exercise on this build agent: a target framework newer than the
          tested range, a required target platform, a .NET SDK older than the required one, a .NET SDK newer than
-         the tested range, and the boundary between the two .NET SDK rules.
+         the tested range, the boundary between the two .NET SDK rules, and an enabled target framework that is below
+         the supported floor of a .NET family other than .NET Framework.
 
          The target framework of the project is in the tested matrix of Metalama.Framework, so no diagnostic may name
          'Metalama.Framework'. That is what makes this scenario an assertion about independent evaluation rather than
@@ -37,6 +38,11 @@
             <SupportedTargetFrameworksDescription>The tested target frameworks are .NET 8 and .NET 9.</SupportedTargetFrameworksDescription>
         </MetalamaPlatformRequirement>
 
+        <!-- 'net10.0' is at or above the minimum and below the supported floor, so it is enabled and not supported. -->
+        <MetalamaPlatformRequirement Include="Test.EnabledFramework">
+            <MinimumNETCoreAppVersion>8.0</MinimumNETCoreAppVersion>
+            <MinimumSupportedNETCoreAppVersion>11.0</MinimumSupportedNETCoreAppVersion>
+        </MetalamaPlatformRequirement>
         <MetalamaPlatformRequirement Include="Test.WindowsOnly">
             <RequiredTargetPlatformIdentifier>windows</RequiredTargetPlatformIdentifier>
         </MetalamaPlatformRequirement>

@@ -732,13 +732,17 @@ namespace Metalama.Framework.Advising
         /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields
         ///     on the aspect type, used for cross-layer coordination when <paramref name="kind"/> is
         ///     <see cref="InitializerKind.AfterObjectInitializer"/> or <see cref="InitializerKind.AfterLastInstanceConstructor"/>.</param>
+        /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides which constructors receive a
+        ///     forwarding constructor when <paramref name="kind"/> is <see cref="InitializerKind.AfterLastInstanceConstructor"/>. A <c>null</c> value is
+        ///     interpreted as <see cref="ConstructorOverloadingStrategy.ForwardDefaultConstructor"/>. This parameter must be <c>null</c> for other kinds.</param>
         IAddInitializerAdviceResult AddInitializer(
             INamedType targetType,
             string template,
             InitializerKind kind,
             object? tags = null,
             object? args = null,
-            IEnumerable<IField>? slotFields = null );
+            IEnumerable<IField>? slotFields = null,
+            IConstructorOverloadingStrategy? overloadingStrategy = null );
 
         /// <summary>
         /// Adds a type or instance initializer by using a template, specifying whether the initializer should run before or after the call to the base initializer.
@@ -752,6 +756,9 @@ namespace Metalama.Framework.Advising
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
         /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields
         ///     on the aspect type, used for cross-layer coordination.</param>
+        /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides which constructors receive a
+        ///     forwarding constructor when <paramref name="kind"/> is <see cref="InitializerKind.AfterLastInstanceConstructor"/>. A <c>null</c> value is
+        ///     interpreted as <see cref="ConstructorOverloadingStrategy.ForwardDefaultConstructor"/>. This parameter must be <c>null</c> for other kinds.</param>
         IAddInitializerAdviceResult AddInitializer(
             INamedType targetType,
             string template,
@@ -759,7 +766,8 @@ namespace Metalama.Framework.Advising
             InitializerPosition position,
             object? tags = null,
             object? args = null,
-            IEnumerable<IField>? slotFields = null );
+            IEnumerable<IField>? slotFields = null,
+            IConstructorOverloadingStrategy? overloadingStrategy = null );
 
         /// <summary>
         /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>.

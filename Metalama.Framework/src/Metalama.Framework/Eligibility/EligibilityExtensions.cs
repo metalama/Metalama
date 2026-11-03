@@ -787,7 +787,7 @@ public static partial class EligibilityExtensions
     public static void MustNotBeInterface( this IEligibilityBuilder<INamedType> eligibilityBuilder )
         => eligibilityBuilder.MustSatisfy(
             member => member.TypeKind != TypeKind.Interface,
-            member => $"{member} must not an interface" );
+            member => $"{member} must not be an interface" );
 
     /// <summary>
     /// Forbids the target member from being declared in an extension block.

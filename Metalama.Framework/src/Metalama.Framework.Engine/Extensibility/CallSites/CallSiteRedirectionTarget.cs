@@ -38,8 +38,11 @@ public abstract class CallSiteRedirectionTarget
     /// Creates a target that is a method declared with <see cref="ExtensionTransformationFactory.DeclareMethod"/>.
     /// </summary>
     /// <param name="method">The handle of the declared method. A static method can be called from any call site from which it is accessible. An
-    /// instance method can be called only from an instance member of its declaring type or of a type derived from it, where <c>this</c> is
-    /// available, and it is called on <c>this</c>.</param>
+    /// instance method is called either on <c>this</c> or on the receiver of the call site. With the receiver modes other than
+    /// <see cref="CallSiteReceiverMode.Receiver"/>, it is called on <c>this</c>, so it can be called only from an instance member of its declaring
+    /// type or of a type derived from it, where <c>this</c> is available. With <see cref="CallSiteReceiverMode.Receiver"/>, it is called on the
+    /// receiver of the call site, whose type must be its declaring type or a type derived from it, and the call site can also be in a static
+    /// member.</param>
     /// <param name="containingTypeAtCallSite">The containing type as it must be written at the call site, for example a constructed generic type.
     /// The default is the declaring type of the method.</param>
     /// <remarks>

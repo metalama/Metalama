@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!-- A MetalamaSupportedPlatformExclusion item skips the requirement it names and leaves the other requirements in
-         place. The exclusion of 'Metalama.Framework' removes the LAMA0600 that the target framework would report,
-         while the contributed requirement still reports LAMA0601.
+         place. The exclusion of 'Metalama.Framework' removes the LAMA0600 that 'net8.0' would report
+         and the LAMA0604 that 'net472' would report, while the contributed requirement still reports LAMA0601.
          See https://github.com/metalama/Metalama/issues/1884. -->
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>net8.0;net472</TargetFrameworks>
         <OutputType>Library</OutputType>
         <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
     </PropertyGroup>

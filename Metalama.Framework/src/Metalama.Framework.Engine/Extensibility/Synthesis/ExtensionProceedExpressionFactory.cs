@@ -67,10 +67,17 @@ internal static class ExtensionProceedExpressionFactory
         {
             ProceedBindingKind.InvokeStatic => context.SyntaxGenerator.TypeExpression( method.DeclaringType ),
             ProceedBindingKind.InvokeOnParameter => SyntaxFactoryEx.SafeIdentifierName( GetParameter( declaredMethod, binding.ReceiverParameterIndex ).Name ),
+            ProceedBindingKind.InvokeOnThis => ThisExpression(),
             _ => throw new AssertionFailedException( $"Unexpected binding kind {binding.Kind}." )
         };
 
-        var callee = MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, receiver, name ).WithSimplifierAnnotationIfNecessary( context );
+        var callee = MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, receiver, name );
+
+        // The 'this' qualifier is kept, as in the redirected call sites.
+        if ( binding.Kind != ProceedBindingKind.InvokeOnThis )
+        {
+            callee = callee.WithSimplifierAnnotationIfNecessary( context );
+        }
 
         var parameterIndices = GetArgumentParameterIndices( binding, declaredMethod );
         var arguments = new List<ArgumentSyntax>( method.Parameters.Count );

@@ -1,0 +1,4 @@
+BaseClass()
+OnConstructed DerivedClass
+BaseClass()
+OnConstructed ImplicitDerivedClass

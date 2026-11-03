@@ -95,7 +95,7 @@ public sealed class TypeDeclarationSyntaxKindTests
         Assert.False( declaration.SyntaxKind.IsTypeDeclaration );
     }
 
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
 
     // The union kind exists in the latest Roslyn variant only, and the engine names it only under the opt-in of
     // eng/RoslynPreview.props, for the reason explained in section 6 of

@@ -127,6 +127,9 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                 var plannedTests = this.PlanTests( testCases, executionMessageSink, assemblyMetrics, SendMessage );
                 var directoryOptionsReader = new TestDirectoryOptionsReader( this._serviceProvider, this._factory.ProjectProperties.SourceDirectory );
 
+                // The registry is created for each run, so that a new run writes the files again.
+                var outputFileRegistry = new TestOutputFileRegistry();
+
                 foreach ( var plannedTest in plannedTests )
                 {
                     if ( runCancellationToken.IsCancellationRequested )
@@ -141,6 +144,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                             SendMessage,
                             plannedTest.ProjectReferences,
                             directoryOptionsReader,
+                            outputFileRegistry,
                             plannedTest.Test,
                             plannedTest.Metrics,
                             plannedTest.Logger,
@@ -279,6 +283,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             Action<IMessageSinkMessage> sendMessage,
             TestProjectReferences projectReferences,
             TestDirectoryOptionsReader directoryOptionsReader,
+            TestOutputFileRegistry outputFileRegistry,
             Test test,
             Metrics testMetrics,
             TestOutputHelper logger,
@@ -332,6 +337,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                         var serviceProvider = this._serviceProvider.Underlying
                             .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
                             .WithService( new RandomNumberProvider( firstSeed ), true )
+                            .WithService( outputFileRegistry )
                             .WithServiceConditional<IExtensionLoader>( sp => new TestExtensionLoader( sp, testOptions ) )
                             .WithDisjointSharedServices();
 
@@ -359,7 +365,8 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                             var serviceProvider = this._serviceProvider.Underlying
                                 .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
-                                .WithService( new RandomNumberProvider( seed ) );
+                                .WithService( new RandomNumberProvider( seed ) )
+                                .WithService( outputFileRegistry );
 
                             var testRunner = TestRunnerFactory.CreateTestRunner(
                                 testInput,

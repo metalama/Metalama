@@ -643,7 +643,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 // SyntaxKindExtensions.IsTypeDeclaration, because the lower Roslyn variant does not declare it.
                 if ( member.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                          or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
                          or SyntaxKind.UnionDeclaration
 #endif
                      && member is TypeDeclarationSyntax typeDeclaration
@@ -971,7 +971,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     members,
                     closeBraceToken: closeBrace,
                     semicolonToken: default ),
-#if ROSLYN_5_11_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER
                 // A union declaration is reported as a struct, so it is named before the struct arm, which would
                 // otherwise emit a partial struct against a partial union and make the compiler report CS0261. The
                 // partial part carries no case list, because the part that the introduction transformation emits

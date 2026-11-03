@@ -293,7 +293,9 @@ namespace Metalama.Framework.Engine.Linking
                 onInitializedCallSites = await new OnInitializedCallSiteFinder(
                         this._serviceProvider,
                         input.IntermediateCompilation.CompilationContext,
-                        initializableTypeRegistry )
+                        input.SourceCompilationModel.CompilationContext,
+                        initializableTypeRegistry,
+                        input.DiagnosticSink )
                     .FindCallSitesAsync( cancellationToken );
             }
             else

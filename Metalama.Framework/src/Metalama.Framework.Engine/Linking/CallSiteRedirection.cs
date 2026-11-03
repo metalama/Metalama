@@ -93,8 +93,9 @@ internal sealed class CallSiteRedirection
     public bool UsesForwarder { get; }
 
     /// <summary>
-    /// Gets the expression that designates the new target: the qualified name of a static method, or the simple name of a forwarder when
-    /// <see cref="UsesForwarder"/> is <c>true</c>.
+    /// Gets the expression that designates the new target: the qualified name of a static method, <c>this.M</c> for an instance method, or a
+    /// simple name when <see cref="UsesForwarder"/> is <c>true</c> or when <see cref="ReceiverMode"/> is <see cref="CallSiteReceiverMode.Receiver"/>.
+    /// The simple name replaces the name of the method in the invoked expression of the source call.
     /// </summary>
     public ExpressionSyntax Callee { get; }
 
@@ -228,8 +229,9 @@ internal sealed class CallSiteRedirection
 
         ExpressionSyntax result;
 
-        if ( this.UsesForwarder )
+        if ( this.UsesForwarder || this.ReceiverMode == CallSiteReceiverMode.Receiver )
         {
+            // The new call keeps the receiver of the source call, and only the name of the method changes.
             var name = (SimpleNameSyntax) this.Callee;
 
             ExpressionSyntax expression = invocation.Expression.Kind() switch

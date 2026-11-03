@@ -57,6 +57,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
     private readonly IObjectReader? _templateArguments;
     private readonly IEnumerable<IField>? _slotFields;
     private readonly InitializerPosition _position;
+    private readonly IConstructorOverloadingStrategy _overloadingStrategy;
 
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
 
@@ -65,13 +66,15 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
         TemplateMember<IMethod> template,
         IObjectReader? templateArguments,
         IEnumerable<IField>? slotFields,
-        InitializerPosition position )
+        InitializerPosition position,
+        IConstructorOverloadingStrategy? overloadingStrategy )
         : base( parameters )
     {
         this._template = template;
         this._templateArguments = templateArguments;
         this._slotFields = slotFields;
         this._position = position;
+        this._overloadingStrategy = overloadingStrategy ?? ConstructorOverloadingStrategy.ForwardDefaultConstructor;
     }
 
     protected override AddInitializerAdviceResult Implement( AdviceImplementationContext context )
@@ -152,7 +155,9 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             initContextType,
             this.AspectLayerInstance,
             context,
-            registerPullFallback: true );
+            registerPullFallback: true,
+            this._overloadingStrategy,
+            this );
 
         // Step 4: cross-project propagation of the epilogue obligation. The transitive aspect runs
         // in dependent projects regardless of whether the user aspect is [Inheritable], so derived

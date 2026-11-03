@@ -1,0 +1,8 @@
+{
+    "BuildOnly": true,
+    "ExpectedDiagnosticsRegexes": [
+        "warning LAMA0604.*'Metalama[.]Framework'.*'net472'.*older than .NET Framework 4[.]8",
+        "warning LAMA0604.*MetalamaCheckSupportedPlatform"
+    ],
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0604.*'net10[.]0'", "warning LAMA0600", "earlier version of" ]
+}

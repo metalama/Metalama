@@ -1,0 +1,3 @@
+OnConstructed TargetCode
+Value=42
+OnConstructed TargetCode

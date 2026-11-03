@@ -163,6 +163,19 @@ internal sealed partial class LinkerRewritingDriver
 
         static BlockSyntax TransformToBlock( SubstitutionContext substitutionContext, SyntaxNode node, IMethodSymbol symbol )
         {
+            // A throw expression is allowed as an expression body but not as the operand of a return statement or as an
+            // expression statement, so it becomes a throw statement, as in ExpressionBodySubstitution.
+            if ( node.IsKind( SyntaxKind.ArrowExpressionClause ) && node is ArrowExpressionClauseSyntax { Expression: ThrowExpressionSyntax throwExpression } )
+            {
+                return
+                    substitutionContext.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(
+                            ThrowStatement(
+                                throwExpression.ThrowKeyword,
+                                throwExpression.Expression,
+                                Token( SyntaxKind.SemicolonToken ) ) )
+                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+            }
+
             // TODO: Convert to block.
             if ( symbol.ReturnsVoid )
             {
@@ -253,6 +266,10 @@ internal sealed partial class LinkerRewritingDriver
                     return (SyntaxNode?) accessorDecl.Body
                            ?? accessorDecl.ExpressionBody
                            ?? throw new AssertionFailedException( $"Operator is expected to have body or expression body: {accessorDecl}" );
+
+                // The getter of an expression-bodied property or indexer is declared by the arrow expression clause itself.
+                case SyntaxKind.ArrowExpressionClause when declaration is ArrowExpressionClauseSyntax arrowExpressionClause:
+                    return arrowExpressionClause;
 
                 default:
                     throw new AssertionFailedException( $"Unexpected redirection: '{symbol}'." );

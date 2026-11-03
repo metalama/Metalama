@@ -31,9 +31,9 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             // Deserializer.
         }
 
-        public CompileTimeFileManifest( TextMapFile textMapFile )
+        public CompileTimeFileManifest( TextMapFile textMapFile, string sourcePath )
         {
-            this.SourcePath = textMapFile.SourcePath;
+            this.SourcePath = sourcePath;
             this.TransformedPath = textMapFile.TargetPath;
         }
     }

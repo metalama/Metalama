@@ -26,9 +26,7 @@ namespace Metalama.Framework.Code
     {
         // ReSharper disable once UnassignedReadonlyField
 
-#pragma warning disable LAMA0882
         private readonly object? _value;
-#pragma warning restore LAMA0882
         
         private readonly IType? _type;
 

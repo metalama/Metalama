@@ -1550,6 +1550,44 @@ public class ReferencedClass
         }
 
         /// <summary>
+        /// Verifies that the manifest lists the compile-time files sorted by their transformed path (issue #2248). The order
+        /// of the files determines the bytes of the compile-time project archive, which is embedded in the assembly, so an
+        /// order that depends on hash codes changes the reference assembly between two compilations of the same source.
+        /// </summary>
+        [Fact]
+        public void ManifestFilesAreSortedByTransformedPath()
+        {
+            var code = new Dictionary<string, string>();
+
+            for ( var i = 0; i < 16; i++ )
+            {
+                code[$"File{i:00}.cs"] = $$"""
+                                           using Metalama.Framework.Aspects;
+
+                                           [CompileTime]
+                                           class CompileTimeClass{{i}} {}
+                                           """;
+            }
+
+            using var testContext = this.CreateTestContext();
+
+            var roslynCompilation = testContext.CreateCSharpCompilation( code );
+
+            using var compileTimeDomain = testContext.Domain;
+            var loader = CompileTimeProjectRepository.Create(
+                    compileTimeDomain,
+                    testContext.ServiceProvider,
+                    roslynCompilation,
+                    cancellationToken: testContext.CancellationToken )
+                .AssertNotNull();
+
+            var files = loader.RootProject.Manifest!.Files;
+
+            Assert.Equal( 16, files.Count );
+            Assert.Equal( files.SelectAsArray( f => f.TransformedPath ).OrderBy( p => p, StringComparer.Ordinal ), files.SelectAsArray( f => f.TransformedPath ) );
+        }
+
+        /// <summary>
         /// Verifies that a compile-time inline array declared as a partial type is reported exactly once, although
         /// the rewriter visits the type once for each of its declarations.
         /// </summary>
@@ -2103,6 +2141,49 @@ public class MyAspect
         }
 
         /// <summary>
+        /// Regression test for issue #1986: when the <c>MetalamaTemplateLanguageVersion</c> property sets the template language version,
+        /// LAMA0232 names that property as the origin of the version. The aspect tests under <c>Tests/Aspects/LanguageVersion</c> cover
+        /// the message reported when the version comes from the language version of the compile-time code.
+        /// </summary>
+        [Fact]
+        public void TemplateLanguageVersionFromPropertyIsExplained()
+        {
+            var code = $$""""
+                         using Metalama.Framework.Aspects;
+
+                         namespace NS_{{Guid.NewGuid():N}};
+
+                         class Aspect : OverrideMethodAspect
+                         {
+                             public override dynamic? OverrideMethod()
+                             {
+                                 var message = """raw""";
+
+                                 return meta.Proceed();
+                             }
+                         }
+                         """";
+
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { TemplateLanguageVersion = "10.0" } );
+
+            var roslynCompilation = testContext.CreateCSharpCompilation( code );
+
+            var diagnostics = new DiagnosticBag();
+
+            using var domain = testContext.Domain;
+
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
+
+            var diagnostic = Assert.Single( diagnostics, d => d.Id == "LAMA0232" );
+
+            Assert.Equal(
+                "Template code must be compatible with C# 10.0, but this syntax requires a later version of C#. "
+                + "The version is C# 10.0 because the project sets the MetalamaTemplateLanguageVersion property to 10.0, "
+                + "so that the templates can be used from projects that compile with C# 10.0.",
+                diagnostic.GetMessage( CultureInfo.InvariantCulture ) );
+        }
+
+        /// <summary>
         /// Regression test for issue #700: Renaming a project with a case-only change (e.g., MetaLamaTest -> MetalamaTest)
         /// should not cause an AssertionFailedException due to assembly identity mismatch. The project hash includes
         /// the assembly name case-sensitively, so a case change produces a different hash and avoids cache collision.
@@ -2157,6 +2238,95 @@ public class ReferencedClass
                 project1.CompiledAssemblyPath,
                 project2.CompiledAssemblyPath,
                 StringComparer.OrdinalIgnoreCase );
+        }
+
+        /// <summary>
+        /// Regression test for issue #2249: the compile-time project must apply the path map of the compilation to the source paths
+        /// of the manifest, to the <c>OriginalPath</c> attribute of fabrics, and to the source hash. Otherwise, the same source
+        /// built in two directories produces two different compile-time projects.
+        /// </summary>
+        [Fact]
+        public void PathMapIsAppliedToSourcePaths()
+        {
+            const string aspectCode = @"
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
+public class MyAspect : OverrideMethodAspect
+{
+    public override dynamic? OverrideMethod() => meta.Proceed();
+}
+";
+
+            const string fabricCode = @"
+using Metalama.Framework.Fabrics;
+
+public class MyFabric : ProjectFabric
+{
+    public override void AmendProject( IProjectAmender amender ) { }
+}
+";
+
+            using var testContext = this.CreateTestContext();
+            var domain = testContext.Domain;
+            var assemblyName = "PathMapTest_" + RandomIdGenerator.GenerateId();
+
+            CompileTimeProject BuildCompileTimeProject( string rootDirectory )
+            {
+                var sourceDirectory = Path.Combine( rootDirectory, "src", "Lib" );
+
+                var compilation = testContext.CreateCSharpCompilation(
+                    new Dictionary<string, string>
+                    {
+                        { Path.Combine( sourceDirectory, "Aspects.cs" ), aspectCode }, { Path.Combine( sourceDirectory, "Fabric.cs" ), fabricCode }
+                    },
+                    assemblyName: assemblyName );
+
+                // This is the path map that the compiler receives from /pathmap:<root>/=/_/.
+                var pathMap = ImmutableArray.Create( new KeyValuePair<string, string>( rootDirectory + Path.DirectorySeparatorChar, "/_/" ) );
+
+                compilation = compilation.WithOptions(
+                    compilation.Options.WithSourceReferenceResolver( new SourceFileResolver( ImmutableArray<string>.Empty, null, pathMap ) ) );
+
+                // Use a new builder for each build so that the in-memory cache is not used.
+                var builder = new CompileTimeProjectRepository.Builder( domain, testContext.ServiceProvider );
+                DiagnosticBag diagnosticBag = new();
+
+                Assert.True(
+                    builder.TryGetCompileTimeProjectFromCompilation(
+                        compilation,
+                        null,
+                        diagnosticBag,
+                        false,
+                        testContext.CancellationToken,
+                        out var project ) );
+
+                Assert.NotNull( project );
+
+                return project;
+            }
+
+            var root1 = Path.Combine( testContext.BaseDirectory, "one", "repro" );
+            var root2 = Path.Combine( testContext.BaseDirectory, "two", "deeper", "repro" );
+
+            var project1 = BuildCompileTimeProject( root1 );
+            var project2 = BuildCompileTimeProject( root2 );
+
+            foreach ( var project in new[] { project1, project2 } )
+            {
+                // The source paths of the manifest must be mapped.
+                Assert.Equal(
+                    ["/_/src/Lib/Aspects.cs", "/_/src/Lib/Fabric.cs"],
+                    project.CodeFiles.SelectAsArray( f => f.SourcePath ).OrderBy( p => p, StringComparer.Ordinal ) );
+
+                // The OriginalPath attribute of the fabric must be mapped.
+                var transformedCode = project.CodeFiles.SelectAsArray( f => File.ReadAllText( Path.Combine( project.Directory!, f.TransformedPath ) ) );
+
+                Assert.Contains( transformedCode, c => c.Contains( @"OriginalPathAttribute(""/_/src/Lib/Fabric.cs"")", StringComparison.Ordinal ) );
+            }
+
+            // The source hash must not depend on the directory of the sources.
+            Assert.Equal( project1.Manifest!.SourceHash, project2.Manifest!.SourceHash );
         }
     }
 }

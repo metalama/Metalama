@@ -1,0 +1,4 @@
+Inlined
+Calling Inlined
+NotInlined
+HandWrittenInitializable

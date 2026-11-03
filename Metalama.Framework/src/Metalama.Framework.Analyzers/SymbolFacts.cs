@@ -12,13 +12,13 @@ using System.Text;
 namespace Metalama.Framework.Analyzers
 {
     /// <summary>
-    /// The facts about symbols that both contracts of this assembly need, and that carry no policy of their own.
+    /// The facts about symbols that the <c>Durable</c> contract needs and that carry no policy of their own: how a type
+    /// is named in a message, how a name is written in a table, how a semicolon-separated build property is read, and
+    /// which type parameters of a generic definition are actually stored.
     /// </summary>
     /// <remarks>
-    /// The <c>Durable</c> and the <c>ImmutableType</c> contracts answer different questions and disagree on several
-    /// types, so they keep separate classifiers and separate tables. What they share is the plumbing: how a type is
-    /// named in a message, how a name is written in a table, how a semicolon-separated build property is read, and
-    /// which type parameters of a generic definition are actually stored. That is what lives here.
+    /// The immutability rules, which are implemented in <c>Metalama.Framework.Engine</c>, have their own copy of the
+    /// facts they need, because this assembly and the engine do not share source code.
     /// </remarks>
     internal static class SymbolFacts
     {
@@ -62,17 +62,15 @@ namespace Metalama.Framework.Analyzers
         /// </summary>
         /// <remarks>
         /// <para>
-        /// Both contracts need this, and for the same reason: a rule that judges a member by the values assigned to it
-        /// is sound only where the analyzer sees every assignment. Private write access confines every assignment to
+        /// A rule that judges a member by the values assigned to it is sound only where the analyzer sees every
+        /// assignment. Private write access confines every assignment to
         /// the declaring type, including a nested type and another part of a partial declaration. Anything wider,
         /// whether internal, protected or public, can be written by code the analyzer never sees.
         /// </para>
         /// <para>
-        /// An <c>init</c> accessor counts as writable here, which is where the two contracts part company. It confines
-        /// an assignment to construction, which is all that immutability asks, but the object initializer that
-        /// performs it may sit in any assembly, so it does not confine an assignment to anywhere the analyzer can
-        /// look. The immutability rules therefore accept <c>init</c> before they reach this predicate, and the
-        /// durability rules do not.
+        /// An <c>init</c> accessor counts as writable here. It confines an assignment to construction, but the object
+        /// initializer that performs it may be in any assembly, so it does not confine an assignment to code that the
+        /// analyzer can see.
         /// </para>
         /// </remarks>
         public static bool IsWritableFromOutsideDeclaringType( ISymbol member )
@@ -115,15 +113,21 @@ namespace Metalama.Framework.Analyzers
         }
 
         /// <summary>
-        /// Reads one of the semicolon-separated lists that an MSBuild item is joined into by the build, because an
+        /// Reads one of the comma-separated lists that an MSBuild item is joined into by the build, because an
         /// analyzer can read a property but not an item.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// The separator is a comma and not a semicolon, because the build writes the list to an <c>.editorconfig</c>
+        /// file, whose parser treats <c>;</c> as the start of a comment.
+        /// </para>
+        /// <para>
         /// A <see cref="HashSet{T}"/> and not an immutable hash set, because this set is read on a hot
         /// path -- once per named type of the compilation -- and an immutable hash set pays a tree walk per lookup.
         /// It is built once and never mutated afterwards, and the field that holds it is private and read-only.
         /// <c>IReadOnlySet{T}</c> would state that better but does not exist in <c>netstandard2.0</c>, which this
         /// assembly targets.
+        /// </para>
         /// </remarks>
         public static HashSet<string> ReadTypeNameList( AnalyzerConfigOptions options, string key )
         {
@@ -134,7 +138,7 @@ namespace Metalama.Framework.Analyzers
                 return result;
             }
 
-            foreach ( var name in value.Split( ';' ) )
+            foreach ( var name in value.Split( ',' ) )
             {
                 var trimmed = name.Trim();
 

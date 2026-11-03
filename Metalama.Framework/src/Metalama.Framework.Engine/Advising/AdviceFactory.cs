@@ -1591,8 +1591,9 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         InitializerKind kind,
         object? tags = null,
         object? args = null,
-        IEnumerable<IField>? slotFields = null )
-        => this.AddInitializerCore( targetType, template, kind, InitializerPosition.AfterBase, tags, args, slotFields );
+        IEnumerable<IField>? slotFields = null,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
+        => this.AddInitializerCore( targetType, template, kind, InitializerPosition.AfterBase, tags, args, slotFields, overloadingStrategy );
 
     public IAddInitializerAdviceResult AddInitializer(
         INamedType targetType,
@@ -1601,7 +1602,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         InitializerPosition position,
         object? tags = null,
         object? args = null,
-        IEnumerable<IField>? slotFields = null )
+        IEnumerable<IField>? slotFields = null,
+        IConstructorOverloadingStrategy? overloadingStrategy = null )
     {
         if ( kind is not InitializerKind.AfterObjectInitializer and not InitializerKind.AfterLastInstanceConstructor )
         {
@@ -1611,7 +1613,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 $"An 'InitializerPosition' can only be specified with 'InitializerKind.AfterObjectInitializer' or 'InitializerKind.AfterLastInstanceConstructor'." );
         }
 
-        return this.AddInitializerCore( targetType, template, kind, position, tags, args, slotFields );
+        return this.AddInitializerCore( targetType, template, kind, position, tags, args, slotFields, overloadingStrategy );
     }
 
     private IAddInitializerAdviceResult AddInitializerCore(
@@ -1621,8 +1623,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         InitializerPosition position,
         object? tags,
         object? args,
-        IEnumerable<IField>? slotFields )
+        IEnumerable<IField>? slotFields,
+        IConstructorOverloadingStrategy? overloadingStrategy )
     {
+        if ( overloadingStrategy != null && kind != InitializerKind.AfterLastInstanceConstructor )
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                $"An 'IConstructorOverloadingStrategy' can only be specified with 'InitializerKind.AfterLastInstanceConstructor'." );
+        }
+
         using ( this.WithNonUserCode() )
         {
             this.Validate( targetType, AdviceKind.AddInitializer );
@@ -1651,7 +1662,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                             templateMember,
                             this.GetArgsReader( args ),
                             slotFields,
-                            position );
+                            position,
+                            overloadingStrategy );
 
                         var result = advice.Execute( this._state );
 

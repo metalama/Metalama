@@ -1,0 +1,5 @@
+ImplicitConstructor: Void .ctor(System.IFormatProvider, Metalama.Framework.RunTime.Initialization.InitializationContext)
+ExplicitConstructors: Void .ctor(Int32, System.IFormatProvider, Metalama.Framework.RunTime.Initialization.InitializationContext)
+ExplicitConstructors: Void .ctor(System.IFormatProvider, Metalama.Framework.RunTime.Initialization.InitializationContext)
+OnConstructed ImplicitConstructor
+OnConstructed ExplicitConstructors

@@ -43,5 +43,17 @@ public enum CallSiteReceiverMode
     /// <summary>
     /// The receiver is passed with <c>in</c> as the first argument, for a <c>ref readonly</c> or <c>in</c> receiver parameter.
     /// </summary>
-    FirstArgumentByIn
+    FirstArgumentByIn,
+
+    /// <summary>
+    /// The receiver of the source call is the receiver of the new call, and only the name of the method changes: <c>a.M(x)</c> gives
+    /// <c>a.F(x)</c>, <c>a?.M(x)</c> gives <c>a?.F(x)</c>, and an implicit receiver gives <c>this.F(x)</c>. The target must be an instance
+    /// method of a synthesized target, whose declaring type is the type of the receiver or one of its base types, and the call must not be a
+    /// <c>base</c> call.
+    /// </summary>
+    /// <remarks>
+    /// The receiver is evaluated exactly as in the source call. A receiver of a value type that is a variable is therefore modified in place by the
+    /// new call, and a receiver of a value type that is not a variable is copied, as in the source call.
+    /// </remarks>
+    Receiver
 }

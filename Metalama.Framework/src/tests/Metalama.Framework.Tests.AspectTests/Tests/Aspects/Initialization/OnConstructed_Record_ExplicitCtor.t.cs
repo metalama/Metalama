@@ -7,7 +7,7 @@ public sealed record TargetRecord
   }
   // Explicit ctor chaining to the primary — only the primary gets the epilogue; this ctor
   // delegates via `: this(0)` so it must be skipped by the `InitializerKind != ConstructorInitializerKind.This` filter.
-  public TargetRecord(InitializationContext context = default) : this(0, context)
+  public TargetRecord(InitializationContext context) : this(0, context)
   {
   }
   public int X { get; init; }
@@ -15,6 +15,9 @@ public sealed record TargetRecord
   {
     this.X = X;
     this.OnConstructed(context);
+  }
+  public TargetRecord() : this(context: default)
+  {
   }
   private void OnConstructed(InitializationContext context = default)
   {

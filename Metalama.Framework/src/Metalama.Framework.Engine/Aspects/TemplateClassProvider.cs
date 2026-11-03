@@ -4,8 +4,10 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Services;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Aspects;
 
@@ -36,4 +38,10 @@ internal sealed class TemplateClassProvider : IProjectService
 
         return this._templateClasses.TryGetValue( typeName, out templateClass );
     }
+
+    /// <summary>
+    /// Returns a new <see cref="TemplateClassProvider"/> that also contains the given template classes.
+    /// </summary>
+    public TemplateClassProvider WithTemplateClasses( IEnumerable<TemplateClass> templateClasses )
+        => new( this._templateClasses.SetItems( templateClasses.Select( x => new KeyValuePair<string, TemplateClass>( x.FullName, x ) ) ) );
 }

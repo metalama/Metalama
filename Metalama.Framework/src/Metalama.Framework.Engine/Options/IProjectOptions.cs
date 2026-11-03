@@ -52,6 +52,12 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool WriteHtml { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the HTML files written when <see cref="WriteHtml"/> is enabled should identify
+    /// the symbol declared or referenced by each identifier, so that the code can be made navigable.
+    /// </summary>
+    bool WriteHtmlSymbols { get; }
+
+    /// <summary>
     /// Gets a value indicating whether the compile-time code must be formatted.
     /// </summary>
     bool FormatCompileTimeCode { get; }
@@ -229,6 +235,18 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// </summary>
     bool? WriteTransformedFiles { get; }
 
+    /// <summary>
+    /// Gets the path of a file listing, one per line, the source files whose transformed code must be previewed, or <c>null</c>
+    /// when the compilation is not a preview. In a preview, the pipeline links, formats and writes only these files, and then
+    /// stops the compiler.
+    /// </summary>
+    string? PreviewFilesListPath { get; }
+
+    /// <summary>
+    /// Gets the path of the directory where the previewed files are written.
+    /// </summary>
+    string? PreviewOutputPath { get; }
+
     bool IsTest { get; }
 
     /// <summary>
@@ -339,6 +357,36 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// </para>
     /// </remarks>
     ImmutableArray<string> IgnoredWarnings { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the immutability rules of compile-time code are enforced, as set by the
+    /// <c>MetalamaEnforceImmutabilityContract</c> MSBuild property. The default value is <c>true</c>.
+    /// </summary>
+    bool EnforceImmutabilityContract { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the types that the project declares immutable with the <c>MetalamaImmutableType</c>
+    /// MSBuild item.
+    /// </summary>
+    ImmutableArray<string> ImmutableTypes { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the base types and interfaces whose implementations must be immutable, as declared
+    /// with the <c>MetalamaImmutableContractType</c> MSBuild item.
+    /// </summary>
+    ImmutableArray<string> ImmutableContractTypes { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the types that the project declares durable with the <c>MetalamaDurableType</c>
+    /// MSBuild item.
+    /// </summary>
+    ImmutableArray<string> DurableTypes { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the types that the project declares not durable with the
+    /// <c>MetalamaNonDurableType</c> MSBuild item.
+    /// </summary>
+    ImmutableArray<string> NonDurableTypes { get; }
 
     /// <summary>
     /// Gets the kind of durable reference that the project produces. The default value is

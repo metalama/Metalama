@@ -142,6 +142,24 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override string? AllTargetFrameworks => this.TestContextOptions.AllTargetFrameworks;
 
+    public override bool EnforceImmutabilityContract
+        => !this.TestContextOptions.Properties.TryGetValue( "MetalamaEnforceImmutabilityContract", out var value )
+           || !bool.TryParse( value, out var enforce )
+           || enforce;
+
+    public override ImmutableArray<string> ImmutableTypes => this.GetListProperty( "MetalamaImmutableTypes" );
+
+    public override ImmutableArray<string> ImmutableContractTypes => this.GetListProperty( "MetalamaImmutableContractTypes" );
+
+    public override ImmutableArray<string> DurableTypes => this.GetListProperty( "MetalamaDurableTypes" );
+
+    public override ImmutableArray<string> NonDurableTypes => this.GetListProperty( "MetalamaNonDurableTypes" );
+
+    private ImmutableArray<string> GetListProperty( string name )
+        => this.TestContextOptions.Properties.TryGetValue( name, out var value )
+            ? value.Split( ',' ).Select( n => n.Trim() ).Where( n => n.Length > 0 ).ToImmutableArray()
+            : ImmutableArray<string>.Empty;
+
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
         => this.TestContextOptions.Properties.TryGetValue( name, out value );
 

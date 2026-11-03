@@ -42,7 +42,9 @@ internal sealed class OnConstructedEpilogueAdvice : Advice<EmptyAdviceResult>
                 initContextType,
                 this.AspectLayerInstance,
                 context,
-                registerPullFallback: false );
+                registerPullFallback: false,
+                overloadingStrategy: null,
+                this );
         }
 
         return new EmptyAdviceResult( AdviceKind.AddInitializer, AdviceOutcome.Success, this.AdviceFactory );

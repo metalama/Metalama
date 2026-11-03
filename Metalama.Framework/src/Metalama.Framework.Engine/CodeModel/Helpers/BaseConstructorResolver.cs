@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -56,5 +57,36 @@ internal static class BaseConstructorResolver
             0 => null,
             _ => throw new AmbiguousMatchException( $"The base type '{baseType}' has several constructors where all parameters are optional." )
         };
+    }
+
+    /// <summary>
+    /// Returns the constructor of the same type that an aspect-introduced constructor calls with <c>: this(...)</c>, or
+    /// <c>null</c> when no single constructor matches.
+    /// </summary>
+    /// <param name="constructor">The aspect-introduced constructor.</param>
+    /// <param name="argumentNames">The parameter names of the arguments of the <c>: this(...)</c> initializer.</param>
+    /// <remarks>
+    /// The arguments of an aspect-introduced <c>: this(...)</c> initializer, such as the one of a forwarding constructor,
+    /// are passed by name. The chained constructor is therefore the only other constructor of the type that declares a
+    /// parameter for each argument name and that has a default value for each parameter that receives no argument.
+    /// An initializer with an unnamed argument is not resolved.
+    /// </remarks>
+    public static IConstructor? GetChainedThisConstructor( IConstructor constructor, IReadOnlyList<string?> argumentNames )
+    {
+        if ( argumentNames.Any( n => n == null ) )
+        {
+            return null;
+        }
+
+        var names = new HashSet<string>( argumentNames! );
+
+        var candidates = constructor.DeclaringType.Constructors
+            .Where(
+                c => !c.Equals( constructor )
+                     && names.All( n => c.Parameters.Any( p => p.Name == n ) )
+                     && c.Parameters.All( p => names.Contains( p.Name ) || p.DefaultValue != null ) )
+            .ToReadOnlyList();
+
+        return candidates.Count == 1 ? candidates[0] : null;
     }
 }

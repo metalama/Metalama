@@ -4,7 +4,7 @@
 
 #if TEST_OPTIONS
 // The union keyword is a C# 15 feature, so the transformed code of this test needs @LanguageVersion(15.0). The
-// metalamaTests.json of the CSharp15 folder requires ROSLYN_5_11_0_OR_GREATER, so this test runs in the latest
+// metalamaTests.json of the CSharp15 folder requires ROSLYN_5_12_0_OR_GREATER, so this test runs in the latest
 // Roslyn variant only.
 // @LanguageVersion(15.0)
 // @RequiredConstant(NET8_0_OR_GREATER)

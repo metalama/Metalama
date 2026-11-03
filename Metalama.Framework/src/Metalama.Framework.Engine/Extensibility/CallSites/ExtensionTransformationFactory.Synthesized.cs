@@ -241,7 +241,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             var templateProvider = request.Template.TemplateProvider.IsNull ? origin.DefaultTemplateProvider : request.Template.TemplateProvider;
 
             // The template class of a type fabric is not registered in the TemplateClassProvider, but the origin holds it when the fabric is the
-            // template provider. A project fabric or a namespace fabric cannot provide templates.
+            // template provider. The template classes of project fabrics and namespace fabrics are registered in the TemplateClassProvider.
             TemplateClass? templateClass;
 
             if ( origin.TemplateClassInstance is { } templateClassInstance && templateClassInstance.TemplateProvider == templateProvider )
@@ -252,11 +252,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             {
                 var providerName = templateProvider.Type?.FullName ?? "null";
 
-                throw new ArgumentException(
-                    origin.Predecessor.Instance is IFabricInstance
-                        ? $"The template provider '{providerName}' is a project fabric or a namespace fabric, which cannot provide templates. Declare the template in an aspect, a type fabric, or a class that implements ITemplateProvider."
-                        : $"The template provider '{providerName}' is not a known template provider.",
-                    nameof(request) );
+                throw new ArgumentException( $"The template provider '{providerName}' is not a known template provider.", nameof(request) );
             }
 
             var objectReaderFactory = serviceProvider.GetRequiredService<IObjectReaderFactory>();
@@ -271,8 +267,11 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                     var templateMember = MethodTemplateSelection.Select( templateClass, builder, request.Template.Selector )
                         .GetTemplateMember<IMethod>( this._compilation, serviceProvider, templateProvider, objectReaderFactory.GetReader( request.Template.Tags ) );
 
-                    builder.IsAsync = templateMember.GetDeclaration( this._compilation ).IsAsync;
-                    builder.SetIsIteratorMethod( templateMember.IsIteratorMethod );
+                    // A default template that is interpreted as an async template is expanded as an async method, which awaits meta.Proceed(),
+                    // as when it overrides an async method. A default template that is interpreted as an async iterator template is expanded as
+                    // an async iterator, which buffers meta.Proceed() and yields the buffered items, as when it overrides an async iterator.
+                    builder.IsAsync = templateMember.MustInterpretAsAsyncTemplate();
+                    builder.SetIsIteratorMethod( templateMember.IsIteratorMethod || templateMember.MustInterpretAsAsyncIteratorTemplate() );
                     builder.Freeze();
 
                     proceedBinding = request.CreateProceedBinding( builder ) ?? throw new ArgumentException( "The proceed binding is null.", nameof(request) );
@@ -431,6 +430,13 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             if ( binding.Kind == ProceedBindingKind.InvokeOnParameter )
             {
                 ValidateIndex( binding.ReceiverParameterIndex, "the receiver" );
+            }
+
+            if ( binding.Kind == ProceedBindingKind.InvokeOnThis && declaredMethod.IsStatic )
+            {
+                throw new ArgumentException(
+                    $"The proceed binding invokes the method '{binding.Method.Name}' on 'this', but the method '{declaredMethod.Name}' is static.",
+                    "request" );
             }
 
             if ( !binding.ArgumentParameterIndices.IsDefault )

@@ -61,3 +61,7 @@ The following contracts can be used to verify that a value falls within a specif
     * [Preconditions and postconditions](https://doc.postsharp.net/metalama/patterns/contracts/adding-contracts)
     * [Invariants](https://doc.postsharp.net/metalama/patterns/contracts/invariants)
 * [API documentation](https://doc.postsharp.net/metalama/api/metalama-patterns-contracts)
+
+## AI Coding Assistants
+
+If you use an AI coding assistant such as Claude Code, install the [Metalama AI Skills](https://github.com/metalama/Metalama.AI.Skills) plugin. It gives the assistant access to the Metalama conceptual documentation, the API reference, and code samples.

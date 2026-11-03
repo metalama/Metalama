@@ -251,11 +251,11 @@ namespace Metalama.Framework.Engine.Templating
                 _category,
                 Error );
 
-        internal static readonly DiagnosticDefinition<string> TemplateUsesUnsupportedLanguageVersion
+        internal static readonly DiagnosticDefinition<(string Version, string Explanation)> TemplateUsesUnsupportedLanguageVersion
             = new(
                 "LAMA0232",
                 "Template code uses a feature of a C# version later than the template language version.",
-                "Template code must be compatible with C# {0}, but this syntax requires a later version of C#.",
+                "Template code must be compatible with C# {0}, but this syntax requires a later version of C#. {1}",
                 _category,
                 Error );
 

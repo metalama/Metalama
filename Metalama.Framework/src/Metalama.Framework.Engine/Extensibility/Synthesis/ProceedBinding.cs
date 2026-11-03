@@ -109,6 +109,31 @@ public sealed class ProceedBinding
     }
 
     /// <summary>
+    /// Creates a binding that invokes an instance method on the <c>this</c> instance of the declared method, which must be an instance method.
+    /// </summary>
+    /// <param name="method">The invoked method. A lookup of its name in the declaring type of the declared method must find it.</param>
+    /// <param name="typeArguments">The type arguments written in the invocation, or an empty or default array to write none.</param>
+    /// <param name="argumentParameterIndices">For each parameter of <paramref name="method"/>, the index of the parameter of the declared method
+    /// that is passed. The default is the identity.</param>
+    public static ProceedBinding InvokeOnThis(
+        IMethod method,
+        ImmutableArray<IType> typeArguments = default,
+        ImmutableArray<int> argumentParameterIndices = default )
+    {
+        if ( method == null )
+        {
+            throw new ArgumentNullException( nameof(method) );
+        }
+
+        if ( method.IsStatic )
+        {
+            throw new ArgumentException( $"The method '{method}' must not be static.", nameof(method) );
+        }
+
+        return new ProceedBinding( ProceedBindingKind.InvokeOnThis, method, -1, typeArguments, argumentParameterIndices, default );
+    }
+
+    /// <summary>
     /// Returns a copy of the current binding that casts some arguments to a given type, for instance a parameter that the declared method widens to
     /// <c>object</c> or declares as <c>dynamic</c>.
     /// </summary>
@@ -127,7 +152,8 @@ public sealed class ProceedBinding
     public IMethod Method { get; }
 
     /// <summary>
-    /// Gets the index of the parameter of the declared method that is the receiver of the invocation, or -1 for a static method.
+    /// Gets the index of the parameter of the declared method that is the receiver of the invocation, or -1 when the receiver is not a
+    /// parameter.
     /// </summary>
     public int ReceiverParameterIndex { get; }
 

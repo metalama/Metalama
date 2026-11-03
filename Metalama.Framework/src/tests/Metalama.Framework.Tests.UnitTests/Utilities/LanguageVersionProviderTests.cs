@@ -47,7 +47,7 @@ public sealed class LanguageVersionProviderTests : UnitTestClass
     [InlineData( "8.0.100" )]
     [InlineData( "9.0.100" )]
     [InlineData( "10.0.100" )]
-    [InlineData( "11.0.100-rc.1.26425.128" )]
+    [InlineData( "11.0.100-rc.2.26504.105" )]
     public void PreviewVersionIsPreserved( string sdkVersion )
         => Assert.Equal( LanguageVersion.Preview, this.GetCompileTimeLanguageVersion( sdkVersion, LanguageVersion.Preview ) );
 
@@ -90,7 +90,7 @@ public sealed class LanguageVersionProviderTests : UnitTestClass
     public void DotNet11DoesNotLowerCSharp15()
         => Assert.Equal(
             AllLanguageVersions.CSharp15,
-            this.GetCompileTimeLanguageVersion( "11.0.100-rc.1.26425.128", AllLanguageVersions.CSharp15 ) );
+            this.GetCompileTimeLanguageVersion( "11.0.100-rc.2.26504.105", AllLanguageVersions.CSharp15 ) );
 
     /// <summary>
     /// An implementation of <see cref="IProjectOptions"/> that reports a given .NET software development kit version

@@ -36,6 +36,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual bool WriteHtml => this.Wrapped.WriteHtml;
 
+    public virtual bool WriteHtmlSymbols => this.Wrapped.WriteHtmlSymbols;
+
     public virtual bool FormatCompileTimeCode => this.Wrapped.FormatCompileTimeCode;
 
     public virtual bool IsUserCodeTrusted => this.Wrapped.IsUserCodeTrusted;
@@ -86,6 +88,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual bool? WriteTransformedFiles => this.Wrapped.WriteTransformedFiles;
 
+    public virtual string? PreviewFilesListPath => this.Wrapped.PreviewFilesListPath;
+
+    public virtual string? PreviewOutputPath => this.Wrapped.PreviewOutputPath;
+
     public virtual bool IsTest => this.Wrapped.IsTest;
 
     public virtual string? AssemblyLocatorHooksDirectory => this.Wrapped.AssemblyLocatorHooksDirectory;
@@ -107,6 +113,16 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
     public virtual ImmutableArray<string> SourceGeneratorAttributes => this.Wrapped.SourceGeneratorAttributes;
 
     public virtual ImmutableArray<string> IgnoredWarnings => this.Wrapped.IgnoredWarnings;
+
+    public virtual bool EnforceImmutabilityContract => this.Wrapped.EnforceImmutabilityContract;
+
+    public virtual ImmutableArray<string> ImmutableTypes => this.Wrapped.ImmutableTypes;
+
+    public virtual ImmutableArray<string> ImmutableContractTypes => this.Wrapped.ImmutableContractTypes;
+
+    public virtual ImmutableArray<string> DurableTypes => this.Wrapped.DurableTypes;
+
+    public virtual ImmutableArray<string> NonDurableTypes => this.Wrapped.NonDurableTypes;
 
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
 

@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Backstage.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -36,7 +37,7 @@ namespace Metalama.Framework.Engine.Pipeline;
 /// like <see cref="AddAspectInstances"/> or <see cref="AddAspectSources"/> that
 /// allow to add inputs to different steps of the pipeline. This object must create the steps in the appropriate order.
 /// </summary>
-internal sealed class PipelineStepsState
+internal sealed partial class PipelineStepsState
 {
     private readonly SkipListDictionary<PipelineStepId, PipelineStep> _steps;
     private readonly PipelineStepIdComparer _comparer;
@@ -45,6 +46,7 @@ internal sealed class PipelineStepsState
     private readonly ConcurrentLinkedList<AspectInstanceResult> _aspectInstanceResults = new();
     private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributors = new();
     private readonly OverflowAspectSource _overflowAspectSource = new();
+    private readonly HashSet<string> _aspectClassesReportedAsSplitByWeaver = new( StringComparer.Ordinal );
     private readonly IntrospectionPipelineListener? _introspectionListener;
     private readonly bool _shouldDetectUnorderedAspects;
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
@@ -105,6 +107,7 @@ internal sealed class PipelineStepsState
     {
         using var enumerator = this._steps.GetEnumerator();
         PipelineStep? previousStep = null;
+        ExecuteAspectLayerPipelineStep? previousExecuteStep = null;
 
         var stepIndex = 0;
 
@@ -114,7 +117,7 @@ internal sealed class PipelineStepsState
 
             this._currentStep = enumerator.Current.Value;
 
-            this.DetectUnorderedSteps( ref previousStep, this._currentStep );
+            this.DetectUnorderedSteps( ref previousStep, ref previousExecuteStep, this._currentStep );
 
             var compilation = this.LastCompilation;
 
@@ -127,26 +130,43 @@ internal sealed class PipelineStepsState
             this.FirstCompilation,
             this.LastCompilation,
             this._transformations,
-            this._inheritableAspectInstances,
+
+            // The instances are collected concurrently, so their order must be made deterministic (#2248).
+            this._inheritableAspectInstances.OrderBy( i => i, new InheritableAspectInstanceComparer( this.LastCompilation ) ).ToReadOnlyList(),
             this.Diagnostics.ToImmutable(),
             this._overflowAspectSource,
             this._extensionContributors,
             this._aspectInstanceResults );
     }
 
-    private void DetectUnorderedSteps( ref PipelineStep? previousStep, PipelineStep currentStep )
+    /// <summary>
+    /// Reports <see cref="GeneralDiagnosticDescriptors.UnorderedLayers"/> when the current step and the previous step that executes
+    /// aspect instances belong to two layers that are not strongly ordered.
+    /// </summary>
+    /// <remarks>
+    /// Only <see cref="ExecuteAspectLayerPipelineStep"/> instances are compared. An <see cref="EvaluateAspectSourcesPipelineStep"/> exists for every
+    /// aspect class of the closure of the project, including the aspect classes of referenced assemblies that the project does not apply,
+    /// whereas an <see cref="ExecuteAspectLayerPipelineStep"/> exists only for the layers that have aspect instances in the current compilation.
+    /// </remarks>
+    private void DetectUnorderedSteps( ref PipelineStep? previousStep, ref ExecuteAspectLayerPipelineStep? previousExecuteStep, PipelineStep currentStep )
     {
-        if ( previousStep != null && this._shouldDetectUnorderedAspects )
+        if ( this._shouldDetectUnorderedAspects )
         {
-            if ( previousStep.AspectLayer != currentStep.AspectLayer && previousStep.AspectLayer.ExplicitOrder >= currentStep.AspectLayer.ExplicitOrder )
+            if ( currentStep is ExecuteAspectLayerPipelineStep currentExecuteStep )
             {
-                this.Diagnostics.Report(
-                    GeneralDiagnosticDescriptors.UnorderedLayers.CreateRoslynDiagnostic(
-                        null,
-                        (previousStep.AspectLayer.AspectLayerId.ToString(), currentStep.AspectLayer.AspectLayerId.ToString()) ) );
+                if ( previousExecuteStep != null && previousExecuteStep.AspectLayer != currentExecuteStep.AspectLayer
+                                                 && previousExecuteStep.AspectLayer.ExplicitOrder >= currentExecuteStep.AspectLayer.ExplicitOrder )
+                {
+                    this.Diagnostics.Report(
+                        GeneralDiagnosticDescriptors.UnorderedLayers.CreateRoslynDiagnostic(
+                            null,
+                            (previousExecuteStep.AspectLayer.AspectLayerId.ToString(), currentExecuteStep.AspectLayer.AspectLayerId.ToString()) ) );
+                }
+
+                previousExecuteStep = currentExecuteStep;
             }
 
-            if ( this._comparer.Compare( currentStep.Id, previousStep.Id ) < 0 )
+            if ( previousStep != null && this._comparer.Compare( currentStep.Id, previousStep.Id ) < 0 )
             {
                 throw new AssertionFailedException( "Steps with lower depth must be processed before steps with higher depth." );
             }
@@ -228,7 +248,7 @@ internal sealed class PipelineStepsState
         IUserDiagnosticSink diagnosticSink,
         CancellationToken cancellationToken )
     {
-        var collector = new AspectInstanceCollector( aspectClass, compilation, diagnosticSink, cancellationToken );
+        var collector = new AspectInstanceCollector( aspectClass, compilation, this.FirstCompilation, diagnosticSink, cancellationToken );
 
         await this._concurrentTaskRunner.RunConcurrentlyAsync(
             aspectSources.Where( a => a.ContainsAspectClass( aspectClass ) ),
@@ -431,6 +451,18 @@ internal sealed class PipelineStepsState
     {
         foreach ( var aspectInstance in aspectInstances )
         {
+            if ( this.PipelineConfiguration.AspectClassesSplitByWeaver.TryGetValue(
+                    aspectInstance.AspectInstance.AspectClass.FullName,
+                    out var separatingWeaverAspectName ) )
+            {
+                // The layers of this aspect class are split across several stages, which is not supported (issue #1636).
+                // The error is reported once per aspect class, and the instance is skipped.
+                this.ReportAspectLayersSeparatedByWeaver( aspectInstance.AspectInstance.AspectClass, separatingWeaverAspectName );
+                aspectInstance.AspectInstance.Skip();
+
+                continue;
+            }
+
             foreach ( var layer in aspectInstance.AspectInstance.AspectClass.Layers )
             {
                 var aspectTargetDeclaration = (IDeclaration) aspectInstance.TargetDeclaration;
@@ -466,6 +498,26 @@ internal sealed class PipelineStepsState
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Reports <see cref="GeneralDiagnosticDescriptors.AspectLayersSeparatedByWeaver"/> for an aspect class, unless it has already been reported
+    /// for this aspect class.
+    /// </summary>
+    private void ReportAspectLayersSeparatedByWeaver( IAspectClassImpl aspectClass, string separatingWeaverAspectName )
+    {
+        lock ( this._aspectClassesReportedAsSplitByWeaver )
+        {
+            if ( !this._aspectClassesReportedAsSplitByWeaver.Add( aspectClass.FullName ) )
+            {
+                return;
+            }
+        }
+
+        this.Report(
+            GeneralDiagnosticDescriptors.AspectLayersSeparatedByWeaver.CreateRoslynDiagnostic(
+                (aspectClass as IBoundAspectClass)?.GetDiagnosticLocation( this.FirstCompilation.RoslynCompilation ),
+                (aspectClass.ShortName, separatingWeaverAspectName) ) );
     }
 
     private void AddInheritableAspectInstances( IEnumerable<AspectInstance> inheritedAspectInstances )

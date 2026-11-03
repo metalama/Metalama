@@ -53,6 +53,12 @@ public abstract class PipelineExtension
         UserDiagnosticSink diagnosticSink )
         => [];
 
+    /// <summary>
+    /// Executes the contributors at compile time. The method is invoked once per pipeline execution, before any low-level aspect weaver.
+    /// </summary>
+    /// <remarks>
+    /// The transitive contributors that this method returns are kept in the result of the pipeline. A contribution made by an aspect that executes after a low-level aspect weaver is not processed.
+    /// </remarks>
     public virtual Task<ExtensionPipelineContributorsResult> ExecutePipelineContributorsAsync(
         AspectPipelineConfiguration pipelineConfiguration,
         IEnumerable<IPipelineContributor> contributors,

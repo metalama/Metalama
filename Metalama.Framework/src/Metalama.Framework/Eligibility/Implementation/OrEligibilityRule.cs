@@ -2,9 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Project;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Metalama.Framework.Eligibility.Implementation
@@ -52,8 +53,11 @@ namespace Metalama.Framework.Eligibility.Implementation
 
                 default:
                     {
-                        StringBuilder stringBuilder = new();
-                        stringBuilder.Append( "none of these conditions was fulfilled: { " );
+                        // The justifications are passed as arguments and are not formatted here. This allows the caller to translate
+                        // the declarations they contain before the diagnostic is formatted.
+                        StringBuilder format = new();
+                        format.Append( "none of these conditions was fulfilled: {{ " );
+                        var arguments = new List<object>( this._predicates.Length );
                         var letter = 'a';
 
                         for ( var i = 0; i < this._predicates.Length; i++ )
@@ -65,23 +69,24 @@ namespace Metalama.Framework.Eligibility.Implementation
                             {
                                 if ( i > 0 )
                                 {
-                                    stringBuilder.Append( ", or " );
+                                    format.Append( ", or " );
                                 }
 
-                                stringBuilder.Append( '(' );
-                                stringBuilder.Append( letter );
-                                stringBuilder.Append( ')' );
-                                stringBuilder.Append( ' ' );
+                                format.Append( '(' );
+                                format.Append( letter );
+                                format.Append( ") {" );
+                                format.Append( arguments.Count );
+                                format.Append( '}' );
 
-                                stringBuilder.Append( justification.ToString( MetalamaExecutionContext.Current.FormatProvider ) );
+                                arguments.Add( justification );
                             }
 
                             letter++;
                         }
 
-                        stringBuilder.Append( " }" );
+                        format.Append( " }}" );
 
-                        return $"{stringBuilder}";
+                        return FormattableStringFactory.Create( format.ToString(), arguments.ToArray() );
                     }
             }
         }

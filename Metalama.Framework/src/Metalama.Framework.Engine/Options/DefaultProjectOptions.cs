@@ -30,6 +30,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool WriteHtml => false;
 
+    public virtual bool WriteHtmlSymbols => false;
+
     public virtual bool FormatCompileTimeCode => false;
 
     public virtual bool IsUserCodeTrusted => true;
@@ -106,6 +108,10 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool? WriteTransformedFiles => false;
 
+    public virtual string? PreviewFilesListPath => null;
+
+    public virtual string? PreviewOutputPath => null;
+
     public virtual bool IsTest => false;
 
     public virtual string? AssemblyLocatorHooksDirectory => null;
@@ -121,6 +127,16 @@ public class DefaultProjectOptions : IProjectOptions
     public virtual ImmutableArray<string> SourceGeneratorAttributes => ImmutableArray<string>.Empty;
 
     public virtual ImmutableArray<string> IgnoredWarnings => ImmutableArray<string>.Empty;
+
+    public virtual bool EnforceImmutabilityContract => true;
+
+    public virtual ImmutableArray<string> ImmutableTypes => ImmutableArray<string>.Empty;
+
+    public virtual ImmutableArray<string> ImmutableContractTypes => ImmutableArray<string>.Empty;
+
+    public virtual ImmutableArray<string> DurableTypes => ImmutableArray<string>.Empty;
+
+    public virtual ImmutableArray<string> NonDurableTypes => ImmutableArray<string>.Empty;
 
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => ImmutableArray<TargetedAssemblyReference>.Empty;
 

@@ -13,14 +13,14 @@
 | 0500-0539 | Advices
 | 0540-0549 | Extension Block Introduction
 | 0600-0649 | Metalama.Compiler
-| 0650-0699 | Linker (0656-0669: primitives for extensions, such as call-site redirections)
+| 0650-0699 | Linker (0656: InitializeNotCalledInExpressionTree; 0657-0669: primitives for extensions, such as call-site redirections)
 | 0700      | Metalama.Framework
 | 0701-0749 | Extensions.DependencyInjection
 | 0750-0799 | Metalama.Framework
 | 0800-0819 | Licensing
 | 0820-0869 | Engine.Analyzers
 | 0870-0879 | Framework.Analyzers (the [Durable] contract)
-| 0880-0889 | Framework.Analyzers (the [ImmutableType] contract)
+| 0880-0899 | Framework.Analyzers (the [ImmutableType] contract and the static members of compile-time types)
 | 0900-0999 | Extensions.Architecture
 | 1000-1049 | Extensions.Interceptors (Metalama.Premium)
 | 5000-5019 | Metalama.Patterns.Contracts

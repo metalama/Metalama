@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
+using Metalama.Framework.Engine.Templating.Immutability;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 
@@ -46,6 +47,7 @@ namespace Metalama.Framework.DesignTime.Diagnostics
                 typeof(CodeFixHelper),
                 typeof(GeneralDiagnosticDescriptors),
                 typeof(TemplatingDiagnosticDescriptors),
+                typeof(ImmutabilityDiagnosticDescriptors),
                 typeof(SerializationDiagnosticDescriptors),
                 typeof(DesignTimeDiagnosticDescriptors),
                 typeof(AttributeDeserializerDiagnostics),

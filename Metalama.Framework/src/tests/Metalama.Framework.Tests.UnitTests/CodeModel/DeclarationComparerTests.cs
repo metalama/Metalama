@@ -8,7 +8,7 @@ using Metalama.Testing.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER && NET7_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -504,7 +504,7 @@ class B : A, I
             Assert.False( comparer.IsConvertibleTo( typeB, typeof(int), ConversionKind.Identical, bypassSymbols ) );
         }
 
-#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+#if ROSLYN_5_12_0_OR_GREATER && NET7_0_OR_GREATER
 
         // The union is a C# 15 feature, so only the latest Roslyn variant parses it. The test is further restricted
         // to .NET 7 and later, because the compiler emits CompilerFeatureRequiredAttribute on the members of a union

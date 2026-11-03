@@ -45,6 +45,7 @@ namespace Metalama.Framework.Diagnostics;
 /// <seealso href="@diagnostics"/>
 [CompileTime]
 [PublicAPI]
+[ImmutableType]
 public sealed class SuppressionDefinition : ISuppression
 {
     /// <summary>

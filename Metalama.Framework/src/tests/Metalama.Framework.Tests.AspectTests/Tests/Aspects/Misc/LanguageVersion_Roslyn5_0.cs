@@ -6,7 +6,7 @@
 // The counterpart of LanguageVersion, for the Roslyn 5.0 variant, whose LAMA0052 message does not list C# 15.
 // See the comment of that test for why the scenario is split in two.
 // @LanguageVersion(8.0)
-// @ForbiddenConstant(ROSLYN_5_11_0_OR_GREATER)
+// @ForbiddenConstant(ROSLYN_5_12_0_OR_GREATER)
 #endif
 
 using Metalama.Framework.Aspects;

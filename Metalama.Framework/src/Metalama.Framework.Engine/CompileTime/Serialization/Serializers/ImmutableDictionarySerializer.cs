@@ -19,6 +19,19 @@ internal sealed class ImmutableDictionarySerializer<TKey, TValue> : ReferenceTyp
     private const string _keysName = "k";
     private const string _valuesName = "v";
 
+    /// <summary>
+    /// The comparer that defines the order in which the keys are serialized, or <c>null</c> if the keys cannot be ordered.
+    /// </summary>
+    /// <remarks>
+    /// An <see cref="ImmutableDictionary{TKey,TValue}"/> enumerates its keys in the order of their hash codes, and the hash code
+    /// of a string is randomized per process. The keys are therefore sorted, so that the same dictionary produces the same bytes
+    /// in any process (#2248).
+    /// </remarks>
+    private static readonly IComparer<TKey>? _keyComparer =
+        typeof(TKey) == typeof(string) ? (IComparer<TKey>) StringComparer.Ordinal
+        : typeof(IComparable<TKey>).IsAssignableFrom( typeof(TKey) ) ? Comparer<TKey>.Default
+        : null;
+
     /// <exclude/>
     public override object CreateInstance( Type type, IArgumentsReader constructorArguments )
     {
@@ -45,8 +58,23 @@ internal sealed class ImmutableDictionarySerializer<TKey, TValue> : ReferenceTyp
     public override void SerializeObject( object obj, IArgumentsWriter constructorArguments, IArgumentsWriter initializationArguments )
     {
         var dictionary = (ImmutableDictionary<TKey, TValue>) obj;
-        var keys = dictionary.Keys.ToArray();
-        var values = dictionary.Values.ToArray();
+        var pairs = dictionary.ToArray();
+
+        var keyComparer = _keyComparer;
+
+        if ( keyComparer != null )
+        {
+            Array.Sort( pairs, ( x, y ) => keyComparer.Compare( x.Key, y.Key ) );
+        }
+
+        var keys = new TKey[pairs.Length];
+        var values = new TValue[pairs.Length];
+
+        for ( var i = 0; i < pairs.Length; i++ )
+        {
+            keys[i] = pairs[i].Key;
+            values[i] = pairs[i].Value;
+        }
 
         var comparerCode = ComparerExtensions.GetComparerCode( dictionary.KeyComparer );
 

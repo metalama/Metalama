@@ -41,8 +41,12 @@ namespace Metalama.Framework.Engine.CompileTime
     [PublicAPI]
     public class CompileTimeDomain : IDisposable
     {
-        private static readonly ConcurrentDictionary<string, object> _locksByPath = new();
         private static int _nextDomainId;
+
+        /// <summary>
+        /// The locks that prevent two threads from loading the same file into this domain concurrently, indexed by path.
+        /// </summary>
+        private readonly ConcurrentDictionary<string, object> _locksByPath = new();
         private readonly ConcurrentDictionary<AssemblyIdentity, Assembly> _assemblyCache = new();
         private readonly int _domainId = Interlocked.Increment( ref _nextDomainId );
 
@@ -132,30 +136,35 @@ namespace Metalama.Framework.Engine.CompileTime
                 return existingAssembly;
             }
 
-            // The assembly might already be loaded in the AppDomain or AssemblyLoadContext.
+            // The assembly might already be loaded in the AppDomain or AssemblyLoadContext. In this case, we must use that copy.
             if ( this._assemblyLoader!.TryGetLoadedAssembly( assemblyName, out existingAssembly ) )
             {
                 this.AddAssembly( existingAssembly! );
+
+                return existingAssembly!;
             }
 
-            // Take a lock to avoid concurrently loading the same assembly twice, which may corrupts the CLR.
-            var @lock = _locksByPath.GetOrAdd( path, _ => new object() );
-
-            Assembly assembly;
+            // Take a lock to avoid concurrently loading the same assembly twice into this domain, which may corrupt the CLR.
+            // The lock is specific to the domain, so that domains do not wait for each other. It is not removed after the load,
+            // otherwise a thread arriving later could create a second lock for the same path.
+            var @lock = this._locksByPath.GetOrAdd( path, _ => new object() );
 
             lock ( @lock )
             {
+                // Another thread may have loaded the assembly while this thread was waiting for the lock.
+                if ( this.TryGetLoadedAssembly( assemblyName, out existingAssembly ) )
+                {
+                    return existingAssembly;
+                }
+
                 // Loads the assembly.
-                assembly = this.LoadAssemblyCore( path, options );
+                var assembly = this.LoadAssemblyCore( path, options );
 
                 // Adds the assembly to our collections, including _assembliesByPath.
                 this.AddAssembly( assembly );
+
+                return assembly;
             }
-
-            // Removing the lock.
-            _locksByPath.TryRemove( path, out _ );
-
-            return assembly;
         }
 
         protected virtual Assembly LoadAssemblyCore( string path, LoadAssemblyOptions options )

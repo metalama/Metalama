@@ -28,8 +28,8 @@
 
     <ItemGroup>
         <!-- By convention, we use InternalsVisibleTo only for test projects that must have access to internals.
-             ImmutableTableCorrespondenceTests reads the well-known tables directly, because asserting the list itself
-             is what keeps it from drifting away from Metalama.Patterns.Immutability. -->
+             The tests read the well-known durability tables directly, because asserting the lists themselves is
+             what keeps them from drifting. -->
         <InternalsVisibleTo Include="Metalama.Framework.Analyzers.Tests" />
     </ItemGroup>
 

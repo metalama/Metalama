@@ -7,11 +7,10 @@ internal class TargetClass
     Console.WriteLine("Begin target.");
     if (x == 0)
     {
-      goto __aspect_return_1;
+      return;
     }
     Console.WriteLine("End target.");
-    __aspect_return_1:
-      return;
+    return;
   }
   [Override]
   public int Method(int x)

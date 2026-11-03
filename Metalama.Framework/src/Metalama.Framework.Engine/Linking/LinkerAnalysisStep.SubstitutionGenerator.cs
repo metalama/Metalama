@@ -367,6 +367,12 @@ internal sealed partial class LinkerAnalysisStep
                         var returnStatement = returnStatementRecord.Key;
                         var returnStatementProperties = returnStatementRecord.Value;
 
+                        if ( !returnStatementProperties.FlowsToExitIfRewritten && inliningSpecification.PreserveReturnStatements )
+                        {
+                            // The return statement has the same effect as the return statement that follows the replaced statement.
+                            continue;
+                        }
+
                         Invariant.AssertNot( !returnStatementProperties.FlowsToExitIfRewritten && inliningSpecification.ReturnLabelIdentifier == null );
 
                         AddSubstitution(
@@ -522,6 +528,17 @@ internal sealed partial class LinkerAnalysisStep
                                 reference.ReferencingOverrideTarget,
                                 reference.TargetMethod,
                                 reference.ParametersToFix ) );
+                    }
+                }
+
+                // Add substitutions for IInitializable call site references in the inlined body.
+                // The original body of an overridden member is inlined into the override, so its call sites
+                // are not processed by ProcessNonInlinedSemantic.
+                if ( this._onInitializedCallSitesByContainingSemantic.TryGetValue( inliningSpecification.TargetSemantic, out var onInitializedCallSites ) )
+                {
+                    foreach ( var reference in onInitializedCallSites )
+                    {
+                        AddSubstitution( inliningSpecification.ContextIdentifier, this.CreateInitializerSubstitution( reference ) );
                     }
                 }
             }

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Diagnostics;
@@ -212,6 +213,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                 var sourceSymbol = (IMethodSymbol) semanticModel.GetSymbolInfo( invocation ).Symbol!;
                 var sourceMethod = compilation.Factory.GetMethod( sourceSymbol );
                 var hasReceiver = !sourceMethod.IsStatic;
+                var hasReceiverParameter = hasReceiver && !options.ReceiverIsThis;
                 var key = options.OneMethodPerSite ? $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}" : (options.Generic ? sourceSymbol.OriginalDefinition : sourceSymbol).ToDisplayString();
 
                 if ( !declaredMethods.TryGetValue( key, out var method ) )
@@ -277,7 +279,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             ? builder.TypeParameters[returnTypeParameter.Index]
                             : signatureMethod.ReturnType;
 
-                        if ( hasReceiver )
+                        if ( hasReceiverParameter )
                         {
                             builder.AddParameter( "receiver", sourceMethod.DeclaringType );
                         }
@@ -303,14 +305,22 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                                 Enumerable.Repeat( declaredMethod.Parameters.Count, signatureMethod.Parameters.Count ).ToImmutableArray() );
                         }
 
+                        if ( options.ReceiverIsThis )
+                        {
+                            return ProceedBinding.InvokeOnThis( signatureMethod, typeArguments );
+                        }
+
                         return hasReceiver
                             ? ProceedBinding.InvokeOnParameter( signatureMethod, 0, typeArguments )
                             : ProceedBinding.InvokeStatic( signatureMethod, typeArguments );
                     }
 
-                    var template = new SynthesizedMethodTemplate( redirection.Template! )
+                    var template = new SynthesizedMethodTemplate(
+                        new MethodTemplateSelector(
+                            redirection.Template!,
+                            useAsyncTemplateForAnyAwaitable: options.UseAsyncTemplateForAnyAwaitable ) )
                     {
-                        HiddenLeadingParameterCount = hasReceiver ? 1 : 0,
+                        HiddenLeadingParameterCount = hasReceiverParameter ? 1 : 0,
                         Arguments = options.Label == null ? null : new { label = options.Label },
                         MetaExtensions = metaExtensions
                     };
@@ -326,7 +336,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             ? new TestRefusingRestrictions( refusedParameterType )
                             : new LockedSignatureRestrictions
                             {
-                                LockedLeadingParameterCount = (hasReceiver ? 1 : 0) + sourceMethod.Parameters.Count,
+                                LockedLeadingParameterCount = (hasReceiverParameter ? 1 : 0) + sourceMethod.Parameters.Count,
                                 IsReturnTypeLocked = true,
                                 LockedTypeParameterCount = options.Generic ? signatureMethod.TypeParameters.Count : 0,
                                 IsNameLocked = options.LockName,
@@ -412,7 +422,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                     new InvocationRedirectionRequest(
                         invocation,
                         CallSiteRedirectionTarget.Synthesized( method ),
-                        hasReceiver ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop )
+                        hasReceiverParameter ? CallSiteReceiverMode.FirstArgument
+                        : hasReceiver ? CallSiteReceiverMode.Receiver
+                        : CallSiteReceiverMode.Drop )
                     {
                         TypeArguments = GetTypeArguments()
                     } );

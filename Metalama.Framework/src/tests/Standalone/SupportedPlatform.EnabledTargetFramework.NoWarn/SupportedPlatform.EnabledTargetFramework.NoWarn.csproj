@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- LAMA0604 added to NoWarn suppresses the warning about an enabled target framework and leaves LAMA0600 in place.
+         'net472' would report LAMA0604, which NoWarn suppresses. 'net8.0' is older than the minimum and reports
+         LAMA0600, which must survive.
+         See https://github.com/metalama/Metalama/issues/2023. -->
+
+    <PropertyGroup>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <OutputType>Library</OutputType>
+        <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
+        <NoWarn>$(NoWarn);LAMA0604</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
