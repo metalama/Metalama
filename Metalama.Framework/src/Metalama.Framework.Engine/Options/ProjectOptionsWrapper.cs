@@ -88,6 +88,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual bool? WriteTransformedFiles => this.Wrapped.WriteTransformedFiles;
 
+    public virtual string? PreviewFilesListPath => this.Wrapped.PreviewFilesListPath;
+
+    public virtual string? PreviewOutputPath => this.Wrapped.PreviewOutputPath;
+
     public virtual bool IsTest => this.Wrapped.IsTest;
 
     public virtual string? AssemblyLocatorHooksDirectory => this.Wrapped.AssemblyLocatorHooksDirectory;
@@ -115,6 +119,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
     public virtual ImmutableArray<string> ImmutableTypes => this.Wrapped.ImmutableTypes;
 
     public virtual ImmutableArray<string> ImmutableContractTypes => this.Wrapped.ImmutableContractTypes;
+
+    public virtual ImmutableArray<string> DurableTypes => this.Wrapped.DurableTypes;
+
+    public virtual ImmutableArray<string> NonDurableTypes => this.Wrapped.NonDurableTypes;
 
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
 

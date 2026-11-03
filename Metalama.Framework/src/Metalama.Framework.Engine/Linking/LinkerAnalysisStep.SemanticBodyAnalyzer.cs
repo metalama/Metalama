@@ -143,6 +143,14 @@ internal sealed partial class LinkerAnalysisStep
                     // Go through all return statements.
                     foreach ( var returnStatement in rootBlockCfa.ReturnStatements.OfType<ReturnStatementSyntax>() )
                     {
+                        if ( IsNestedInSwitchSection( returnStatement, rootBlock ) )
+                        {
+                            // Removing the return statement would make the end of a switch section reachable, which is not allowed.
+                            returnStatementProperties.Add( returnStatement, new ReturnStatementProperties( false, false ) );
+
+                            continue;
+                        }
+
                         switch ( returnStatement.Parent?.Kind() )
                         {
                             case SyntaxKind.Block when returnStatement.Parent is BlockSyntax parentBlock:
@@ -420,6 +428,23 @@ internal sealed partial class LinkerAnalysisStep
                     _ => throw new AssertionFailedException( $"Unexpected node: {CSharpExtensions.Kind( declaration )}." )
                 };
             }
+        }
+
+        /// <summary>
+        /// Determines whether a return statement is contained in a switch section and cannot be replaced by a <c>break</c> statement.
+        /// </summary>
+        /// <remarks>
+        /// A return statement that is directly contained in the only enclosing switch section can be replaced by a <c>break</c> statement.
+        /// When the return statement is contained in a nested statement of the switch section (for example a block or an <c>if</c> statement),
+        /// or in a nested switch statement, removing it would make the end of a switch section reachable, which is an error (CS0163).
+        /// </remarks>
+        private static bool IsNestedInSwitchSection( ReturnStatementSyntax returnStatement, BlockSyntax rootBlock )
+        {
+            var switchSectionCount = returnStatement.Ancestors()
+                .TakeWhile( n => n != rootBlock )
+                .Count( n => n.IsKind( SyntaxKind.SwitchSection ) );
+
+            return switchSectionCount > 1 || (switchSectionCount == 1 && !returnStatement.Parent.IsKind( SyntaxKind.SwitchSection ));
         }
 
         private static StatementSyntax? GetLastFlowStatement( SyntaxList<StatementSyntax> statements )

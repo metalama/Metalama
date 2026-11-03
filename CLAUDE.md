@@ -121,7 +121,7 @@ When starting work on a GitHub issue:
 
    - **Several .NET SDK feature bands may be installed, and a stale `MSBuildExtensionsPath` is what makes them
      conflict.** Visual Studio installs an SDK of its own through the `Microsoft.NetCore.Component.SDK` component,
-     and Visual Studio 2026 18.9 installs 10.0.400. On a fresh checkout `global.json` does not exist yet, because
+     and Visual Studio 2026 18.11 installs 10.0.403. On a fresh checkout `global.json` does not exist yet, because
      it is generated and git-ignored, so `BuildMetalama` starts under the highest installed SDK and the .NET
      command line interface exports `MSBuildExtensionsPath` for it. The `prepare` step then writes `global.json`,
      and every child process resolves the pinned SDK for itself but inherits the stale `MSBuildExtensionsPath`.

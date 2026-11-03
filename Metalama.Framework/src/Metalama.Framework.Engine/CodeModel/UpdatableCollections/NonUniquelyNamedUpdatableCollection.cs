@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel.References;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Threading;
 
 namespace Metalama.Framework.Engine.CodeModel.UpdatableCollections;
 
@@ -19,30 +20,53 @@ internal abstract class NonUniquelyNamedUpdatableCollection<T> : MemberUpdatable
         compilation,
         declaringNamespaceOrType ) { }
 
+    /// <summary>
+    /// Gets the by-name dictionary, and initializes it to an empty dictionary if it has not been initialized yet.
+    /// </summary>
+    /// <remarks>
+    /// The empty dictionary is published with <see cref="Interlocked.CompareExchange{T}(ref T, T, T)"/>, so that a concurrent
+    /// initialization cannot overwrite a dictionary that another thread has already written. See #2303.
+    /// </remarks>
     private ImmutableDictionary<string, MemberRefUpdatableArray<T>> GetInitializedByNameDictionary()
-        => this._byNameDictionary ??= ImmutableDictionary<string, MemberRefUpdatableArray<T>>.Empty.WithComparers( StringComparer.Ordinal );
+        => this._byNameDictionary
+           ?? Interlocked.CompareExchange(
+               ref this._byNameDictionary,
+               ImmutableDictionary<string, MemberRefUpdatableArray<T>>.Empty.WithComparers( StringComparer.Ordinal ),
+               null )
+           ?? this._byNameDictionary!;
 
     public override ImmutableArray<IFullRef<T>> OfName( string name )
     {
-        var byName = this.GetInitializedByNameDictionary();
-
-        if ( byName.TryGetValue( name, out var updatableArray ) )
+        if ( this.GetInitializedByNameDictionary().TryGetValue( name, out var updatableArray ) )
         {
             return updatableArray.Array;
         }
-        else if ( !this.IsComplete )
-        {
-            var members = new MemberRefUpdatableArray<T>(
-                this.GetMemberRefsOfName( name ).ToImmutableArray(),
-                this.Compilation );
 
-            this._byNameDictionary = byName.SetItem( name, members );
-
-            return members.Array;
-        }
-        else
+        // The lock is the one that EnsureComplete takes. Under the lock, the dictionary and IsComplete are read again, so that
+        // a collection completed by another thread is observed together with its complete dictionary, and so that the
+        // dictionary written here does not replace the one written by PopulateAllItems. See #2303.
+        lock ( this )
         {
-            return ImmutableArray<IFullRef<T>>.Empty;
+            var byName = this.GetInitializedByNameDictionary();
+
+            if ( byName.TryGetValue( name, out updatableArray ) )
+            {
+                return updatableArray.Array;
+            }
+            else if ( !this.IsComplete )
+            {
+                var members = new MemberRefUpdatableArray<T>(
+                    this.GetMemberRefsOfName( name ).ToImmutableArray(),
+                    this.Compilation );
+
+                this._byNameDictionary = byName.SetItem( name, members );
+
+                return members.Array;
+            }
+            else
+            {
+                return ImmutableArray<IFullRef<T>>.Empty;
+            }
         }
     }
 

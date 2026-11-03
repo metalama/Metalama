@@ -51,8 +51,19 @@
         <PackageReference Include="Metalama.Compiler.Sdk"/>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" ExcludeAssets="all"/>
         <PackageReference Include="Microsoft.CodeAnalysis.Common" ExcludeAssets="all"/>
+
+        <!-- The preview command runs MSBuild in the process. DotNetSdkLocator of this package registers the MSBuild of a .NET SDK
+             with Microsoft.Build.Locator. -->
+        <PackageReference Include="SharpCrafters.Aspects.Introspection.Query" />
+
+        <!-- The MSBuild assemblies are resolved from the .NET SDK by Microsoft.Build.Locator, so none may be copied to the output
+             directory, where it would be found before the locator registers the SDK. Excluding the run-time assets of a package
+             does not exclude those of its dependencies, hence the three references. See Metalama.Framework.Workspaces. -->
+        <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.NET.StringTools" ExcludeAssets="runtime" PrivateAssets="all" />
     </ItemGroup>
-    
+
     <ItemGroup>
       <ProjectReference Include="..\Metalama.Framework.ConfigurationFiles\Metalama.Framework.ConfigurationFiles.csproj" PrivateAssets="none" />
     </ItemGroup>

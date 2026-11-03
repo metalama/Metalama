@@ -1,0 +1,47 @@
+<Project DefaultTargets="Build">
+
+  <!-- Imports Directory.Build.props of the upper directory. We must do this explicitly because this project has no SDK. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <!--
+    Issue #2249 - the Metalama.CompileTimeProject.zip resource embedded in a project that defines aspects and fabrics
+    must not depend on the directory of the sources when the project maps this directory with PathMap. The zip is also
+    embedded in the reference assembly, so a zip that holds absolute paths changes the reference assembly in each clone.
+
+    The target copies the sources of AspectLib to a second directory, which has a different depth, builds the project
+    in both directories, and compares the reference and implementation assemblies.
+  -->
+  <PropertyGroup>
+    <AspectLibDirectory>$(MSBuildThisFileDirectory)AspectLib/</AspectLibDirectory>
+    <CopyDirectory>$(MSBuildThisFileDirectory)obj/Copy/Deeper/AspectLib/</CopyDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AspectLibSource Include="$(AspectLibDirectory)*.cs;$(AspectLibDirectory)*.csproj" />
+  </ItemGroup>
+
+  <Target Name="Build">
+    <RemoveDir Directories="$(CopyDirectory)" />
+    <Copy SourceFiles="@(AspectLibSource)" DestinationFolder="$(CopyDirectory)" />
+
+    <Exec Command="dotnet build &quot;$(AspectLibDirectory)AspectLib.csproj&quot; -t:Rebuild -c Debug" />
+    <Exec Command="dotnet build &quot;$(CopyDirectory)AspectLib.csproj&quot; -t:Rebuild -c Debug" />
+
+    <GetFileHash Files="$(AspectLibDirectory)obj/Debug/net8.0/ref/AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="FirstRefAssemblyHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(CopyDirectory)obj/Debug/net8.0/ref/AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="SecondRefAssemblyHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(AspectLibDirectory)bin/Debug/net8.0/AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="FirstAssemblyHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(CopyDirectory)bin/Debug/net8.0/AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="SecondAssemblyHash" />
+    </GetFileHash>
+
+    <Error Text="The reference assembly depends on the directory of the sources ($(FirstRefAssemblyHash) vs $(SecondRefAssemblyHash))." Condition="'$(FirstRefAssemblyHash)' != '$(SecondRefAssemblyHash)'" />
+    <Error Text="The assembly depends on the directory of the sources ($(FirstAssemblyHash) vs $(SecondAssemblyHash))." Condition="'$(FirstAssemblyHash)' != '$(SecondAssemblyHash)'" />
+  </Target>
+
+</Project>

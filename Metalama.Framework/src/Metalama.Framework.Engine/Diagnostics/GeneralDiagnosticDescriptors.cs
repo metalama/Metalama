@@ -431,6 +431,16 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Warning,
                 "Code formatting is enabled. Build performance could be significantly affected." );
 
+        // An error, because only an error makes the compiler stop before running the source generators and the analyzers,
+        // and before emitting the assembly. The `metalama preview` command recognizes it and does not report it.
+        internal static readonly DiagnosticDefinition<string>
+            PreviewCompleted = new(
+                "LAMA0121",
+                _category,
+                "The Metalama preview has been written to '{0}'. The compilation was stopped on purpose.",
+                Error,
+                "The Metalama preview is complete." );
+
         internal static readonly DiagnosticDefinition<IConstructor>
             CannotInvokeStaticConstructor =
                 new( "LAMA0067", _category, "Constructor '{0}' cannot be invoked because it is static.", Error, "Static constructor cannot be invoked." );

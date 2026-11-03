@@ -167,7 +167,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
 
                     // Filter out transformations that are not considered observed by the partial compilation
                     // or by any other aspect.
-                    if ( partialCompilation.HasObservabilityFilter )
+                    if ( partialCompilation.DiscardsUnobservedTransformations )
                     {
                         // ReSharper disable once AccessToModifiedClosure
                         transformations = transformations.Where(

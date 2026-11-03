@@ -1,0 +1,364 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using SharpCrafters.Aspects.Introspection.Query.Projects;
+using SharpCrafters.Backstage.Commands;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Maintenance;
+using SharpCrafters.Backstage.Utilities;
+using Spectre.Console;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+
+namespace Metalama.Tool.Preview;
+
+/// <summary>
+/// Implements <c>metalama preview</c>. The command uses MSBuild only to get the command line of the compiler, then runs the
+/// Metalama compiler of the project itself, so that the version of Metalama that transforms the code is the one of the project.
+/// The compiler runs the aspects on the whole project, but links and formats only the requested files, writes them to a
+/// temporary directory with a <c>preview.json</c> manifest, and then stops with the LAMA0121 error, before running the source
+/// generators and the analyzers and before emitting the assembly.
+/// </summary>
+internal sealed class PreviewService
+{
+    // Reported by the compiler when the preview is complete. It is an error only to make the compiler stop.
+    private const string _previewCompletedDiagnosticId = "LAMA0121";
+
+    private const string _manifestFileName = "preview.json";
+
+    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    // A diagnostic of the compiler is written as `<location>: <severity> <id>: <message>`, or as `<severity> <id>: <message>` when
+    // it has no location. The severity and the identifier are read from this prefix only, so that a path or a message that contains
+    // an identifier is not mistaken for it.
+    private static readonly Regex _diagnosticRegex = new(
+        @"(?:^|: )(?<severity>error|warning|info) (?<id>[A-Za-z]+[0-9]+)\s*:",
+        RegexOptions.CultureInvariant );
+
+    private readonly ExtendedCommandContext _context;
+
+    public PreviewService( ExtendedCommandContext context )
+    {
+        this._context = context;
+    }
+
+    private IAnsiConsole Error => this._context.Console.Error;
+
+    public void Execute( PreviewCommandSettings settings )
+    {
+        if ( settings.Files.Length == 0 )
+        {
+            throw new CommandException( "At least one file must be specified." );
+        }
+
+        var files = settings.Files.Select( Path.GetFullPath ).ToArray();
+
+        foreach ( var file in files )
+        {
+            if ( !File.Exists( file ) )
+            {
+                throw new CommandException( $"The file '{file}' does not exist." );
+            }
+        }
+
+        var projectPath = settings.Project != null ? Path.GetFullPath( settings.Project ) : FindProject( files[0] );
+        var projectDirectory = Path.GetDirectoryName( projectPath )!;
+
+        // MSBuild runs in the process, so the MSBuild of a .NET SDK must be registered before any of its types is loaded.
+        var registration = DotNetSdkLocator.EnsureRegistered();
+
+        if ( registration.Failure != null )
+        {
+            throw new CommandException( registration.Failure );
+        }
+
+        var (compilerPath, compilerArguments) = GetCompilerCommandLine( projectPath, settings );
+
+        // Each preview gets a directory of its own, which is deleted at the end, and otherwise by the clean-up of Backstage.
+        var tempDirectory = this._context.ServiceProvider.GetRequiredBackstageService<ITempFileManager>()
+            .GetTempDirectory( "Preview", CleanUpStrategy.Always, Guid.NewGuid().ToString( "N" ) );
+
+        try
+        {
+            // The compiler options of the preview are passed in a global analyzer configuration file of their own, rather than as
+            // MSBuild properties, so that the configuration file that MSBuild generates in obj, which is an input of the build,
+            // is not changed. Its global_level makes these values win over the empty ones of that file.
+            var filesListPath = Path.Combine( tempDirectory, "files.txt" );
+            File.WriteAllLines( filesListPath, files );
+
+            var outputDirectory = Path.Combine( tempDirectory, "output" );
+            var globalConfigPath = Path.Combine( tempDirectory, "preview.globalconfig" );
+
+            File.WriteAllText(
+                globalConfigPath,
+                $"""
+                 is_global = true
+                 global_level = 1000
+                 build_property.MetalamaPreviewFiles = {filesListPath}
+                 build_property.MetalamaPreviewOutputPath = {outputDirectory}
+                 """ );
+
+            var responseFilePath = Path.Combine( tempDirectory, "compiler.rsp" );
+
+            // The arguments are already quoted as the compiler expects in a response file. The output assembly is redirected to the
+            // temporary directory, keeping its file name, which names the assembly: a version of Metalama that predates the preview
+            // ignores its options and emits the assembly, which must not overwrite the one of the build.
+            File.WriteAllLines(
+                responseFilePath,
+                compilerArguments.Where( IsKeptCompilerArgument ).Select( a => RedirectOutputAssembly( a, Path.Combine( tempDirectory, "bin" ) ) ) );
+
+            var compilerOutput = this.RunCompiler( compilerPath, projectDirectory, responseFilePath, globalConfigPath );
+
+            var manifestPath = Path.Combine( outputDirectory, _manifestFileName );
+
+            // Report the diagnostics of the compiler, except the one that stops it on purpose.
+            var hasErrors = false;
+
+            foreach ( var line in compilerOutput.Where( l => !string.IsNullOrWhiteSpace( l ) ) )
+            {
+                var diagnostic = _diagnosticRegex.Match( line );
+
+                if ( diagnostic.Success )
+                {
+                    if ( diagnostic.Groups["id"].Value == _previewCompletedDiagnosticId )
+                    {
+                        continue;
+                    }
+
+                    if ( diagnostic.Groups["severity"].Value == "error" )
+                    {
+                        hasErrors = true;
+                    }
+                }
+
+                this.Error.WriteLine( line );
+            }
+
+            if ( !File.Exists( manifestPath ) )
+            {
+                throw new CommandException( "The compiler did not produce the preview. See the errors above." );
+            }
+
+            this.WriteOutput( manifestPath, settings.Output );
+
+            if ( hasErrors )
+            {
+                throw new CommandException( "The compiler reported errors." );
+            }
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete( tempDirectory, true );
+            }
+            catch ( IOException )
+            {
+                // The clean-up of Backstage deletes the directory later.
+            }
+        }
+    }
+
+    private static string FindProject( string file )
+    {
+        for ( var directory = Path.GetDirectoryName( file ); directory != null; directory = Path.GetDirectoryName( directory ) )
+        {
+            var projects = Directory.GetFiles( directory, "*.csproj" );
+
+            switch ( projects.Length )
+            {
+                case 1:
+                    return projects[0];
+
+                case > 1:
+                    throw new CommandException( $"The directory '{directory}' contains several projects. Use --project to choose one." );
+            }
+        }
+
+        throw new CommandException( $"No project was found for '{file}'. Use --project to specify it." );
+    }
+
+    // Not inlined, so that the types of MSBuild, which CompilerCommandLineReader uses, are not loaded before the SDK is registered.
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    private static (string CompilerPath, IReadOnlyList<string> Arguments) GetCompilerCommandLine( string projectPath, PreviewCommandSettings settings )
+    {
+        var reader = new CompilerCommandLineReader( projectPath, settings.Configuration );
+
+        if ( !settings.NoRestore )
+        {
+            reader.Restore();
+        }
+
+        var targetFrameworks = reader.GetTargetFrameworks();
+
+        if ( targetFrameworks.Count == 0 )
+        {
+            throw new CommandException( $"Cannot determine the target framework of '{projectPath}'." );
+        }
+
+        var targetFramework = settings.Framework ?? targetFrameworks[0];
+
+        if ( !targetFrameworks.Contains( targetFramework, StringComparer.OrdinalIgnoreCase ) )
+        {
+            throw new CommandException(
+                $"The project '{projectPath}' does not target '{targetFramework}'. Its target frameworks are: {string.Join( ", ", targetFrameworks )}." );
+        }
+
+        var commandLine = reader.Read( targetFramework );
+
+        if ( commandLine.RoslynCompilerType != "Metalama" )
+        {
+            throw new CommandException( $"The project '{projectPath}' does not use the Metalama compiler, so it cannot be previewed." );
+        }
+
+        if ( string.IsNullOrEmpty( commandLine.RoslynTasksAssembly ) )
+        {
+            throw new CommandException( "Cannot locate the Metalama compiler: the RoslynTasksAssembly property is empty." );
+        }
+
+        var compilerPath = Path.Combine( Path.GetDirectoryName( commandLine.RoslynTasksAssembly )!, "bincore", "csc.dll" );
+
+        if ( !File.Exists( compilerPath ) )
+        {
+            throw new CommandException( $"Cannot locate the Metalama compiler: '{compilerPath}' does not exist." );
+        }
+
+        if ( commandLine.Arguments.Count == 0 )
+        {
+            throw new CommandException( $"MSBuild did not return the command line of the compiler for '{projectPath}'." );
+        }
+
+        // The referenced projects are not built, so their assemblies must already exist. Without this check, the compiler would
+        // report a CS0006 error for each of them, which does not say what to do.
+        var missingReferences = commandLine.Arguments.Select( GetReferencePath )
+            .Where( path => path != null && !File.Exists( Path.Combine( Path.GetDirectoryName( projectPath )!, path ) ) )
+            .ToList();
+
+        if ( missingReferences.Count > 0 )
+        {
+            throw new CommandException(
+                $"Some referenced assemblies do not exist, probably because the projects that produce them have not been built. "
+                + $"Build them, then run the preview again. The missing assemblies are:{Environment.NewLine}  "
+                + string.Join( Environment.NewLine + "  ", missingReferences ) );
+        }
+
+        return (compilerPath, commandLine.Arguments);
+    }
+
+    /// <summary>
+    /// Gets the path of the assembly that a <c>/reference</c> argument of the compiler names, or <c>null</c> if the argument is not
+    /// a reference. The argument has the form <c>/reference:[alias=]path</c>, where the path may be quoted.
+    /// </summary>
+    private static string? GetReferencePath( string argument )
+    {
+        const string prefix = "/reference:";
+
+        if ( !argument.StartsWith( prefix, StringComparison.OrdinalIgnoreCase ) )
+        {
+            return null;
+        }
+
+        var value = argument[prefix.Length..];
+
+        // An alias is an identifier before an equal sign, so it contains no character of a path.
+        var equal = value.IndexOf( '=', StringComparison.Ordinal );
+
+        if ( equal > 0 && value[..equal].IndexOfAny( ['\\', '/', ':', '"'] ) < 0 )
+        {
+            value = value[(equal + 1)..];
+        }
+
+        return value.Trim( '"' );
+    }
+
+    private IReadOnlyList<string> RunCompiler( string compilerPath, string workingDirectory, string responseFilePath, string globalConfigPath )
+    {
+        // /shared runs the compilation in the compiler server, which keeps Metalama loaded between previews.
+        // /skipanalyzers+ removes the analyzers, but keeps the source transformers. It comes after the response file so that it wins.
+        var commandLine =
+            $"exec \"{compilerPath}\" /noconfig /nologo /shared \"@{responseFilePath}\" /skipanalyzers+ \"/analyzerconfig:{globalConfigPath}\"";
+
+        // The command line is logged, not written to the console, and the default options keep the environment variables that
+        // the registration of MSBuild set in this process away from the compiler.
+        var logger = this._context.ServiceProvider.GetLoggerFactory().GetLogger( "Preview" );
+
+        // The exit code and the result are not significant: the compiler always fails, because of the LAMA0121 error that stops it.
+        ToolInvocationHelper.InvokeTool( logger, "dotnet", commandLine, workingDirectory, out _, out var output, ToolInvocationOptions.Default with { Silent = true } );
+
+        return output.Split( ['\r', '\n'], StringSplitOptions.RemoveEmptyEntries );
+    }
+
+    private void WriteOutput( string manifestPath, string? outputDirectory )
+    {
+        var manifest = JsonSerializer.Deserialize<PreviewManifest>( File.ReadAllText( manifestPath ), _jsonOptions )!;
+
+        if ( outputDirectory != null )
+        {
+            Directory.CreateDirectory( outputDirectory );
+        }
+
+        var usedNames = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+
+        foreach ( var file in manifest.Files )
+        {
+            if ( file.OutputPath == null )
+            {
+                throw new CommandException( $"The file '{file.SourcePath}' is not part of the compilation of the project." );
+            }
+
+            if ( outputDirectory == null )
+            {
+                var stdout = Console.Out;
+                stdout.WriteLine( $"// ===== {file.SourcePath}{(file.IsTransformed ? "" : " (not transformed)")} =====" );
+                stdout.WriteLine( File.ReadAllText( file.OutputPath ) );
+            }
+            else
+            {
+                var name = Path.GetFileName( file.SourcePath );
+
+                for ( var i = 2; !usedNames.Add( name ); i++ )
+                {
+                    name = $"{Path.GetFileNameWithoutExtension( file.SourcePath )}_{i}{Path.GetExtension( file.SourcePath )}";
+                }
+
+                File.Copy( file.OutputPath, Path.Combine( outputDirectory, name ), true );
+                this._context.Console.WriteMessage( $"{file.SourcePath} -> {Path.Combine( outputDirectory, name )}" );
+            }
+        }
+    }
+
+    // The compiler stops before emitting, but the documentation file, the reference assembly and the error log are removed, and the
+    // output assembly is redirected, to be sure that nothing of the build is overwritten. /noconfig is passed on the command line,
+    // where it is honored, instead of in the response file, where it is not.
+    private static bool IsKeptCompilerArgument( string argument )
+        => !argument.StartsWith( "/refout:", StringComparison.OrdinalIgnoreCase )
+           && !argument.StartsWith( "/doc:", StringComparison.OrdinalIgnoreCase )
+           && !argument.StartsWith( "/errorlog:", StringComparison.OrdinalIgnoreCase )
+           && !argument.Equals( "/noconfig", StringComparison.OrdinalIgnoreCase );
+
+    // Moves the output assembly of an /out argument, and the symbol file that the compiler writes next to it, to another directory.
+    private static string RedirectOutputAssembly( string argument, string directory )
+    {
+        const string prefix = "/out:";
+
+        if ( !argument.StartsWith( prefix, StringComparison.OrdinalIgnoreCase ) )
+        {
+            return argument;
+        }
+
+        var fileName = Path.GetFileName( argument[prefix.Length..].Trim( '"' ) );
+
+        return $"{prefix}\"{Path.Combine( directory, fileName )}\"";
+    }
+
+    private sealed record PreviewManifest( List<PreviewManifestFile> Files );
+
+    private sealed record PreviewManifestFile( string SourcePath, string? OutputPath, bool IsTransformed );
+}

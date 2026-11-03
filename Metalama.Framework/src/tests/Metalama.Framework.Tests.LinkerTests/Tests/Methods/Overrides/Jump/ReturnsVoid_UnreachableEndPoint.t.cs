@@ -17,11 +17,10 @@ internal class Target
         {
           Console.WriteLine("Branch End");
         }
-        goto __aspect_return_1;
+        return;
       }
       Console.WriteLine("After1");
-      __aspect_return_1:
-        return;
+      return;
     }
     Console.WriteLine("After2");
   }

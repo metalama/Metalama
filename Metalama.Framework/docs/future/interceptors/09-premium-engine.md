@@ -980,7 +980,7 @@ A library aspect that intercepts all calls to its own methods in any consumer wo
 
 EXISTING: ENG27 `Diagnostics\Ranges.md` assigns 0650-0699 to the linker (used: 0650, 0652 to 0655, 0699), 0220-0299 to templating (last used: 0294), 0870-0889 to the framework analyzers, and 0900-0999 to Extensions.Architecture. No identifier between LAMA1000 and LAMA1099 is used in the 2027.0 repositories (verified by search on 2026-09-24).
 
-PROPOSED (RC4, PO41): reserve 1000-1049 for Extensions.Interceptors in `Ranges.md`: 1000-1009 registration, 1010-1019 call site, 1020-1029 await, 1030-1039 design time and preview, 1040-1049 reserved. Reserve 0656-0669 inside the linker range for the generic open-source primitives. Category: `Metalama.Extensions.Interceptors`.
+PROPOSED (RC4, PO41): reserve 1000-1049 for Extensions.Interceptors in `Ranges.md`: 1000-1009 registration, 1010-1019 call site, 1020-1029 await, 1030-1039 design time and preview, 1040-1049 reserved. Reserve 0657-0669 inside the linker range for the generic open-source primitives. Category: `Metalama.Extensions.Interceptors`.
 
 LAMA1009 is withdrawn. The review of [Appendix C](appendix-c-review-log.md#appendix-c-review-log) removed an earlier diagnostic with this identifier (simplification 13), and the second product-owner review reused it for the cost hint of predicates without names. The third batch made names mandatory (RC46), so no registration can trigger the cost hint. No version has shipped, so the identifier returns to the free pool.
 

@@ -81,6 +81,18 @@ namespace Metalama.Framework.Engine.CodeModel
         /// </summary>
         internal abstract bool HasObservabilityFilter { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the transformations of the syntax trees that are not observed are discarded before the
+        /// linker injects them, as opposed to being injected and then left unlinked.
+        /// </summary>
+        /// <remarks>
+        /// A partial compilation discards them, because its syntax trees are a closure that does not depend on the others. A
+        /// complete compilation with an observability filter, used by the command-line preview, keeps them: the observed syntax
+        /// trees can depend on what the aspects add to the other ones, for instance on an interface that an aspect makes a type
+        /// implement, so the linker must inject them all. Only the linking of the syntax trees that are not observed is skipped.
+        /// </remarks>
+        internal virtual bool DiscardsUnobservedTransformations => this.HasObservabilityFilter;
+
         internal LanguageOptions LanguageOptions
         {
             get
@@ -227,6 +239,28 @@ namespace Metalama.Framework.Engine.CodeModel
         /// </remarks>
         public static PartialCompilation CreateComplete( Compilation compilation, ImmutableArray<ManagedResource> resources = default )
             => CreateComplete( compilation.RemoveDuplicatePathSyntaxTrees().GetCompilationContext(), resources );
+
+        /// <summary>
+        /// Creates a <see cref="PartialCompilation"/> that represents a complete compilation, but in which only some syntax trees
+        /// are observed, i.e. linked. The aspects run on the whole compilation. This is used by the command-line preview.
+        /// </summary>
+        /// <param name="compilation">The complete compilation.</param>
+        /// <param name="observedSyntaxTreePaths">The paths of the syntax trees for which <see cref="IsSyntaxTreeObserved"/> returns <see langword="true"/>.
+        /// The comparer of the set is used to match paths.</param>
+        /// <param name="resources">The managed resources of the compilation.</param>
+        public static PartialCompilation CreateComplete(
+            Compilation compilation,
+            ImmutableHashSet<string> observedSyntaxTreePaths,
+            ImmutableArray<ManagedResource> resources = default )
+        {
+            var compilationContext = compilation.RemoveDuplicatePathSyntaxTrees().GetCompilationContext();
+
+            return new CompleteImpl(
+                compilationContext,
+                new Lazy<DerivedTypeIndex>( () => GetDerivedTypeIndex( compilationContext.Compilation ) ),
+                resources,
+                observedSyntaxTreePaths );
+        }
 
         private static PartialCompilation CreateComplete( CompilationContext compilationContext, ImmutableArray<ManagedResource> resources = default )
             => new CompleteImpl( compilationContext, new Lazy<DerivedTypeIndex>( () => GetDerivedTypeIndex( compilationContext.Compilation ) ), resources );

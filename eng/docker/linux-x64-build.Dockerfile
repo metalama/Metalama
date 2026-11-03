@@ -46,8 +46,8 @@ ENV DOTNET_ROOT=/usr/share/dotnet
 ENV PATH="${DOTNET_ROOT}:${PATH}"
 
 
-# Install .NET Sdk 10.0.400
-RUN /usr/local/bin/dotnet-install.sh --version 10.0.400 --install-dir $DOTNET_ROOT
+# Install .NET Sdk 10.0.403
+RUN /usr/local/bin/dotnet-install.sh --version 10.0.403 --install-dir $DOTNET_ROOT
 
 
 # .NET Dump Tool

@@ -3,10 +3,9 @@ internal class Target
   [Aspect]
   private static void UnreachableAfterReturn()
   {
-    goto __aspect_return_1;
+    return;
     throw new Exception();
-    __aspect_return_1:
-      return;
+    return;
     throw new global::System.NotImplementedException();
   }
   [Aspect]
@@ -16,11 +15,10 @@ internal class Target
     {
       goto label;
     }
-    goto __aspect_return_1;
+    return;
     label:
       Console.WriteLine("Test");
-    __aspect_return_1:
-      return;
+    return;
     throw new global::System.NotImplementedException();
   }
 }

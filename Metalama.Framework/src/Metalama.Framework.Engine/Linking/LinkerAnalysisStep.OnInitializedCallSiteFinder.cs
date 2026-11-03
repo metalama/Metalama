@@ -2,12 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
+using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -23,24 +27,67 @@ internal sealed partial class LinkerAnalysisStep
     /// Walks syntax trees in the intermediate compilation looking for object creation expressions
     /// and <c>with</c> expressions that target types implementing <c>IInitializable</c>.
     /// </summary>
+    // WeakCache.Dispose does nothing, so the class does not need to dispose the cache.
+#pragma warning disable CA1001
     private sealed class OnInitializedCallSiteFinder
+#pragma warning restore CA1001
     {
         private readonly CompilationContext _compilationContext;
+        private readonly CompilationContext _sourceCompilationContext;
         private readonly InitializableTypeRegistry _registry;
+        private readonly UserDiagnosticSink _diagnosticSink;
         private readonly IConcurrentTaskRunner _concurrentTaskRunner;
         private readonly INamedTypeSymbol? _initializationContextType;
+        private readonly INamedTypeSymbol? _expressionType;
+        private readonly WeakCache<ITypeSymbol, bool> _isExpressionTypeCache = new();
 
         public OnInitializedCallSiteFinder(
             ProjectServiceProvider serviceProvider,
             CompilationContext compilationContext,
-            InitializableTypeRegistry registry )
+            CompilationContext sourceCompilationContext,
+            InitializableTypeRegistry registry,
+            UserDiagnosticSink diagnosticSink )
         {
             this._compilationContext = compilationContext;
+            this._sourceCompilationContext = sourceCompilationContext;
             this._registry = registry;
+            this._diagnosticSink = diagnosticSink;
             this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
 
             this._initializationContextType =
                 compilationContext.Compilation.GetTypeByMetadataName( typeof(InitializationContext).FullName! );
+
+            this._expressionType = compilationContext.Compilation.GetTypeByMetadataName( "System.Linq.Expressions.Expression" );
+        }
+
+        /// <summary>
+        /// Determines whether a type is <see cref="System.Linq.Expressions.Expression"/> or a type derived from it,
+        /// such as <see cref="System.Linq.Expressions.Expression{TDelegate}"/>.
+        /// </summary>
+        /// <remarks>
+        /// The result is cached for each type, because the walkers of all syntax trees evaluate the same conversion types.
+        /// </remarks>
+        private bool IsExpressionType( ITypeSymbol type ) => this._isExpressionTypeCache.GetOrAdd( type, this.IsExpressionTypeCore );
+
+        /// <summary>
+        /// Computes the value returned by <see cref="IsExpressionType"/> when it is not in the cache.
+        /// </summary>
+        private bool IsExpressionTypeCore( ITypeSymbol type )
+        {
+            if ( this._expressionType == null )
+            {
+                return false;
+            }
+
+            for ( var t = type; t != null; t = t.BaseType )
+            {
+                if ( this._compilationContext.SymbolComparer.Equals( t.OriginalDefinition, this._expressionType ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public async Task<IReadOnlyList<ObjectCreationCallSiteReference>> FindCallSitesAsync( CancellationToken cancellationToken )
@@ -54,7 +101,7 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     var semanticModel = this._compilationContext.SemanticModelProvider.GetSemanticModel( syntaxTree );
                     var root = syntaxTree.GetRoot( cancellationToken );
-                    var walker = new CallSiteWalker( semanticModel, this._registry, this._initializationContextType, this._compilationContext, results );
+                    var walker = new CallSiteWalker( this, semanticModel, results );
 
                     walker.Visit( root );
                 },
@@ -68,8 +115,14 @@ internal sealed partial class LinkerAnalysisStep
         /// initializer member), and looking for object creation and <c>with</c> expressions
         /// targeting types implementing <c>IInitializable</c>.
         /// </summary>
+        /// <remarks>
+        /// Call sites in local functions and lambdas are attributed to the enclosing member. The substitutions
+        /// are indexed by the member whose body the linker rewrites. A local function is a part of this body,
+        /// not a separate member.
+        /// </remarks>
         private sealed class CallSiteWalker : CSharpSyntaxWalker
         {
+            private readonly OnInitializedCallSiteFinder _parent;
             private readonly SemanticModel _semanticModel;
             private readonly InitializableTypeRegistry _registry;
             private readonly INamedTypeSymbol? _initializationContextType;
@@ -78,16 +131,15 @@ internal sealed partial class LinkerAnalysisStep
             private ISymbol? _containingSymbol;
 
             public CallSiteWalker(
+                OnInitializedCallSiteFinder parent,
                 SemanticModel semanticModel,
-                InitializableTypeRegistry registry,
-                INamedTypeSymbol? initializationContextType,
-                CompilationContext compilationContext,
                 ConcurrentQueue<ObjectCreationCallSiteReference> results )
             {
+                this._parent = parent;
                 this._semanticModel = semanticModel;
-                this._registry = registry;
-                this._initializationContextType = initializationContextType;
-                this._compilationContext = compilationContext;
+                this._registry = parent._registry;
+                this._initializationContextType = parent._initializationContextType;
+                this._compilationContext = parent._compilationContext;
                 this._results = results;
             }
 
@@ -146,12 +198,6 @@ internal sealed partial class LinkerAnalysisStep
                         this._semanticModel.GetDeclaredSymbol( indexer )?.GetMethod,
                     _ => null
                 };
-
-            public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
-            {
-                var localFunctionSymbol = this._semanticModel.GetDeclaredSymbol( node );
-                this.VisitWithContainingSymbol( node, localFunctionSymbol, base.VisitLocalFunctionStatement );
-            }
 
             public override void VisitEqualsValueClause( EqualsValueClauseSyntax node )
             {
@@ -276,6 +322,14 @@ internal sealed partial class LinkerAnalysisStep
                     return;
                 }
 
+                // An expression tree cannot contain the call to WithInitialize, so the call site is left unchanged (#2273).
+                if ( this.IsInExpressionTree( node ) )
+                {
+                    this.ReportInitializeNotCalledInExpressionTree( node, constructedType );
+
+                    return;
+                }
+
                 var contextParamName = onInitInfo.GetContextParamName( constructor );
 
                 this._results.Enqueue(
@@ -286,6 +340,100 @@ internal sealed partial class LinkerAnalysisStep
                         onInitInfo,
                         constructor,
                         contextParamName ) );
+            }
+
+            /// <summary>
+            /// Determines whether an expression is in a lambda expression or an anonymous method that is converted to an expression tree.
+            /// </summary>
+            /// <remarks>
+            /// The method also covers the lambda expressions that the compiler creates for the clauses of a query expression.
+            /// </remarks>
+            private bool IsInExpressionTree( ExpressionSyntax node )
+            {
+                if ( !node.Ancestors().Any( a => a is AnonymousFunctionExpressionSyntax or QueryExpressionSyntax ) )
+                {
+                    return false;
+                }
+
+                for ( var operation = this._semanticModel.GetOperation( node ); operation != null; operation = operation.Parent )
+                {
+                    if ( operation is IAnonymousFunctionOperation { Parent: IConversionOperation { Type: { } conversionType } }
+                         && this._parent.IsExpressionType( conversionType ) )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            /// <summary>
+            /// Reports a warning that the <c>Initialize</c> method is not called after an object creation expression in an expression tree.
+            /// </summary>
+            private void ReportInitializeNotCalledInExpressionTree( ExpressionSyntax node, INamedTypeSymbol constructedType )
+            {
+                var location = this.GetSourceLocation( node );
+
+                if ( location == null )
+                {
+                    return;
+                }
+
+                this._parent._diagnosticSink.Report(
+                    AspectLinkerDiagnosticDescriptors.InitializeNotCalledInExpressionTree.CreateRoslynDiagnostic( location, constructedType ) );
+            }
+
+            /// <summary>
+            /// Gets the location, in the source compilation, of an expression of the intermediate compilation.
+            /// </summary>
+            /// <remarks>
+            /// The intermediate syntax tree differs from the source syntax tree. The method finds the declaration of the
+            /// containing symbol in the source compilation, and searches the expression at the same offset in this declaration.
+            /// When the expression is not found, the method returns the location of the containing symbol in the source compilation.
+            /// </remarks>
+            private Location? GetSourceLocation( ExpressionSyntax node )
+            {
+                for ( var symbol = this._containingSymbol; symbol != null; symbol = symbol.ContainingSymbol )
+                {
+                    // A local function cannot be translated to the source compilation, so the expression is searched in the enclosing member.
+                    if ( symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol { MethodKind: MethodKind.LocalFunction } )
+                    {
+                        continue;
+                    }
+
+                    var sourceSymbol = this._parent._sourceCompilationContext.SymbolTranslator.Translate( symbol, allowMultiple: true );
+
+                    if ( sourceSymbol == null )
+                    {
+                        continue;
+                    }
+
+                    var intermediateDeclaration = symbol.DeclaringSyntaxReferences
+                        .Select( r => r.GetSyntax() )
+                        .FirstOrDefault( s => s.SyntaxTree == node.SyntaxTree && s.Span.Contains( node.Span ) );
+
+                    if ( intermediateDeclaration != null )
+                    {
+                        var offset = node.SpanStart - intermediateDeclaration.SpanStart;
+
+                        foreach ( var sourceReference in sourceSymbol.DeclaringSyntaxReferences )
+                        {
+                            var sourceDeclaration = sourceReference.GetSyntax();
+                            var sourceSpan = new TextSpan( sourceDeclaration.SpanStart + offset, node.Span.Length );
+
+                            if ( sourceDeclaration.Span.Contains( sourceSpan )
+                                 && sourceDeclaration.FindNode( sourceSpan, getInnermostNodeForTie: true ) is { } sourceNode
+                                 && sourceNode.IsEquivalentTo( node ) )
+                            {
+                                return sourceNode.GetLocation();
+                            }
+                        }
+                    }
+
+                    return sourceSymbol.GetDiagnosticLocation();
+                }
+
+                return null;
             }
 
             private bool HasInitializationContextArgument( ArgumentListSyntax argumentList )

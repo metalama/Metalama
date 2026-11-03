@@ -102,7 +102,7 @@ namespace Metalama.Framework.Engine.Templating
                 if ( !this._isImmutabilityValidatorCreated )
                 {
                     this._immutabilityValidator = ImmutabilityValidator.Create(
-                        this._serviceProvider.GetService<IProjectOptions>(),
+                        this._compilationContext.ImmutabilityContext,
                         this._classifier,
                         this._semanticModel,
                         this.Report );

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers.Durability;
 using Metalama.Framework.Engine.Options;
 using Microsoft.CodeAnalysis;
 using System;
@@ -16,14 +17,16 @@ namespace Metalama.Framework.Engine.Templating.Immutability
     /// </summary>
     /// <remarks>
     /// <para>
-    /// An instance holds caches keyed by symbols, so it retains the compilation of those symbols. It is created for one
-    /// validation of one syntax tree and is never stored beyond it, as <c>docs/design-time-memory.md</c> requires.
+    /// An instance holds caches keyed by symbols, so it retains the compilation of those symbols. It is created once per
+    /// compilation by <see cref="CompileTime.ClassifyingCompilationContext"/>, which lives exactly as long as the
+    /// compilation, and is shared by the validation of every syntax tree, which may run concurrently.
     /// </para>
     /// <para>
     /// No cycle can arise while evaluating a type, because the evaluation never descends into the members of a type:
     /// a type is immutable when it is marked or well known, and is otherwise not, so the recursion follows only
-    /// nullable arguments, tuple elements and type arguments. Those form a finite tree. The budget below therefore
-    /// guards against pathological nesting rather than against non-termination.
+    /// nullable arguments, tuple elements and type arguments, which form a finite tree, and base types and interfaces,
+    /// which form a finite hierarchy. The budget below therefore guards against pathological nesting rather than
+    /// against non-termination.
     /// </para>
     /// <para>
     /// Deep immutability is nonetheless achieved, by closure over the marked types rather than by structural
@@ -50,16 +53,20 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         private readonly ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict> _verdicts;
         private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
         private readonly ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters> _storedTypeParameters;
+        private readonly ConcurrentDictionary<INamedTypeSymbol, WellKnownImmutabilityEntry?> _hierarchyEntries;
         private readonly HashSet<string> _additionalImmutableTypes;
         private readonly HashSet<string> _additionalContractTypes;
 
         private ImmutabilityContext(
             HashSet<string> additionalImmutableTypes,
-            HashSet<string> additionalContractTypes )
+            HashSet<string> additionalContractTypes,
+            StaticMemberDurabilityChecker durabilityChecker )
         {
+            this.DurabilityChecker = durabilityChecker;
             this._verdicts = new ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict>( SymbolEqualityComparer.Default );
             this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
             this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters>( SymbolEqualityComparer.Default );
+            this._hierarchyEntries = new ConcurrentDictionary<INamedTypeSymbol, WellKnownImmutabilityEntry?>( SymbolEqualityComparer.Default );
             this._additionalImmutableTypes = additionalImmutableTypes;
             this._additionalContractTypes = additionalContractTypes;
         }
@@ -81,8 +88,15 @@ namespace Metalama.Framework.Engine.Templating.Immutability
 
             return new ImmutabilityContext(
                 new HashSet<string>( options?.ImmutableTypes ?? [], StringComparer.Ordinal ),
-                new HashSet<string>( options?.ImmutableContractTypes ?? [], StringComparer.Ordinal ) );
+                new HashSet<string>( options?.ImmutableContractTypes ?? [], StringComparer.Ordinal ),
+                new StaticMemberDurabilityChecker( options?.DurableTypes ?? [], options?.NonDurableTypes ?? [] ) );
         }
+
+        /// <summary>
+        /// Gets the checker by which <see cref="ImmutabilityValidator"/> verifies that the static members of compile-time
+        /// code are durable (LAMA0892). It caches verdicts keyed by symbols, so it has the lifetime of this context.
+        /// </summary>
+        public StaticMemberDurabilityChecker DurabilityChecker { get; }
 
         /// <summary>
         /// Gets the type names declared by the <c>MetalamaImmutableType</c> item, so that a name that matches no type in
@@ -388,14 +402,23 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 return ImmutabilityVerdict.Immutable;
             }
 
-            // Rule 14. A type that derives from or implements a well-known mutable type is mutable too. This is what
-            // classifies every symbol interface, every syntax node and every collection derived from List<T> without
-            // listing them.
-            var inherited = GetInheritedMutableVerdict( namedType, type );
+            // Rule 14. A type that derives from or implements a well-known mutable type is mutable too, and a type
+            // that derives from or implements a well-known immutable type whose entry applies to derived types is
+            // immutable too. The first half is what classifies every collection derived from List<T> without listing
+            // it; the second half is what classifies TypeSyntax, IMethodSymbol and CSharpCompilation through the
+            // entries of SyntaxNode, ISymbol and Compilation. A mutable entry anywhere in the hierarchy wins over an
+            // immutable one. An inherited immutable entry applies only to a type that Roslyn declares, because user
+            // code can derive from some of these types, such as SourceText, and add mutable state. Such a type falls
+            // through to the rules below.
+            var inherited = this.GetInheritedEntry( definition );
 
-            if ( inherited != null )
+            switch ( inherited )
             {
-                return inherited;
+                case { Immutability: WellKnownImmutability.NotImmutable } mutableEntry:
+                    return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( type ), mutableEntry.Reason );
+
+                case { Immutability: WellKnownImmutability.Immutable } when ImmutabilitySymbolFacts.IsDeclaredByRoslyn( definition ):
+                    return ImmutabilityVerdict.Immutable;
             }
 
             // Rule 15. A value type of namespace System is trusted, minus the names the patterns implementation
@@ -458,31 +481,94 @@ namespace Metalama.Framework.Engine.Templating.Immutability
         }
 
         /// <summary>
-        /// Returns the verdict of the first well-known mutable base type or interface of a type, or <c>null</c>.
+        /// Returns the well-known entry that a type inherits from its base types and interfaces: the entry of a mutable
+        /// type found anywhere in the hierarchy, otherwise the entry of an immutable type that applies to its derived
+        /// types, otherwise <c>null</c>.
         /// </summary>
-        private static ImmutabilityVerdict? GetInheritedMutableVerdict( INamedTypeSymbol type, ITypeSymbol reported )
+        /// <remarks>
+        /// The hierarchy is visited through <see cref="GetHierarchyEntry"/>, which caches the result of every type it
+        /// visits, so that the ancestors shared by the syntax node classes or by the symbol interfaces are walked once
+        /// per context and not once per derived type. The method takes the original definition of the type, because a
+        /// constructed generic inherits exactly what its definition inherits.
+        /// </remarks>
+        private WellKnownImmutabilityEntry? GetInheritedEntry( INamedTypeSymbol definition )
         {
-            for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
+            WellKnownImmutabilityEntry? immutableEntry = null;
+
+            if ( definition.BaseType != null )
             {
-                if ( WellKnownImmutableTypes.TryGet( ImmutabilitySymbolFacts.GetFullMetadataName( baseType.OriginalDefinition ), out var baseEntry )
-                     && baseEntry.Immutability == WellKnownImmutability.NotImmutable )
+                var baseEntry = this.GetHierarchyEntry( definition.BaseType.OriginalDefinition );
+
+                if ( baseEntry is { Immutability: WellKnownImmutability.NotImmutable } )
                 {
-                    return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( reported ), baseEntry.Reason );
+                    return baseEntry;
+                }
+
+                immutableEntry ??= baseEntry;
+            }
+
+            foreach ( var interfaceType in definition.Interfaces )
+            {
+                var interfaceEntry = this.GetHierarchyEntry( interfaceType.OriginalDefinition );
+
+                if ( interfaceEntry is { Immutability: WellKnownImmutability.NotImmutable } )
+                {
+                    return interfaceEntry;
+                }
+
+                immutableEntry ??= interfaceEntry;
+            }
+
+            return immutableEntry;
+        }
+
+        /// <summary>
+        /// Returns the well-known entry that a type passes on to its derived types: its own entry when that entry is
+        /// mutable, otherwise the entry it inherits when that entry is mutable, otherwise its own entry when that entry
+        /// is immutable and applies to derived types, otherwise the entry it inherits.
+        /// </summary>
+        /// <remarks>
+        /// An immutable entry that does not apply to derived types is not passed on: a type derived from
+        /// <c>SyntaxAnnotation</c> is not immutable because <c>SyntaxAnnotation</c> is. Neither is the verdict of the
+        /// type itself, which may rest on a marker or on an exact match that says nothing about derived types, which is
+        /// why this cache exists separately from the verdicts.
+        /// </remarks>
+        private WellKnownImmutabilityEntry? GetHierarchyEntry( INamedTypeSymbol definition )
+        {
+            if ( this._hierarchyEntries.TryGetValue( definition, out var cached ) )
+            {
+                return cached;
+            }
+
+            WellKnownImmutabilityEntry? result;
+            var hasOwnEntry = WellKnownImmutableTypes.TryGet( ImmutabilitySymbolFacts.GetFullMetadataName( definition ), out var ownEntry );
+
+            if ( hasOwnEntry && ownEntry.Immutability == WellKnownImmutability.NotImmutable )
+            {
+                result = ownEntry;
+            }
+            else
+            {
+                var inheritedEntry = this.GetInheritedEntry( definition );
+
+                if ( inheritedEntry is { Immutability: WellKnownImmutability.NotImmutable } )
+                {
+                    result = inheritedEntry;
+                }
+                else if ( hasOwnEntry && ownEntry is { Immutability: WellKnownImmutability.Immutable, AppliesToDerivedTypes: true } )
+                {
+                    result = ownEntry;
+                }
+                else
+                {
+                    result = inheritedEntry;
                 }
             }
 
-            foreach ( var interfaceType in type.AllInterfaces )
-            {
-                if ( WellKnownImmutableTypes.TryGet(
-                         ImmutabilitySymbolFacts.GetFullMetadataName( interfaceType.OriginalDefinition ),
-                         out var interfaceEntry )
-                     && interfaceEntry.Immutability == WellKnownImmutability.NotImmutable )
-                {
-                    return ImmutabilityVerdict.NotImmutable( ImmutabilitySymbolFacts.GetDisplayName( reported ), interfaceEntry.Reason );
-                }
-            }
+            // The function is pure, so a racing duplicate computation is harmless.
+            this._hierarchyEntries.TryAdd( definition, result );
 
-            return null;
+            return result;
         }
 
         private StoredTypeParameters GetStoredTypeParameters( INamedTypeSymbol definition )

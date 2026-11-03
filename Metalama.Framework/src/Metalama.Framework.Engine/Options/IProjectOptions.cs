@@ -235,6 +235,18 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// </summary>
     bool? WriteTransformedFiles { get; }
 
+    /// <summary>
+    /// Gets the path of a file listing, one per line, the source files whose transformed code must be previewed, or <c>null</c>
+    /// when the compilation is not a preview. In a preview, the pipeline links, formats and writes only these files, and then
+    /// stops the compiler.
+    /// </summary>
+    string? PreviewFilesListPath { get; }
+
+    /// <summary>
+    /// Gets the path of the directory where the previewed files are written.
+    /// </summary>
+    string? PreviewOutputPath { get; }
+
     bool IsTest { get; }
 
     /// <summary>
@@ -363,6 +375,18 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// with the <c>MetalamaImmutableContractType</c> MSBuild item.
     /// </summary>
     ImmutableArray<string> ImmutableContractTypes { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the types that the project declares durable with the <c>MetalamaDurableType</c>
+    /// MSBuild item.
+    /// </summary>
+    ImmutableArray<string> DurableTypes { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the types that the project declares not durable with the
+    /// <c>MetalamaNonDurableType</c> MSBuild item.
+    /// </summary>
+    ImmutableArray<string> NonDurableTypes { get; }
 
     /// <summary>
     /// Gets the kind of durable reference that the project produces. The default value is
