@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.Services;
 using SharpCrafters.Backstage.Infrastructure;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 
@@ -90,28 +89,7 @@ public sealed class DotNetTool
         // ReSharper disable once UsingStatementResourceInitialization
         using var process = new Process() { StartInfo = startInfo };
 
-        var lines = new List<string>();
-
-        // The standard output and the standard error are read on different threads, so access to the list is
-        // synchronized.
-        void OnProcessDataReceived( object sender, DataReceivedEventArgs e )
-        {
-            lock ( lines )
-            {
-                lines.Add( e.Data ?? "" );
-            }
-        }
-
-        ImmutableArray<string> GetLines()
-        {
-            lock ( lines )
-            {
-                return lines.ToImmutableArray();
-            }
-        }
-
-        process.OutputDataReceived += OnProcessDataReceived;
-        process.ErrorDataReceived += OnProcessDataReceived;
+        var output = new ProcessOutputCollector( process );
 
         process.Start();
         process.BeginErrorReadLine();
@@ -130,8 +108,17 @@ public sealed class DotNetTool
                 // ignored
             }
 
-            throw ProcessFailedException.CreateTimeout( startInfo.FileName, startInfo.Arguments, startInfo.WorkingDirectory, timeout, GetLines() );
+            output.WaitForCompletion( process );
+
+            throw ProcessFailedException.CreateTimeout(
+                startInfo.FileName,
+                startInfo.Arguments,
+                startInfo.WorkingDirectory,
+                timeout,
+                output.GetLines() );
         }
+
+        output.WaitForCompletion( process );
 
         if ( process.ExitCode != 0 )
         {
@@ -141,7 +128,7 @@ public sealed class DotNetTool
                 startInfo.WorkingDirectory,
                 process.ExitCode,
                 timeout,
-                GetLines() );
+                output.GetLines() );
         }
     }
 }

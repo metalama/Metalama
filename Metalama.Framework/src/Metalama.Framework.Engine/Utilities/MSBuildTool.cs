@@ -5,7 +5,6 @@
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -85,28 +84,7 @@ public sealed class MSBuildTool
         // ReSharper disable once UsingStatementResourceInitialization
         using var process = new Process { StartInfo = startInfo };
 
-        var lines = new List<string>();
-
-        // The standard output and the standard error are read on different threads, so access to the list is
-        // synchronized.
-        void OnProcessDataReceived( object sender, DataReceivedEventArgs e )
-        {
-            lock ( lines )
-            {
-                lines.Add( e.Data ?? "" );
-            }
-        }
-
-        ImmutableArray<string> GetLines()
-        {
-            lock ( lines )
-            {
-                return lines.ToImmutableArray();
-            }
-        }
-
-        process.OutputDataReceived += OnProcessDataReceived;
-        process.ErrorDataReceived += OnProcessDataReceived;
+        var output = new ProcessOutputCollector( process );
 
         process.Start();
         process.BeginErrorReadLine();
@@ -123,8 +101,12 @@ public sealed class MSBuildTool
                 // ignored
             }
 
-            throw ProcessFailedException.CreateTimeout( this._msBuildExePath, arguments, startInfo.WorkingDirectory, timeout, GetLines() );
+            output.WaitForCompletion( process );
+
+            throw ProcessFailedException.CreateTimeout( this._msBuildExePath, arguments, startInfo.WorkingDirectory, timeout, output.GetLines() );
         }
+
+        output.WaitForCompletion( process );
 
         if ( process.ExitCode != 0 )
         {
@@ -134,7 +116,7 @@ public sealed class MSBuildTool
                 startInfo.WorkingDirectory,
                 process.ExitCode,
                 timeout,
-                GetLines() );
+                output.GetLines() );
         }
     }
 }
