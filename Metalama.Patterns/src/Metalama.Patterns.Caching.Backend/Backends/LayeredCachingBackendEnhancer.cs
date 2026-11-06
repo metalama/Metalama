@@ -77,8 +77,11 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                     + "records the removal for {TransitionPeriod} with a timestamp taken from the clock of this machine, and a value "
                     + "read from the underlying backend during this period is returned only if its own timestamp, taken from the clock "
                     + "of the machine that wrote it, is strictly greater. This requires the clocks of all machines sharing the backend "
-                    + "to be synchronized. If a clock is behind, a value written by another machine after the removal is reported as "
-                    + "absent until the period expires. If a clock is ahead, a value that the pending removal is about to delete can be returned.",
+                    + "to be synchronized. If the clock of the writing machine is behind the clock of this machine by some offset, a value "
+                    + "written within that offset after the removal receives a timestamp that is not greater than the timestamp of the "
+                    + "removal, and is reported as absent until the record expires. If the clock of the writing machine is ahead by some "
+                    + "offset, a value written within that offset before the removal receives a greater timestamp, and is returned and "
+                    + "stored in the L1 cache although the pending removal is about to delete it from the underlying backend.",
                     this.UnderlyingBackend,
                     this._removedItemTransitionPeriod ) );
         }

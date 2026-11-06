@@ -38,14 +38,17 @@ public class CachingBackendFeatures
     /// that wrote the value, is strictly greater than the timestamp of the removal. Otherwise the item is reported as absent.
     /// </para>
     /// <para>
-    /// This rule assumes that the clocks of all machines sharing the backend are synchronized. The consequences of a clock
-    /// difference are bounded by the one-minute period and by the delay of the background removal, and never corrupt the cache,
-    /// but they can change what a read returns. If the clock of the writing machine is behind the clock of the removing
-    /// machine, a value written by the other machine after the removal is reported as absent until the record expires.
-    /// If it is ahead, a value that the pending removal is about to delete can be returned and stored in the L1 cache
-    /// until the backend raises <see cref="CachingBackend.ItemRemoved"/>. Two timestamps that are equal count as a removal.
-    /// On .NET Framework, <see cref="DateTimeOffset.UtcNow"/> has a resolution of about fifteen milliseconds, so a value
-    /// written within that interval after the removal is reported as absent.
+    /// This rule assumes that the clocks of all machines sharing the backend are synchronized. A clock difference does not
+    /// corrupt the cache, but it changes what a read returns. If the clock of the writing machine is behind the clock of the
+    /// removing machine by some offset, a value written within that offset after the removal receives a timestamp that is not
+    /// greater than the timestamp of the removal, and is reported as absent until the record expires. If the clock of the
+    /// writing machine is ahead by some offset, a value written within that offset before the removal receives a greater
+    /// timestamp, and is returned and stored in the L1 cache although the pending removal is about to delete it from the
+    /// backend. That value then stays in the L1 cache until it expires under its own expiration policy, or until the L1 cache
+    /// receives an <see cref="CachingBackend.ItemRemoved"/> or <see cref="CachingBackend.DependencyInvalidated"/> event for it.
+    /// Two timestamps that are equal count as a removal. On .NET Framework, <see cref="DateTimeOffset.UtcNow"/> has a
+    /// resolution of about fifteen milliseconds, so a value written by another machine shortly after the removal
+    /// can receive the same timestamp as the removal, in which case it is reported as absent.
     /// </para>
     /// <para>
     /// Backends shipped with Metalama return <c>true</c>, so this rule applies only to custom backends.
