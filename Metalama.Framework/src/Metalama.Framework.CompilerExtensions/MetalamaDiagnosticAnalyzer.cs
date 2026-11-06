@@ -22,7 +22,7 @@ namespace Metalama.Framework.CompilerExtensions
 
         public MetalamaDiagnosticAnalyzer()
         {
-            switch ( ProcessKindHelper.CurrentProcessKind )
+            switch ( ProcessKindHelper.EntryPointProcessKind )
             {
                 case ProcessKind.Compiler:
                     // The service is not required.

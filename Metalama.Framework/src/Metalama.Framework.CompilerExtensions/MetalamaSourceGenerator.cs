@@ -23,7 +23,7 @@ namespace Metalama.Framework.CompilerExtensions
                 return;
             }
 
-            switch ( ProcessKindHelper.CurrentProcessKind )
+            switch ( ProcessKindHelper.EntryPointProcessKind )
             {
                 case ProcessKind.Compiler:
                     // The service is not required.

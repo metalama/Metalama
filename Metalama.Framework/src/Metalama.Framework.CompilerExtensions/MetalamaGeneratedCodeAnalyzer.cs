@@ -20,7 +20,7 @@ public sealed class MetalamaGeneratedCodeAnalyzer : DiagnosticAnalyzer
 
     public MetalamaGeneratedCodeAnalyzer()
     {
-        switch ( ProcessKindHelper.CurrentProcessKind )
+        switch ( ProcessKindHelper.EntryPointProcessKind )
         {
             case ProcessKind.Format:
                 break;

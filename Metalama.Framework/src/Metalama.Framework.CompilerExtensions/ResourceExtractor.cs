@@ -580,7 +580,7 @@ public static class ResourceExtractor
 
                 // ReSharper disable once StringStartsWithIsCultureSpecific
                 if ( name.StartsWith( $"{_designTimeContractsAssemblyName}," )
-                     && ProcessKindHelper.CurrentProcessKind is ProcessKind.DevEnv or ProcessKind.Rider )
+                     && ProcessKindHelper.EntryPointProcessKind is ProcessKind.DevEnv or ProcessKind.Rider )
                 {
                     return Assembly.LoadFile( embeddedAssembly.Path );
                 }
