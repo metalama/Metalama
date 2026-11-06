@@ -37,7 +37,15 @@ internal sealed class ShutdownService : IBackstageService
         }
         catch ( Exception exception )
         {
-            this._logger.LogException( exception, "Cannot complete the background tasks" );
+            // The logger may be what failed, so this write is protected too, and the logs are flushed below regardless.
+            try
+            {
+                this._logger.LogException( exception, "Cannot complete the background tasks" );
+            }
+            catch
+            {
+                System.Diagnostics.Trace.TraceError( $"Metalama: cannot complete the background tasks: {exception}" );
+            }
         }
 
         try

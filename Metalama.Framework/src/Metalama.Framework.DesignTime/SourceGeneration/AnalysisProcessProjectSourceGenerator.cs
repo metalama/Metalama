@@ -295,8 +295,9 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         // send it to the in-memory substitute in a test while those readers went on looking at the disk.
         //
         // The file is opened by the IDE, by file system watchers and by endpoint security right after every change,
-        // and the substitution fails while any of them holds it without sharing deletion. Writing in place is then an
-        // acceptable fallback, because Roslyn re-reads the file on the next change. When even that fails, the write is
+        // and the substitution fails while any of them holds it without sharing deletion. Every fallback is acceptable
+        // here: the file is a generated file under obj/ with no access control list of its own, and Roslyn re-reads it on
+        // the next change if it ever observes it partially written. When even that fails, the write is
         // rescheduled instead of throwing: this method runs on timer and RPC threads, where an exception would
         // terminate the process. See #2317.
         bool succeeded;
@@ -304,7 +305,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
 
         using ( this.ServiceProvider.GetRequiredBackstageService<INamedLockService>().WithGlobalLock( touchFile ) )
         {
-            succeeded = AtomicFileWriter.TryWriteAllText( touchFile, content, allowNonAtomicFallback: true, this.Logger, out exception );
+            succeeded = AtomicFileWriter.TryWriteAllText( touchFile, content, AtomicFileWriterFallbacks.All, this.Logger, out exception );
         }
 
         if ( !succeeded )

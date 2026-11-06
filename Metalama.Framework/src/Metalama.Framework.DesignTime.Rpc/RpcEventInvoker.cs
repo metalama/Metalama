@@ -51,7 +51,15 @@ public static class RpcEventInvoker
         }
         catch ( Exception reportingException )
         {
-            logger.Error?.Log( $"Cannot report an exception: {reportingException}" );
+            // The logger may be what failed, so this write is protected too.
+            try
+            {
+                logger.Error?.Log( $"Cannot report an exception: {reportingException}" );
+            }
+            catch
+            {
+                // Nothing else can be done without letting the exception escape the RPC boundary.
+            }
         }
     }
 }

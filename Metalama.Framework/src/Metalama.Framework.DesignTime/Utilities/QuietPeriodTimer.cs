@@ -54,7 +54,15 @@ internal sealed class QuietPeriodTimer : IDisposable
             }
             catch ( Exception reportingException )
             {
-                this._logger.Error?.Log( $"Cannot report an exception thrown by a {nameof(QuietPeriodTimer)} handler: {reportingException}" );
+                // The logger may be what failed, so this write is protected too: nothing may escape a timer callback.
+                try
+                {
+                    this._logger.Error?.Log( $"Cannot report an exception thrown by a {nameof(QuietPeriodTimer)} handler: {reportingException}" );
+                }
+                catch
+                {
+                    // Nothing else can be done.
+                }
             }
         }
     }

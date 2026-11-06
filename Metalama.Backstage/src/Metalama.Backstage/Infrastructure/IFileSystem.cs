@@ -521,8 +521,8 @@ namespace Metalama.Backstage.Infrastructure
         /// The substitution fails while a reader holds the destination open without allowing it to be deleted, which
         /// is a race and not a durable condition, so the whole operation is retried for a short while before the
         /// exception is allowed to escape. A caller therefore does not need to wrap this method in a retry of its own.
-        /// When <c>ReplaceFile</c> fails, a rename that overwrites the destination is attempted before giving up. The
-        /// destination is never written in place. See <see cref="Utilities.AtomicFileWriter"/>.
+        /// The destination is never renamed over nor written in place, so its access control list is preserved. See
+        /// <see cref="Utilities.AtomicFileWriter"/>.
         /// </para>
         /// <para>
         /// This method is not a substitute for mutual exclusion between writers. It guarantees that no reader sees a

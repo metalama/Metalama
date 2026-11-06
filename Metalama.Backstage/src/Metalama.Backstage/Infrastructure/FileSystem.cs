@@ -318,12 +318,12 @@ namespace Metalama.Backstage.Infrastructure
         /// <inheritdoc />
         public void WriteAllTextAtomically( string path, string? content )
         {
-            // The destination is never written in place: configuration files are read concurrently by other processes,
-            // which must not observe a partially written file.
+            // No fallback is allowed: configuration files are read concurrently by other processes, which must not observe a
+            // partially written file, and the access control list of the destination must be preserved.
             if ( !AtomicFileWriter.TryWriteAllText(
                     path,
                     content,
-                    allowNonAtomicFallback: false,
+                    AtomicFileWriterFallbacks.None,
                     logger: null,
                     out var exception,
                     () => this._testSynchronizationProvider?.SyncPoint( GetSyncPointName( BeforeSubstitutionLocation, path ) ) ) )

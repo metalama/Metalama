@@ -22,9 +22,10 @@ namespace Metalama.Backstage.Utilities;
 /// The substitution is attempted with <see cref="File.Replace(string,string,string)"/> first. On Windows,
 /// <c>ReplaceFile</c> fails with <see cref="UnauthorizedAccessException"/> or <see cref="IOException"/> when another
 /// process holds the destination without <see cref="FileShare.Delete"/>, when the destination is pending deletion, or
-/// when its access control list cannot be copied. A rename that overwrites the destination is then attempted, because
-/// it does not copy the access control list. When that fails too and the caller allows it, the destination is written
-/// in place, which only requires readers to share writing. See https://github.com/metalama/Metalama/issues/2317.
+/// when its access control list cannot be copied. The caller can then allow the strategies of
+/// <see cref="AtomicFileWriterFallbacks"/>, each of which gives up a guarantee of <c>File.Replace</c>: a rename that
+/// overwrites the destination, which does not preserve its access control list, and an in-place write, which only
+/// requires readers to share writing but is not atomic. See https://github.com/metalama/Metalama/issues/2317.
 /// </para>
 /// <para>
 /// The whole operation is retried for a short while. The temporary file of every attempt is removed, even when the
@@ -40,9 +41,9 @@ public static class AtomicFileWriter
     /// </summary>
     /// <param name="path">The file to write to.</param>
     /// <param name="content">The content to write.</param>
-    /// <param name="allowNonAtomicFallback">
-    /// Whether the destination can be written in place when it cannot be substituted. A reader can then observe a
-    /// partially written file, so this is only acceptable when such a reader recovers from it.
+    /// <param name="fallbacks">
+    /// The strategies allowed when <see cref="File.Replace(string,string,string)"/> fails. See
+    /// <see cref="AtomicFileWriterFallbacks"/> for the guarantee that each of them gives up.
     /// </param>
     /// <param name="logger">The logger, or <see langword="null"/>.</param>
     /// <param name="exception">The exception of the last attempt when the method returns <see langword="false"/>.</param>
@@ -54,14 +55,14 @@ public static class AtomicFileWriter
     public static bool TryWriteAllText(
         string path,
         string? content,
-        bool allowNonAtomicFallback,
+        AtomicFileWriterFallbacks fallbacks,
         ILogger? logger,
         out Exception? exception,
         Action? beforeSubstitution = null )
     {
         try
         {
-            RetryHelper.Retry( () => WriteOnce( path, content, allowNonAtomicFallback, logger, beforeSubstitution ), logger: logger );
+            RetryHelper.Retry( () => WriteOnce( path, content, fallbacks, logger, beforeSubstitution ), logger: logger );
 
             exception = null;
 
@@ -77,7 +78,7 @@ public static class AtomicFileWriter
         }
     }
 
-    private static void WriteOnce( string path, string? content, bool allowNonAtomicFallback, ILogger? logger, Action? beforeSubstitution )
+    private static void WriteOnce( string path, string? content, AtomicFileWriterFallbacks fallbacks, ILogger? logger, Action? beforeSubstitution )
     {
         // A new temporary file for every attempt: the previous one has been deleted, and two attempts that were to
         // reuse a name would depend on that deletion having completed.
@@ -110,15 +111,14 @@ public static class AtomicFileWriter
             }
             catch ( Exception replaceException ) when ( replaceException is IOException or UnauthorizedAccessException )
             {
-                logger?.Trace?.Log(
-                    $"Cannot replace '{path}': {replaceException.GetType().Name}: {replaceException.Message}. Trying to rename over it." );
+                logger?.Trace?.Log( $"Cannot replace '{path}': {replaceException.GetType().Name}: {replaceException.Message}." );
 
-                if ( TryMoveWithOverwrite( tempPath, path, logger ) )
+                if ( (fallbacks & AtomicFileWriterFallbacks.RenameOverwrite) != 0 && TryMoveWithOverwrite( tempPath, path, logger ) )
                 {
                     return;
                 }
 
-                if ( !allowNonAtomicFallback )
+                if ( (fallbacks & AtomicFileWriterFallbacks.WriteInPlace) == 0 )
                 {
                     throw;
                 }

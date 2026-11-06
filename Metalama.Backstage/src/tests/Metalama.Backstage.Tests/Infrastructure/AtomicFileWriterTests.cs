@@ -53,7 +53,7 @@ public sealed class AtomicFileWriterTests : IDisposable
         var path = this.GetPath();
         File.WriteAllText( path, _previousContent );
 
-        Assert.True( AtomicFileWriter.TryWriteAllText( path, _newContent, allowNonAtomicFallback: false, null, out var exception ) );
+        Assert.True( AtomicFileWriter.TryWriteAllText( path, _newContent, AtomicFileWriterFallbacks.None, null, out var exception ) );
         Assert.Null( exception );
         Assert.Equal( _newContent, File.ReadAllText( path ) );
         Assert.Equal( new[] { Path.GetFileName( path ) }, this.GetFileNames() );
@@ -73,11 +73,32 @@ public sealed class AtomicFileWriterTests : IDisposable
 
         using ( new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ) )
         {
-            Assert.True( AtomicFileWriter.TryWriteAllText( path, _newContent, allowNonAtomicFallback: true, null, out var exception ) );
+            Assert.True( AtomicFileWriter.TryWriteAllText( path, _newContent, AtomicFileWriterFallbacks.WriteInPlace, null, out var exception ) );
             Assert.Null( exception );
         }
 
         Assert.Equal( _newContent, File.ReadAllText( path ) );
+        Assert.Equal( new[] { Path.GetFileName( path ) }, this.GetFileNames() );
+    }
+
+    /// <summary>
+    /// The rename fallback is atomic, and a reader that shares writing but not deletion prevents it as much as it prevents
+    /// the replacement, so allowing it alone does not make the write succeed.
+    /// </summary>
+    [SkippableFact]
+    public void RenameOverwriteAloneDoesNotWriteInPlace()
+    {
+        Skip.IfNot( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ), "On Unix an open descriptor does not prevent the substitution." );
+
+        var path = this.GetPath();
+        File.WriteAllText( path, _previousContent );
+
+        using ( new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ) )
+        {
+            Assert.False( AtomicFileWriter.TryWriteAllText( path, _newContent, AtomicFileWriterFallbacks.RenameOverwrite, null, out _ ) );
+        }
+
+        Assert.Equal( _previousContent, File.ReadAllText( path ) );
         Assert.Equal( new[] { Path.GetFileName( path ) }, this.GetFileNames() );
     }
 
@@ -91,7 +112,7 @@ public sealed class AtomicFileWriterTests : IDisposable
 
         using ( new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ) )
         {
-            Assert.False( AtomicFileWriter.TryWriteAllText( path, _newContent, allowNonAtomicFallback: false, null, out var exception ) );
+            Assert.False( AtomicFileWriter.TryWriteAllText( path, _newContent, AtomicFileWriterFallbacks.None, null, out var exception ) );
             Assert.NotNull( exception );
         }
 
@@ -113,7 +134,7 @@ public sealed class AtomicFileWriterTests : IDisposable
 
         using ( new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.Read ) )
         {
-            Assert.False( AtomicFileWriter.TryWriteAllText( path, _newContent, allowNonAtomicFallback: true, null, out var exception ) );
+            Assert.False( AtomicFileWriter.TryWriteAllText( path, _newContent, AtomicFileWriterFallbacks.All, null, out var exception ) );
             Assert.True( exception is IOException or UnauthorizedAccessException, exception?.ToString() );
         }
 

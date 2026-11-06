@@ -22,6 +22,9 @@ internal sealed class BackgroundExceptionReporter : IBackgroundExceptionReporter
 
     private readonly IServiceProvider _serviceProvider;
 
+    // Resolved on the first report, not in the constructor: the logger factory depends on services that depend on this one.
+    private ILogger? _fallbackLogger;
+
     // The constructor must not resolve any service: see the remarks of IBackgroundExceptionReporter.
     public BackgroundExceptionReporter( IServiceProvider serviceProvider )
     {
@@ -33,6 +36,10 @@ internal sealed class BackgroundExceptionReporter : IBackgroundExceptionReporter
         try
         {
             var classifiedException = ExceptionClassifier.Classify( exception );
+
+            // A caller at the bottom of the dependency graph has no logger of its own. Without one, an exception that is not
+            // an error, such as an IOException, would leave no trace at all.
+            logger ??= this._fallbackLogger ??= this._serviceProvider.GetLoggerFactory().GetLogger( "BackgroundExceptionReporter" );
             logger.LogException( classifiedException, boundary );
 
             if ( !classifiedException.IsError || _isReporting )
