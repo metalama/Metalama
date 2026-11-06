@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Backends;
+using Metalama.Patterns.Caching.Implementation;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Metalama.Patterns.Caching.Building;
@@ -32,6 +33,14 @@ public static class CachingBackendFactory
     /// <summary>
     /// Adds an in-memory, in-process L1 cache in front of an out-of-process cache.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// If the out-of-process backend reports <see cref="CachingBackendFeatures.Blocking"/> as <c>false</c>, the L1 cache
+    /// decides between a local removal and a value read from the backend by comparing wall-clock timestamps taken on
+    /// different machines, which must therefore have synchronized clocks. The remarks of
+    /// <see cref="CachingBackendFeatures.Blocking"/> describe the rule and what happens when the clocks differ.
+    /// </para>
+    /// </remarks>
     public static LayeredCachingBackendBuilder WithL1(
         this OutOfProcessCachingBackendBuilder builder,
         LayeredCachingBackendConfiguration? configuration = null )
