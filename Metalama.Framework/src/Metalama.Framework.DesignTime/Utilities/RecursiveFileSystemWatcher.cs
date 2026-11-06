@@ -16,6 +16,12 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
 
     private readonly string _filter;
 
+    /// <summary>
+    /// Receives the exceptions thrown on the thread pool threads of <see cref="FileSystemWatcher"/>, where an exception would
+    /// terminate the process. See #2317.
+    /// </summary>
+    private readonly Action<Exception> _onException;
+
     private FileSystemWatcher? _watcher;
 
     private RecursiveFileSystemWatcher? _parentDirectoryWatcher;
@@ -43,10 +49,17 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
 
     public event FileSystemEventHandler? Created;
 
-    public RecursiveFileSystemWatcher( string path, string filter )
+    /// <param name="path">The directory to watch, which may not exist yet.</param>
+    /// <param name="filter">The filter of the file names.</param>
+    /// <param name="onException">
+    /// Receives the exceptions thrown by the event handlers and by the watcher itself. They are never rethrown, because
+    /// they are raised on thread pool threads.
+    /// </param>
+    public RecursiveFileSystemWatcher( string path, string filter, Action<Exception> onException )
     {
         this._path = path ?? throw new ArgumentNullException( nameof(path) );
         this._filter = filter;
+        this._onException = onException;
 
         if ( Directory.Exists( path ) )
         {
@@ -64,7 +77,7 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
                 return;
             }
 
-            this._parentDirectoryWatcher = new RecursiveFileSystemWatcher( parentDirectory, Path.GetFileName( path ) );
+            this._parentDirectoryWatcher = new RecursiveFileSystemWatcher( parentDirectory, Path.GetFileName( path ), onException );
 
             void OnParentDirectoryCreated( object? s, FileSystemEventArgs? e )
             {
@@ -91,6 +104,11 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
                 {
                     // The directory may be deleted in the meantime.
                 }
+                catch ( Exception exception )
+                {
+                    // This handler runs on a thread pool thread, where an exception would terminate the process. See #2317.
+                    this.ReportException( exception );
+                }
             }
 
             this._parentDirectoryWatcher.Created += OnParentDirectoryCreated;
@@ -105,14 +123,40 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
     {
         var watcher = new FileSystemWatcher( this._path, this._filter );
 
-        watcher.Changed += ( _, e ) => this.Changed?.Invoke( this, e );
-        watcher.Created += ( _, e ) => this.Created?.Invoke( this, e );
+        watcher.Changed += ( _, e ) => this.RaiseEvent( this.Changed, e );
+        watcher.Created += ( _, e ) => this.RaiseEvent( this.Created, e );
 
         lock ( this._lock )
         {
             watcher.EnableRaisingEvents = this.EnableRaisingEvents;
 
             this._watcher = watcher;
+        }
+    }
+
+    private void RaiseEvent( FileSystemEventHandler? handler, FileSystemEventArgs e )
+    {
+        // The events of FileSystemWatcher are raised on a thread pool thread, where an exception would terminate the
+        // process. See #2317.
+        try
+        {
+            handler?.Invoke( this, e );
+        }
+        catch ( Exception exception )
+        {
+            this.ReportException( exception );
+        }
+    }
+
+    private void ReportException( Exception exception )
+    {
+        try
+        {
+            this._onException( exception );
+        }
+        catch
+        {
+            // The reporter must not make the process terminate either.
         }
     }
 

@@ -27,13 +27,36 @@ internal sealed class ShutdownService : IBackstageService
 
     private void OnProcessExit( object? sender, EventArgs e )
     {
-        this._logger.Trace?.Log( "The process is shutting down." );
+        // An exception escaping a ProcessExit handler is unhandled. Shutting down is best effort. See #2317.
+        try
+        {
+            this._logger.Trace?.Log( "The process is shutting down." );
 
-        this._logger.Trace?.Log( "Completing background tasks." );
-        BackstageBackgroundTasksService.Default.CompleteAsync().Wait();
+            this._logger.Trace?.Log( "Completing background tasks." );
+            BackstageBackgroundTasksService.Default.CompleteAsync().Wait();
+        }
+        catch ( Exception exception )
+        {
+            // The logger may be what failed, so this write is protected too, and the logs are flushed below regardless.
+            try
+            {
+                this._logger.LogException( exception, "Cannot complete the background tasks" );
+            }
+            catch
+            {
+                System.Diagnostics.Trace.TraceError( $"Metalama: cannot complete the background tasks: {exception}" );
+            }
+        }
 
-        this._logger.Trace?.Log( "Flushing logs." );
-        this._loggerFactory.Flush();
+        try
+        {
+            this._logger.Trace?.Log( "Flushing logs." );
+            this._loggerFactory.Flush();
+        }
+        catch ( Exception exception )
+        {
+            System.Diagnostics.Trace.TraceError( $"Metalama: cannot flush the logs: {exception}" );
+        }
 
         // We don't trace any further, as further logs might not be written without another explicit flush.
     }

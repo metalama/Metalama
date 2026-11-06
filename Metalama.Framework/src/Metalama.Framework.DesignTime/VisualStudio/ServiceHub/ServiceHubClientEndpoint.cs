@@ -40,7 +40,7 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint
         }
 
         var endpoint = new ServiceHubClientEndpoint( serviceProvider, pipeName );
-        _ = endpoint.ConnectAsync( serviceProvider.GetRequiredService<ApplicationExitManager>().Token );
+        endpoint.ObserveBackgroundTask( endpoint.ConnectAsync( serviceProvider.GetRequiredService<ApplicationExitManager>().Token ), "Connecting" );
 
         serviceHubApiProvider = endpoint;
 

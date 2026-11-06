@@ -21,7 +21,19 @@ namespace Metalama.Backstage.Commands
             Console.CancelKeyPress += OnCancel;
         }
 
-        private static void OnCancel( object? sender, ConsoleCancelEventArgs e ) => _cancellationTokenSource.Cancel();
+        private static void OnCancel( object? sender, ConsoleCancelEventArgs e )
+        {
+            // Cancel runs the registered callbacks on the thread that raised the event, where an exception would be
+            // unhandled. See #2317.
+            try
+            {
+                _cancellationTokenSource.Cancel();
+            }
+            catch ( Exception exception )
+            {
+                Console.Error.WriteLine( $"Error while cancelling: {exception.Message}" );
+            }
+        }
 
         public static CancellationToken CancellationToken => _cancellationTokenSource.Token;
 

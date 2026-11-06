@@ -1103,6 +1103,11 @@ public sealed unsafe class UnsafeStringBuilder : IDisposable
 
     ~UnsafeStringBuilder()
     {
-        this._gcHandle.Free();
+        // The handle is not allocated when the constructor failed, and an exception thrown by a finalizer terminates the
+        // process.
+        if ( this._gcHandle.IsAllocated )
+        {
+            this._gcHandle.Free();
+        }
     }
 }

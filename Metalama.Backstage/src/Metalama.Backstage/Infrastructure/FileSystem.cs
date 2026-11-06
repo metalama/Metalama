@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Utilities;
 using Metalama.Testing.Hooks;
@@ -12,6 +13,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Text;
 
 namespace Metalama.Backstage.Infrastructure
@@ -29,6 +31,12 @@ namespace Metalama.Backstage.Infrastructure
         /// </summary>
         private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
 
+        /// <summary>
+        /// Reports the exceptions thrown by the callbacks of <see cref="WatchChanges"/>, or <see langword="null"/> when the
+        /// instance was created without a service provider.
+        /// </summary>
+        private readonly IBackgroundExceptionReporter? _exceptionReporter;
+
         private IStandardDirectories? _standardDirectories;
 
         public FileSystem() { }
@@ -40,6 +48,10 @@ namespace Metalama.Backstage.Infrastructure
             // Resolved untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
             // cannot derive from IBackstageService.
             this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
+
+            // The reporter resolves nothing when it is constructed, so depending on it does not create a cycle with the
+            // telemetry services, which depend on the file system.
+            this._exceptionReporter = serviceProvider.GetBackstageService<IBackgroundExceptionReporter>();
         }
 
         /// <summary>
@@ -305,55 +317,20 @@ namespace Metalama.Backstage.Infrastructure
 
         /// <inheritdoc />
         public void WriteAllTextAtomically( string path, string? content )
-            => RetryHelper.Retry(
-                () =>
-                {
-                    // A new temporary file for every attempt: the previous one has been deleted, and two attempts
-                    // that were to reuse a name would depend on that deletion having completed.
-                    var tempPath = GetTemporarySiblingPath( path );
-
-                    try
-                    {
-                        File.WriteAllText( tempPath, content );
-
-                        var destinationExists = File.Exists( path );
-
-                        this._testSynchronizationProvider?.SyncPoint( GetSyncPointName( BeforeSubstitutionLocation, path ) );
-
-                        if ( destinationExists )
-                        {
-                            // File.Replace requires the destination to exist, and preserves its access control list.
-                            // It fails while a reader holds the destination open without FileShare.Delete, which is
-                            // the race the retry is there to absorb.
-                            File.Replace( tempPath, path, destinationBackupFileName: null );
-                        }
-                        else
-                        {
-                            // File.Move throws when the destination exists, which is what makes this branch safe: if
-                            // the destination appeared between the test above and this call, the next attempt finds
-                            // it and substitutes it properly instead of this one failing to create it.
-                            File.Move( tempPath, path );
-                        }
-                    }
-                    finally
-                    {
-                        if ( File.Exists( tempPath ) )
-                        {
-                            File.Delete( tempPath );
-                        }
-                    }
-                } );
-
-        /// <summary>
-        /// Returns the path of a file that does not exist, located in the same directory as <paramref name="path"/>.
-        /// </summary>
-        /// <remarks>
-        /// The name begins with a period, so that the file is hidden on Unix, and ends with <c>.tmp</c>, so that a
-        /// caller enumerating the directory by the extension of the destination does not observe it. The identifier
-        /// in the middle makes two concurrent writers use two different temporary files.
-        /// </remarks>
-        private static string GetTemporarySiblingPath( string path )
-            => Path.Combine( Path.GetDirectoryName( path ) ?? ".", $".{Path.GetFileName( path )}.{Guid.NewGuid():N}.tmp" );
+        {
+            // No fallback is allowed: configuration files are read concurrently by other processes, which must not observe a
+            // partially written file, and the access control list of the destination must be preserved.
+            if ( !AtomicFileWriter.TryWriteAllText(
+                    path,
+                    content,
+                    AtomicFileWriterFallbacks.None,
+                    logger: null,
+                    out var exception,
+                    () => this._testSynchronizationProvider?.SyncPoint( GetSyncPointName( BeforeSubstitutionLocation, path ) ) ) )
+            {
+                ExceptionDispatchInfo.Capture( exception! ).Throw();
+            }
+        }
 
         /// <inheritdoc />
         public string[] ReadAllLines( string path )
@@ -431,12 +408,35 @@ namespace Metalama.Backstage.Infrastructure
         public IDisposable WatchChanges( string directory, string filter, Action<FileSystemEventArgs> callback )
         {
             var fileSystemWatcher = new FileSystemWatcher( directory, filter );
-            fileSystemWatcher.Created += ( _, args ) => callback( args );
-            fileSystemWatcher.Changed += ( _, args ) => callback( args );
-            fileSystemWatcher.Deleted += ( _, args ) => callback( args );
+            fileSystemWatcher.Created += ( _, args ) => this.InvokeWatcherCallback( callback, args );
+            fileSystemWatcher.Changed += ( _, args ) => this.InvokeWatcherCallback( callback, args );
+            fileSystemWatcher.Deleted += ( _, args ) => this.InvokeWatcherCallback( callback, args );
             fileSystemWatcher.EnableRaisingEvents = true;
 
             return fileSystemWatcher;
+        }
+
+        private void InvokeWatcherCallback( Action<FileSystemEventArgs> callback, FileSystemEventArgs args )
+        {
+            // The events of FileSystemWatcher are raised on a thread pool thread, where an exception would terminate
+            // the process. See #2317.
+            try
+            {
+                callback( args );
+            }
+            catch ( Exception e )
+            {
+                var boundary = $"{nameof(FileSystemWatcher)} callback for '{args.FullPath}'";
+
+                if ( this._exceptionReporter != null )
+                {
+                    this._exceptionReporter.Report( e, null, boundary );
+                }
+                else
+                {
+                    System.Diagnostics.Trace.TraceError( $"Metalama: unhandled exception in the {boundary}: {e}" );
+                }
+            }
         }
     }
 }

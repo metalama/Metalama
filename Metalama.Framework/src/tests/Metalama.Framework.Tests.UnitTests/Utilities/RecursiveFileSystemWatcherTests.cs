@@ -5,6 +5,7 @@
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
 using Metalama.Framework.DesignTime.Utilities;
+using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.IO;
@@ -17,6 +18,35 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
 public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
 {
+    /// <summary>
+    /// The reporter given to the watchers of the tests that do not expect any exception. Their handlers do not throw, and
+    /// a failure of the watcher itself shows as an event that the test awaits and never receives.
+    /// </summary>
+    private static void OnWatcherException( Exception _ ) { }
+
+    /// <summary>
+    /// An exception thrown by an event handler runs on a thread pool thread, where it would terminate the process. It must
+    /// be passed to the reporter instead. See https://github.com/metalama/Metalama/issues/2317.
+    /// </summary>
+    [Fact]
+    public async Task ExceptionInHandlerIsReported()
+    {
+        using var testContext = this.CreateTestContext();
+        var tempFileManager = testContext.ServiceProvider.Underlying.GetRequiredBackstageService<ITempFileManager>();
+        var tempDirectory = tempFileManager.GetTempDirectory( "RecursiveFileSystemWatcherTests", CleanUpStrategy.Always, Guid.NewGuid().ToString() );
+
+        var reportedException = new TaskCompletionSource<Exception>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        using var watcher = new RecursiveFileSystemWatcher( tempDirectory, "file.txt", e => reportedException.TrySetResult( e ) );
+        watcher.Changed += ( _, _ ) => throw new InvalidOperationException( "Thrown by the handler." );
+        watcher.EnableRaisingEvents = true;
+
+        File.WriteAllText( Path.Combine( tempDirectory, "file.txt" ), "content" );
+
+        var exception = await reportedException.Task.WithCancellation( testContext.CancellationToken );
+        Assert.IsType<InvalidOperationException>( exception );
+    }
+
     [Fact]
     public async Task ExistingDirectory()
     {
@@ -24,7 +54,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
         var tempFileManager = testContext.ServiceProvider.Underlying.GetRequiredBackstageService<ITempFileManager>();
         var tempDirectory = tempFileManager.GetTempDirectory( "RecursiveFileSystemWatcherTests", CleanUpStrategy.Always, Guid.NewGuid().ToString() );
 
-        using var watcher = new RecursiveFileSystemWatcher( tempDirectory, "file.txt" );
+        using var watcher = new RecursiveFileSystemWatcher( tempDirectory, "file.txt", OnWatcherException );
 
         var wasRaised = new TaskCompletionSource<bool>();
         watcher.Changed += ( _, _ ) => wasRaised.TrySetResult( true );
@@ -45,7 +75,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
 
         var directory = Path.Combine( tempDirectory, "Child" );
 
-        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt" );
+        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt", OnWatcherException );
 
         var wasRaised = new TaskCompletionSource<bool>();
         watcher.Changed += ( _, _ ) => wasRaised.TrySetResult( true );
@@ -68,7 +98,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
 
         var directory = Path.Combine( tempDirectory, "Parent", "Child" );
 
-        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt" );
+        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt", OnWatcherException );
 
         var wasRaised = new TaskCompletionSource<bool>();
         watcher.Changed += ( _, _ ) => wasRaised.TrySetResult( true );
@@ -93,7 +123,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
 
         var directory = Path.Combine( tempDirectory, "Child" );
 
-        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt" );
+        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt", OnWatcherException );
 
         Directory.CreateDirectory( directory );
         var wasRaised = new TaskCompletionSource<bool>();
@@ -120,7 +150,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
 
         var directory = Path.Combine( missingRoot!, relativePath );
 
-        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt" );
+        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt", OnWatcherException );
 
         watcher.Changed += ( _, _ ) => { };
         watcher.EnableRaisingEvents = true;

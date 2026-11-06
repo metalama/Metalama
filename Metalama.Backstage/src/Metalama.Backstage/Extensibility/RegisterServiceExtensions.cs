@@ -121,6 +121,9 @@ public static class RegisterServiceExtensions
         BackstageInitializationOptions options )
         => _ = serviceProviderBuilder
             .AddSingleton( _ => new BackstageInitializationOptionsProvider( options ) )
+
+            // Registered first because the most basic services depend on it. It resolves nothing when it is constructed.
+            .AddSingleton<IBackgroundExceptionReporter>( serviceProvider => new BackgroundExceptionReporter( serviceProvider ) )
             .AddSingleton( _ => new EarlyLoggerFactory() )
             .AddSingleton( _ => new RandomNumberGenerator() )
             .AddSingleton<IEnvironmentVariableProvider>( new EnvironmentVariableProvider() )
@@ -128,7 +131,8 @@ public static class RegisterServiceExtensions
             .AddSingleton<IRecoverableExceptionService>( serviceProvider => new RecoverableExceptionService( serviceProvider ) )
             .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( applicationInfo ) )
             .AddSingleton<IUserDeviceDetectionService>( serviceProvider => new WindowsUserDeviceDetectionService( serviceProvider ) )
-            .AddSingleton<IDateTimeProvider>( new CurrentDateTimeProvider() )
+            .AddSingleton<IDateTimeProvider>(
+                serviceProvider => new CurrentDateTimeProvider( serviceProvider.GetRequiredBackstageService<IBackgroundExceptionReporter>() ) )
             .AddSingleton<IFileSystem>( serviceProvider => new FileSystem( serviceProvider ) )
             .AddSingleton<IStandardDirectories>( serviceProvider => new StandardDirectories( serviceProvider ) )
             .AddSingleton<IProcessExecutor>( new ProcessExecutor() )

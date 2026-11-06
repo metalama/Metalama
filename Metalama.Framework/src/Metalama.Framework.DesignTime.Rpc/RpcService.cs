@@ -22,8 +22,14 @@ public abstract class RpcService
 
     protected ILogger Logger { get; }
 
+    /// <summary>
+    /// Gets the endpoint that hosts the service.
+    /// </summary>
+    private protected ServerEndpoint ServerEndpoint { get; }
+
     protected RpcService( ServerEndpoint serverEndpoint )
     {
+        this.ServerEndpoint = serverEndpoint;
         this.Logger = serverEndpoint.LoggerFactory.GetLogger( this.GetType().Name ).WithPrefix( this._id.ToString() );
         this.Logger.Trace?.Log( $"Instantiating." );
     }
@@ -97,6 +103,13 @@ public abstract class RpcService
             this.Logger.Warning?.Log( $"Broadcast: per-client failure; skipping to keep broadcast intact. {ex}" );
         }
     }
+
+    /// <summary>
+    /// Raises a local event so that an exception thrown by a subscriber is reported and does not prevent the other
+    /// subscribers from receiving the event.
+    /// </summary>
+    protected void InvokeEventHandlers<T>( Action<T>? handlers, T argument )
+        => RpcEventInvoker.InvokeEach( handlers, argument, this.Logger, this.ServerEndpoint.ExceptionHandler );
 
     public override string ToString() => $"{{{this.GetType().Name}, Id={this._id}}}";
 }
@@ -248,10 +261,7 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     }
 
     protected void RaiseEvent( RpcEventData eventData, CancellationToken cancellationToken = default )
-    {
-        // TODO: Exception handling.
-        _ = this.RaiseEventAsync( eventData, cancellationToken );
-    }
+        => this.ServerEndpoint.ObserveBackgroundTask( this.RaiseEventAsync( eventData, cancellationToken ), $"Raising {eventData.Category}", this.Logger );
 
     private sealed class EventSender : IRpcEventSender
     {
