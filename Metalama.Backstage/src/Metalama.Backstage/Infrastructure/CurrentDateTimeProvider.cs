@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using System;
 using System.Timers;
 
@@ -33,8 +34,19 @@ namespace Metalama.Backstage.Infrastructure
 
         private void OnTimerElapsed( object? sender, ElapsedEventArgs e )
         {
-            this.DateChanged?.Invoke();
-            this.ScheduleNextMidnight();
+            try
+            {
+                this.DateChanged?.Invoke();
+            }
+            catch ( Exception exception )
+            {
+                // System.Timers.Timer would swallow the exception, and the timer would not be scheduled again.
+                BackgroundExceptionHandler.Report( exception, null, $"{nameof(CurrentDateTimeProvider)}.{nameof(this.DateChanged)}" );
+            }
+            finally
+            {
+                this.ScheduleNextMidnight();
+            }
         }
 
         /// <summary>

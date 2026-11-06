@@ -138,10 +138,22 @@ internal sealed class VsUserProcessProjectSourceGenerator : ProjectSourceGenerat
 
     private async Task RetrieveGeneratedSourcesAsync( ProjectKey projectKey )
     {
-        var client = await this._serviceHub.GetClientForProjectAsync<SourceGeneratorRpcClient>(
-            projectKey,
-            this.ApplicationExitingToken );
+        // This task is not awaited, so its exception would be lost. See #2317.
+        try
+        {
+            var client = await this._serviceHub.GetClientForProjectAsync<SourceGeneratorRpcClient>(
+                projectKey,
+                this.ApplicationExitingToken );
 
-        await client.GetGeneratedSourcesAsync( projectKey, this.ApplicationExitingToken );
+            await client.GetGeneratedSourcesAsync( projectKey, this.ApplicationExitingToken );
+        }
+        catch ( OperationCanceledException ) when ( this.ApplicationExitingToken.IsCancellationRequested )
+        {
+            // The application is exiting.
+        }
+        catch ( Exception ex )
+        {
+            this._exceptionHandler?.ReportException( ex, this.Logger );
+        }
     }
 }

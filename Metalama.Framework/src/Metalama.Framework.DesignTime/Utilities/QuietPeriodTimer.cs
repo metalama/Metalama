@@ -12,6 +12,7 @@ namespace Metalama.Framework.DesignTime.Utilities;
 internal sealed class QuietPeriodTimer : IDisposable
 {
     private readonly ILogger _logger;
+    private readonly Action<Exception> _onException;
     private readonly List<PauseCookie> _pauseCookies = new();
     private readonly object _sync = new();
 
@@ -25,14 +26,40 @@ internal sealed class QuietPeriodTimer : IDisposable
     // ReSharper disable once InconsistentlySynchronizedField
     public bool IsPaused => this._pauseCookies.Count > 0;
 
-    public QuietPeriodTimer( TimeSpan quietPeriod, ILogger logger )
+    /// <param name="quietPeriod">The delay between the last call to <see cref="Restart"/> and the <see cref="Tick"/> event.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="onException">
+    /// Receives the exceptions thrown by the <see cref="Tick"/> handlers when the event is raised from the timer thread.
+    /// An exception escaping a timer callback would terminate the process, so it is never rethrown. See #2317.
+    /// </param>
+    public QuietPeriodTimer( TimeSpan quietPeriod, ILogger logger, Action<Exception> onException )
     {
         this.Delay = quietPeriod;
         this._logger = logger;
+        this._onException = onException;
         this._timer = new Timer( this.OnTick );
     }
 
     private void OnTick( object? state )
+    {
+        try
+        {
+            this.OnTimerElapsed();
+        }
+        catch ( Exception e )
+        {
+            try
+            {
+                this._onException( e );
+            }
+            catch ( Exception reportingException )
+            {
+                this._logger.Error?.Log( $"Cannot report an exception thrown by a {nameof(QuietPeriodTimer)} handler: {reportingException}" );
+            }
+        }
+    }
+
+    private void OnTimerElapsed()
     {
         lock ( this._sync )
         {
@@ -125,7 +152,7 @@ internal sealed class QuietPeriodTimer : IDisposable
 
     private void Resume( PauseCookie cookie )
     {
-        lock ( this._logger )
+        lock ( this._sync )
         {
             if ( this._timer == null )
             {
@@ -149,10 +176,13 @@ internal sealed class QuietPeriodTimer : IDisposable
 
     public void Dispose()
     {
-        if ( this._timer != null )
+        lock ( this._sync )
         {
-            this._timer.Dispose();
-            this._timer = null;
+            if ( this._timer != null )
+            {
+                this._timer.Dispose();
+                this._timer = null;
+            }
         }
     }
 

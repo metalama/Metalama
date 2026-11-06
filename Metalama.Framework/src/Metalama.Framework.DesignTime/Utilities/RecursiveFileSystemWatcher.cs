@@ -2,6 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
+
 namespace Metalama.Framework.DesignTime.Utilities;
 
 /// <summary>
@@ -91,6 +94,11 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
                 {
                     // The directory may be deleted in the meantime.
                 }
+                catch ( Exception exception )
+                {
+                    // This handler runs on a thread pool thread, where an exception would terminate the process. See #2317.
+                    BackgroundExceptionHandler.Report( exception, Logger.DesignTime, $"{nameof(RecursiveFileSystemWatcher)}: watching '{path}'" );
+                }
             }
 
             this._parentDirectoryWatcher.Created += OnParentDirectoryCreated;
@@ -105,14 +113,28 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
     {
         var watcher = new FileSystemWatcher( this._path, this._filter );
 
-        watcher.Changed += ( _, e ) => this.Changed?.Invoke( this, e );
-        watcher.Created += ( _, e ) => this.Created?.Invoke( this, e );
+        watcher.Changed += ( _, e ) => this.RaiseEvent( this.Changed, e );
+        watcher.Created += ( _, e ) => this.RaiseEvent( this.Created, e );
 
         lock ( this._lock )
         {
             watcher.EnableRaisingEvents = this.EnableRaisingEvents;
 
             this._watcher = watcher;
+        }
+    }
+
+    private void RaiseEvent( FileSystemEventHandler? handler, FileSystemEventArgs e )
+    {
+        // The events of FileSystemWatcher are raised on a thread pool thread, where an exception would terminate the
+        // process. See #2317.
+        try
+        {
+            handler?.Invoke( this, e );
+        }
+        catch ( Exception exception )
+        {
+            BackgroundExceptionHandler.Report( exception, Logger.DesignTime, $"{nameof(RecursiveFileSystemWatcher)}: '{e.FullPath}'" );
         }
     }
 

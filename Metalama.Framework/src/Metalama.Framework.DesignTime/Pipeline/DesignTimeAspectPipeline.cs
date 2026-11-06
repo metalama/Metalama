@@ -1219,9 +1219,26 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
             {
                 this._jobQueue.Enqueue( action );
 
-                // Enqueue a task to process the action when the lock will be available.
-                _ = this.ProcessJobQueueWhenLockAvailableAsync();
+                // Enqueue a task to process the action when the lock will be available. The task is not awaited, so
+                // its exception is reported here or it would be lost. See #2317.
+                _ = this.ProcessJobQueueWhenLockAvailableAndReportAsync();
             }
+        }
+    }
+
+    private async Task ProcessJobQueueWhenLockAvailableAndReportAsync()
+    {
+        try
+        {
+            await this.ProcessJobQueueWhenLockAvailableAsync();
+        }
+        catch ( OperationCanceledException ) when ( this._applicationExitingToken.IsCancellationRequested || this._disposeCancellationToken.IsCancellationRequested )
+        {
+            // The application is exiting or the pipeline is disposed.
+        }
+        catch ( Exception e )
+        {
+            this._exceptionHandler.ReportException( e, this.ProjectOptions );
         }
     }
 

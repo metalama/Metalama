@@ -67,9 +67,18 @@ internal sealed class MiniDumper : IMiniDumper
             return;
         }
 
-        if ( dumper.MustWrite( e.Exception ) )
+        // An exception thrown here would replace the exception being thrown in whatever code raised it, and reporting
+        // it would raise this event again. See #2317.
+        try
         {
-            dumper.Write();
+            if ( dumper.MustWrite( e.Exception ) )
+            {
+                dumper.Write();
+            }
+        }
+        catch ( Exception exception )
+        {
+            System.Diagnostics.Trace.TraceError( $"Metalama: cannot write a crash dump: {exception.Message}" );
         }
     }
 

@@ -69,8 +69,21 @@ internal sealed class NetCoreAssemblyLoader : AssemblyLoader
             var loadAssemblyFromAssemblyName =
                 (Func<AssemblyName, Assembly>) Delegate.CreateDelegate( typeof(Func<AssemblyName, Assembly>), metalamaAlc, loadByNameMethod );
 
-            this._globalResolveHandler = ( _, e )
-                => globalResolveHandlerFilter( e.RequestingAssembly ) ? loadAssemblyFromAssemblyName( new AssemblyName( e.Name ) ) : null;
+            this._globalResolveHandler = ( _, e ) =>
+            {
+                // This handler is global to the AppDomain and runs on whatever thread of the host is resolving an assembly.
+                // An exception would replace the normal resolution failure, or prevent other handlers from resolving it.
+                // See #2317.
+                try
+                {
+                    return globalResolveHandlerFilter( e.RequestingAssembly ) ? loadAssemblyFromAssemblyName( new AssemblyName( e.Name ) ) : null;
+                }
+                catch ( Exception )
+                {
+                    // This file is shared with Metalama.Framework.CompilerExtensions, which has no logger.
+                    return null;
+                }
+            };
 
             AppDomain.CurrentDomain.AssemblyResolve += this._globalResolveHandler;
         }

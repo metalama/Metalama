@@ -87,8 +87,5 @@ public sealed partial class ServiceHubRpcService : RpcService<IServiceHubRpcApi>
         return await endpoint.GetOrWaitForClientAsync<T>( cancellationToken );
     }
 
-    private void OnEventReceived( RpcEventData eventData )
-    {
-        this.EventReceived?.Invoke( eventData );
-    }
+    private void OnEventReceived( RpcEventData eventData ) => this.InvokeEventHandlers( this.EventReceived, eventData );
 }

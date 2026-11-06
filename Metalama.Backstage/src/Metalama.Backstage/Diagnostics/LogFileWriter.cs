@@ -113,6 +113,13 @@ internal sealed class LogFileWriter
                 this._textWriter.Flush();
             }
             catch ( ObjectDisposedException ) { }
+            catch ( Exception e )
+            {
+                // This method runs on a thread pool thread, where an exception would terminate the process. It cannot be
+                // logged, because the log is what failed. Stop logging instead. See #2317.
+                this.IsFailed = true;
+                System.Diagnostics.Trace.TraceError( $"Metalama: cannot write the log file '{this.LogFile}': {e}" );
+            }
             finally
             {
                 this._backgroundTaskStatus = _inactiveStatus;
