@@ -13,9 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- This project must reference an old version of Metalama.Framework, and NuGet reports an advisory against that
-         version (NU1902). The test reports every unexpected diagnostic, so the advisory is suppressed here. -->
+    <!-- This project must reference an old version of Metalama.Framework, and NuGet reports advisories against that
+         version (NU1902, NU1903). The test reports every unexpected diagnostic, so the advisories are suppressed here. -->
     <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-m6wq-39m7-9xpp" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-h26j-4vp7-x9w2" />
   </ItemGroup>
 
 </Project>
