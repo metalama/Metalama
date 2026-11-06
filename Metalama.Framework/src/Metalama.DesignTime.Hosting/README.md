@@ -86,10 +86,13 @@ In this mode, Metalama:
    build_property.AssemblyName = MyProject
    build_property.TargetFramework = netstandard2.0
    build_property.MSBuildProjectFullPath = C:\...\MyProject.csproj
-   build_property.NETCoreSdkVersion = 10.0.100
+   build_property.NETCoreSdkVersion = <the output of dotnet --version in the directory of the project>
    ```
 
-   `NETCoreSdkVersion` is required: Metalama derives the language version of the compile-time code from it.
+   `NETCoreSdkVersion` is required, and it must be the version of a .NET SDK that is installed, typically the output of
+   `dotnet --version` in the directory of the project. Metalama derives the language version of the compile-time code
+   from it, and it writes it into the `global.json` file of the temporary project that resolves the compile-time
+   reference assemblies. With an SDK that is not installed, the pipeline fails with `LAMA0082`.
 
 3. **Create the Metalama source generators**, which registers the services:
 
@@ -118,7 +121,10 @@ In this mode, Metalama:
    ```
 
    The task compares the current solution of the workspace with the last analyzed one, so it does not depend on the
-   order of the workspace events. It fails when the analysis fails. A change to a document that contains compile-time
+   order of the workspace events. It fails when the analysis fails, and when the aspect pipeline of a project cannot be
+   configured because of an error that has no location in the source code, such as `LAMA0082` for an SDK that is not
+   installed. An error in the compile-time code of the project, such as a C# error in an aspect, is a state that a test
+   may observe, so it does not make the task fail. A change to a document that contains compile-time
    code, such as an aspect, pauses the pipeline until the user resumes it, as in Visual Studio. A test that expects the
    services to follow a change must change a document that contains run-time code only.
 

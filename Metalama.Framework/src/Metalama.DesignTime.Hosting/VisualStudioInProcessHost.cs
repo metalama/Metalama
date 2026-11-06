@@ -239,7 +239,10 @@ public static class VisualStudioInProcessHost
     /// <remarks>
     /// The task compares the current solution of the workspace with the last one that Metalama analyzed, so it does not depend
     /// on the order in which the workspace raises its events. When the workspace has not been given to Metalama yet, the task
-    /// waits for it. The task fails when the analysis fails.
+    /// waits for it. The task fails when the analysis fails, and when the aspect pipeline of a project cannot be configured
+    /// because of an error that has no location in the source code, for instance <c>LAMA0082</c> when the .NET SDK named by
+    /// the <c>NETCoreSdkVersion</c> build property is not installed. An error in the compile-time code of the project does not
+    /// make the task fail.
     /// </remarks>
     public static Task WaitForAnalysisAsync( CancellationToken cancellationToken )
         => GetDataSlot<Func<CancellationToken, Task>>( WaitForAnalysisDataSlotName )( cancellationToken );
