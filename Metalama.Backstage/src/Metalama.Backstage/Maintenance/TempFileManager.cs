@@ -23,6 +23,9 @@ public sealed class TempFileManager : ITempFileManager
 {
     private const string _cleanUpFileName = "cleanup.json";
 
+    // Interval between updates of the last write time of cleanup.json for WhenUnused directories.
+    private const int _touchIntervalHours = 6;
+
     private readonly CleanUpConfiguration _configuration;
     private readonly IFileSystem _fileSystem;
     private readonly INamedLockService _lockService;
@@ -537,11 +540,12 @@ public sealed class TempFileManager : ITempFileManager
         }
 
         // Profiling data shows that calling SetFileLastWriteTime can be slow, so we do it in the background.
+        // We only update the last write time every few hours so that concurrent processes do not contend on the file and its lock.
         this._backgroundTasksService.Enqueue(
             () =>
             {
                 if ( cleanUpStrategy == CleanUpStrategy.WhenUnused
-                     && this._fileSystem.GetFileLastWriteTime( cleanUpFilePath ).ToUniversalTime() > this._time.UtcNow.AddDays( -1 ) )
+                     && this._fileSystem.GetFileLastWriteTime( cleanUpFilePath ).ToUniversalTime() < this._time.UtcNow.AddHours( -_touchIntervalHours ) )
                 {
                     using ( this._lockService.WithGlobalLock( cleanUpFilePath ) )
                     {

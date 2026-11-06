@@ -29,6 +29,9 @@ public static class ResourceExtractor
 {
     private const string _designTimeContractsAssemblyName = "Metalama.Framework.DesignTime.Contracts.v2";
 
+    // Interval between updates of the last write time of cleanup.json. Must remain well below the 7-day threshold of TempFileManager.
+    private const int _touchIntervalHours = 6;
+
     private static readonly object _initializeLock = new();
 
     private static readonly bool _isNetFramework =
@@ -252,13 +255,13 @@ public static class ResourceExtractor
 
             if ( allExpectedFilesExist )
             {
-                if ( File.GetLastWriteTime( cleanupJsonFilePath ) < DateTime.Now.AddHours( -1 ) )
+                // Touch the cleanup.json file so the periodic clean-up does not remove the directory. The clean-up reads the last write time,
+                // and we only update it every few hours so that concurrent processes do not contend on the file.
+                if ( File.GetLastWriteTime( cleanupJsonFilePath ) < DateTime.Now.AddHours( -_touchIntervalHours ) )
                 {
-                    // Touch the cleanup.json file so the periodic cleanup script does not remove it.
-
                     try
                     {
-                        File.SetLastAccessTime( cleanupJsonFilePath, DateTime.Now );
+                        File.SetLastWriteTime( cleanupJsonFilePath, DateTime.Now );
                     }
                     catch { }
                 }
