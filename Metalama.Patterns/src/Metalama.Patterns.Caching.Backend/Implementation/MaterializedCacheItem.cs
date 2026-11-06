@@ -68,7 +68,9 @@ internal sealed record MaterializedCacheItem : CacheItem, ICacheItemConfiguratio
     }
 
     /// <summary>
-    /// Gets the timestamp of the cache item.
+    /// Gets the wall-clock timestamp, in UTC ticks, taken on the machine that created the item. It is serialized with the item
+    /// and compared by <see cref="LayeredCachingBackendEnhancer"/> with the timestamp of a local removal when the underlying
+    /// backend is not blocking. See the remarks of <see cref="CachingBackendFeatures.Blocking"/>.
     /// </summary>
     public long Timestamp { get; }
 
