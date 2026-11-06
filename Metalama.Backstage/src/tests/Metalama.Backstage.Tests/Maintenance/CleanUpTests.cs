@@ -15,6 +15,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -443,6 +444,29 @@ public sealed class CleanUpTests : TestsBase
 
         Assert.False( this.FileSystem.FileExists( oldFilePath ) );
         Assert.True( this.FileSystem.FileExists( newFilePath ) );
+    }
+
+    [Fact]
+    public async Task GetTempDirectory_TouchesCleanUpFileOnlyWhenStale()
+    {
+        // Regression test for #2318: using a WhenUnused directory must refresh the last write time of cleanup.json (which the clean-up reads),
+        // but not on every access.
+        var cleanUpFilePath = Path.Combine( this._standardDirectories.TempDirectory, "CompileTime", "0.1.42-test", "cleanup.json" );
+        var tempFileManager = new TempFileManager( this.ServiceProvider );
+        var now = this.Time.UtcNow.ToLocalTime();
+
+        // Recently touched: the last write time must not change.
+        var recent = now.AddHours( -1 );
+        this.FileSystem.SetFileLastWriteTime( cleanUpFilePath, recent );
+        tempFileManager.GetTempDirectory( "CompileTime", CleanUpStrategy.WhenUnused, "0.1.42-test", TempFileVersionScope.None );
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+        Assert.Equal( recent, this.FileSystem.GetFileLastWriteTime( cleanUpFilePath ) );
+
+        // Stale: the last write time must be refreshed.
+        this.FileSystem.SetFileLastWriteTime( cleanUpFilePath, now.AddDays( -2 ) );
+        tempFileManager.GetTempDirectory( "CompileTime", CleanUpStrategy.WhenUnused, "0.1.42-test", TempFileVersionScope.None );
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+        Assert.True( this.FileSystem.GetFileLastWriteTime( cleanUpFilePath ) >= now );
     }
 
     [Fact]
