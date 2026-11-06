@@ -327,6 +327,7 @@
 
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynApiMinVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynApiMinVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynApiMinVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynApiMaxVersion)" />
     
   

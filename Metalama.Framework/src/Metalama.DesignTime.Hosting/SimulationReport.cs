@@ -3,24 +3,22 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
-using Spectre.Console;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Linq;
 
-namespace Metalama.DesignTime.HostSimulator;
+namespace Metalama.DesignTime.Hosting;
 
 /// <summary>
-/// What one project produced during a simulation.
+/// Collects what one project produced during a simulation.
 /// </summary>
-internal sealed class ProjectReport
+public sealed class ProjectReport
 {
     private readonly List<Diagnostic> _diagnostics = new();
     private readonly List<string> _errors = new();
 
-    public ProjectReport( string projectName )
+    internal ProjectReport( string projectName )
     {
         this.ProjectName = projectName;
     }
@@ -63,9 +61,9 @@ internal sealed class ProjectReport
 }
 
 /// <summary>
-/// What a whole simulation produced.
+/// Collects what a whole simulation produced.
 /// </summary>
-internal sealed class SimulationReport
+public sealed class SimulationReport
 {
     private readonly Dictionary<string, ProjectReport> _projects = new( StringComparer.Ordinal );
     private readonly List<string> _projectOrder = new();
@@ -99,65 +97,26 @@ internal sealed class SimulationReport
     public int LoadContextCount { get; set; }
 
     /// <summary>
-    /// Renders the report, listing every failure and, when <paramref name="verbose"/> is set, every diagnostic.
-    /// </summary>
-    public ImmutableArray<string> Render( bool verbose )
-    {
-        if ( !this.ProjectOrder.IsEmpty )
-        {
-            AnsiConsole.MarkupLineInterpolated( $"Order: {string.Join( " -> ", this.ProjectOrder )}" );
-        }
-
-        AnsiConsole.MarkupLineInterpolated( $"Analyzer load contexts: {this.LoadContextCount}" );
-
-        var table = new Table().Border( TableBorder.Rounded );
-        table.AddColumn( "Project" );
-        table.AddColumn( new TableColumn( "Analyzers" ).RightAligned() );
-        table.AddColumn( new TableColumn( "Generators" ).RightAligned() );
-        table.AddColumn( new TableColumn( "Generated" ).RightAligned() );
-        table.AddColumn( new TableColumn( "Diagnostics" ).RightAligned() );
-        table.AddColumn( "Status" );
-
-        foreach ( var project in this.Projects )
-        {
-            table.AddRow(
-                Markup.Escape( project.ProjectName ),
-                project.AnalyzerCount.ToString( CultureInfo.InvariantCulture ),
-                project.GeneratorCount.ToString( CultureInfo.InvariantCulture ),
-                project.GeneratedDocumentCount.ToString( CultureInfo.InvariantCulture ),
-                project.Diagnostics.Count.ToString( CultureInfo.InvariantCulture ),
-                project.HasFailure ? "[red]FAILED[/]" : "[green]ok[/]" );
-        }
-
-        AnsiConsole.Write( table );
-
-        return this.WriteDiagnostics( verbose );
-    }
-
-    /// <summary>
-    /// Writes every diagnostic in the canonical MSBuild format, the way a build writes it.
+    /// Returns every failure and, when <paramref name="verbose"/> is <c>true</c>, every diagnostic, one per line, in the
+    /// canonical MSBuild format.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This is written straight to <see cref="Console.Out"/> rather than through <see cref="AnsiConsole"/>, because
-    /// Spectre wraps its output to the console width, and a wrapped diagnostic is no longer one line. The build
-    /// engineering asserts on these lines with the regular expressions of a <c>test.json</c> file, and it splits the
-    /// output by line, so a wrapped line would silently fail to match.
+    /// <see cref="Diagnostic.ToString"/> already produces the canonical <c>path(line,column): severity ID: message</c>
+    /// format, which is what makes a design-time scenario assertable with exactly the same <c>test.json</c> syntax as a
+    /// compile-time one.
     /// </para>
     /// <para>
-    /// <see cref="Diagnostic.ToString"/> already produces the canonical
-    /// <c>path(line,column): severity ID: message</c> format, which is what makes a design-time scenario assertable
-    /// with exactly the same <c>test.json</c> syntax as a compile-time one.
+    /// A failure that is not a diagnostic is reported as <c>SIM0001</c>, because the assertion machinery of the build only
+    /// looks at lines that contain <c>: error </c> or <c>: warning </c>.
     /// </para>
     /// </remarks>
-    private ImmutableArray<string> WriteDiagnostics( bool verbose )
+    public ImmutableArray<string> GetReportedLines( bool verbose )
     {
         var lines = ImmutableArray.CreateBuilder<string>();
 
         foreach ( var project in this.Projects )
         {
-            // Failures that are not diagnostics still have to reach the assertion machinery, which only looks at
-            // lines containing ': error ' or ': warning '.
             foreach ( var error in project.Errors )
             {
                 lines.Add( $"{project.ProjectName}: error SIM0001: {SingleLine( error )}" );
@@ -172,17 +131,11 @@ internal sealed class SimulationReport
             }
         }
 
-        foreach ( var line in lines )
-        {
-            Console.Out.WriteLine( line );
-        }
-
         return lines.ToImmutable();
     }
 
     /// <summary>
     /// Collapses a message onto a single line, so that a multi-line message such as a stack trace stays matchable.
     /// </summary>
-    private static string SingleLine( string message )
-        => message.Replace( "\r\n", " ", StringComparison.Ordinal ).Replace( '\n', ' ' ).Replace( '\r', ' ' );
+    private static string SingleLine( string message ) => message.Replace( '\n', ' ' ).Replace( '\r', ' ' );
 }

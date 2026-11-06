@@ -9,6 +9,7 @@ using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.DesignTime.VersionNeutral;
+using Metalama.Framework.DesignTime.VisualStudio.InProcess;
 using Metalama.Framework.DesignTime.VisualStudio.Services;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Options;
@@ -64,6 +65,12 @@ internal abstract class DesignTimeServiceProviderFactory
 
     internal static ServiceProvider<IGlobalService> GetSharedServiceProvider()
     {
+        // The override is tested before the kind of the process, because it must apply whatever the name of the test process is.
+        if ( DesignTimeHostOverride.IsVisualStudioInProcess )
+        {
+            return GetSharedServiceProvider<VsInProcessServiceProviderFactory>();
+        }
+
         return ProcessKindDetector.GetCurrentProcessKind() switch
         {
             ProcessKind.DevEnv => GetSharedServiceProvider<VsUserProcessServiceProviderFactory>(),

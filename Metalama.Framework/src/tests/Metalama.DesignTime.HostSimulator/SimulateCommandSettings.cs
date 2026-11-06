@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.DesignTime.Hosting;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System;
@@ -46,6 +47,15 @@ internal sealed class SimulateCommandSettings : CommandSettings
     [Description( "Simulate every order of the projects, each in a fresh process." )]
     [CommandOption( "--permutations" )]
     public bool AllPermutations { get; init; }
+
+    [UsedImplicitly]
+    [Description(
+        "Simulate Visual Studio instead of an in-process host such as Rider. Metalama then hosts both processes of the "
+        + "Visual Studio architecture in this process, connected by named pipes: the user process, which serves the "
+        + "services of the Metalama extension, and the analysis process, which runs the pipeline. Mutually exclusive "
+        + "with --permutations." )]
+    [CommandOption( "--visual-studio" )]
+    public bool VisualStudio { get; init; }
 
     [UsedImplicitly]
     [Description( "An MSBuild property, as Name=Value. Can be repeated." )]
@@ -133,6 +143,11 @@ internal sealed class SimulateCommandSettings : CommandSettings
         if ( this.Order != null && this.Traversal != TraversalOrder.Solution )
         {
             return ValidationResult.Error( "--order and --traversal are mutually exclusive." );
+        }
+
+        if ( this.AllPermutations && this.VisualStudio )
+        {
+            return ValidationResult.Error( "--permutations and --visual-studio are mutually exclusive." );
         }
 
         if ( this.AllPermutations && this.Traversal != TraversalOrder.Solution )

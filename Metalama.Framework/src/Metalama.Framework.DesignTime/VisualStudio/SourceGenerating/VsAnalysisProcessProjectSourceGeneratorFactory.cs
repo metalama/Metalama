@@ -26,4 +26,11 @@ internal sealed class VsAnalysisProcessProjectSourceGeneratorFactory : IGlobalSe
                 new Lazy<VsAnalysisProcessProjectSourceGenerator>(
                     () => new VsAnalysisProcessProjectSourceGenerator( this._serviceProvider, projectOptions, projectKey ) ) )
             .Value;
+
+    /// <summary>
+    /// Returns a task that completes when the background tasks of all the project handlers created so far are complete.
+    /// </summary>
+    public Task WaitForPendingTasksAsync( CancellationToken cancellationToken )
+        => Task.WhenAll(
+            this._handlers.Values.Where( h => h.IsValueCreated ).Select( h => h.Value.PendingTasks.WaitAllAsync( cancellationToken ) ) );
 }

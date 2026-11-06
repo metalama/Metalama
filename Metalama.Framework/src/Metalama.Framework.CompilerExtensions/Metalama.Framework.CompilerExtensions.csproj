@@ -32,6 +32,7 @@
     <ItemGroup>
       <Compile Include="../Metalama.Framework.Engine/Utilities/AssemblyLoaders/*.cs"  />
       <Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
+      <Compile Include="..\Metalama.Framework.DesignTime\DesignTimeHostOverride.cs" Link="DesignTimeHostOverride.cs" />
     </ItemGroup>
 
     <Target Name="SelectAssembliesToEmbed">

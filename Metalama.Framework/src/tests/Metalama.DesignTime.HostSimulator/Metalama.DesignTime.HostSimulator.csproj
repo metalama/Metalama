@@ -31,6 +31,13 @@
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator" />
 
+        <!-- The engine. The library does not reference Metalama either. -->
+        <ProjectReference Include="../../Metalama.DesignTime.Hosting/Metalama.DesignTime.Hosting.csproj" />
+
+        <!-- The named pipes of the Visual Studio mode use Metalama.Framework.DesignTime.Rpc, which
+             expects the host to provide Microsoft.Bcl.AsyncInterfaces, as the processes of Visual Studio do. -->
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" VersionOverride="$(MicrosoftBclAsyncInterfacesLatestVersion)" />
+
         <PackageReference Include="Spectre.Console" />
         <PackageReference Include="Spectre.Console.Cli" />
     </ItemGroup>

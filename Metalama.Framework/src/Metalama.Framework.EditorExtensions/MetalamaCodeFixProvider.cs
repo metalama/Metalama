@@ -22,7 +22,7 @@ namespace Metalama.Framework.CompilerExtensions
 
         public MetalamaCodeFixProvider()
         {
-            switch ( ProcessKindHelper.CurrentProcessKind )
+            switch ( ProcessKindHelper.EntryPointProcessKind )
             {
                 case ProcessKind.Compiler:
                     break;

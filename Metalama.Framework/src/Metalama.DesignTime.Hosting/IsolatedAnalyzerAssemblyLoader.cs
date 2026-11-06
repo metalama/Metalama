@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#if NET
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Metalama.DesignTime.HostSimulator;
+namespace Metalama.DesignTime.Hosting;
 
 /// <summary>
 /// Loads analyzer assemblies into one <see cref="AssemblyLoadContext"/> per directory, which is how Roslyn loads
@@ -30,7 +31,7 @@ namespace Metalama.DesignTime.HostSimulator;
 /// would see a second copy of <see cref="Compilation"/> and fail to bind against the compilation we hand it.
 /// </para>
 /// </remarks>
-internal sealed class IsolatedAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
+internal sealed class IsolatedAnalyzerAssemblyLoader : HostAnalyzerAssemblyLoader
 {
     private readonly object _sync = new();
     private readonly Dictionary<string, DirectoryLoadContext> _contextsByDirectory = new( StringComparer.OrdinalIgnoreCase );
@@ -40,7 +41,7 @@ internal sealed class IsolatedAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
     /// <summary>
     /// Gets the number of load contexts created so far, which is the number of distinct analyzer directories seen.
     /// </summary>
-    public int LoadContextCount
+    public override int LoadContextCount
     {
         get
         {
@@ -51,7 +52,7 @@ internal sealed class IsolatedAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
         }
     }
 
-    public void AddDependencyLocation( string fullPath )
+    public override void AddDependencyLocation( string fullPath )
     {
         lock ( this._sync )
         {
@@ -59,7 +60,7 @@ internal sealed class IsolatedAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
         }
     }
 
-    public Assembly LoadFromPath( string fullPath )
+    public override Assembly LoadFromPath( string fullPath )
     {
         var directory = Path.GetDirectoryName( Path.GetFullPath( fullPath ) )!;
 
@@ -147,3 +148,4 @@ internal sealed class IsolatedAnalyzerAssemblyLoader : IAnalyzerAssemblyLoader
         }
     }
 }
+#endif
