@@ -27,5 +27,13 @@ internal sealed class VsInProcessServiceProviderFactory : VsUserProcessServicePr
     protected override CompilerServiceProvider CreateCompilerServiceProvider() => new VsInProcessCompilerServiceProvider();
 
     protected override ServiceProvider<IGlobalService> AddServices( ServiceProvider<IGlobalService> serviceProvider )
-        => base.AddServices( serviceProvider ).WithService( sp => new VsInProcessAnalysisProcess( sp ) );
+    {
+        serviceProvider = base.AddServices( serviceProvider ).WithService( sp => new VsInProcessAnalysisProcess( sp ) );
+
+        // The service is created lazily, but the analysis process must exist as soon as the services are registered: a test
+        // may call the AppDomain data slots that the constructor publishes before it asks for any service.
+        _ = ((GlobalServiceProvider) serviceProvider).GetRequiredService<VsInProcessAnalysisProcess>();
+
+        return serviceProvider;
+    }
 }

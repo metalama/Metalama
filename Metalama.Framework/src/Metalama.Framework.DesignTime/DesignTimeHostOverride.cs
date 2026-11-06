@@ -22,6 +22,10 @@ namespace Metalama.Framework.DesignTime
     /// the variable is set, so it does not change the behavior of Metalama in Visual Studio, in Rider, or in the compiler.
     /// </para>
     /// <para>
+    /// The name and the value of the variable are part of a supported test contract, which
+    /// <c>VisualStudio.InProcess.VsInProcessAnalysisProcess</c> describes. Do not change them.
+    /// </para>
+    /// <para>
     /// This file is compiled into <c>Metalama.Framework.DesignTime</c>, <c>Metalama.Framework.CompilerExtensions</c> and
     /// <c>Metalama.Framework.EditorExtensions</c>, because the entry points of the two extension assemblies must take the
     /// same decision as the design-time assembly that they load.

@@ -5,6 +5,7 @@
 using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 using Metalama.Framework.DesignTime.Contracts.Workspaces;
 using Metalama.Framework.DesignTime.Services;
+using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.Services;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.Services;
@@ -40,18 +41,32 @@ namespace Metalama.Framework.DesignTime.VisualStudio.InProcess;
 /// workspace providers of both processes.
 /// </para>
 /// <para>
-/// A test waits for the analysis with the delegate that <see cref="WaitForAnalysisAsync"/> publishes in the data slot
-/// <see cref="WaitForAnalysisDataSlotName"/> of the current <see cref="AppDomain"/>. The delegate has the type
-/// <c>Func&lt;CancellationToken, Task&gt;</c>, so that the test can call it without referencing Metalama.
+/// When it is created, the class publishes two delegates in data slots of the current <see cref="AppDomain"/>, so that a test
+/// can call them without referencing Metalama. <see cref="WaitForAnalysisDataSlotName"/> holds a
+/// <c>Func&lt;CancellationToken, Task&gt;</c> that calls <see cref="WaitForAnalysisAsync"/>. <see cref="SetWorkspaceDataSlotName"/>
+/// holds an <c>Action&lt;Workspace&gt;</c> that calls <see cref="SetWorkspace"/>.
+/// </para>
+/// <para>
+/// The environment variable of <see cref="DesignTimeHostOverride"/> and the two data slots are a supported test contract. The
+/// Metalama extension of Visual Studio tests its Metalama integration with them, through the
+/// <c>VisualStudioInProcessHost</c> class of the <c>Metalama.DesignTime.Hosting</c> package, which repeats their names. Do
+/// not rename them, and do not change the types of the delegates, without changing that class.
 /// </para>
 /// </remarks>
 internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerService, IWorkspaceReceiver
 {
     /// <summary>
     /// The name of the <see cref="AppDomain"/> data slot that holds the <c>Func&lt;CancellationToken, Task&gt;</c> delegate
-    /// returning a task that completes when the analysis of the current solution of the workspace is complete.
+    /// returning a task that completes when the analysis of the current solution of the workspace is complete. It is part of
+    /// a supported test contract.
     /// </summary>
     public const string WaitForAnalysisDataSlotName = "Metalama.Framework.DesignTime.VisualStudioInProcess.WaitForAnalysis";
+
+    /// <summary>
+    /// The name of the <see cref="AppDomain"/> data slot that holds the <c>Action&lt;Workspace&gt;</c> delegate that gives the
+    /// workspace to Metalama, as <see cref="IWorkspaceReceiver.SetWorkspace"/> does. It is part of a supported test contract.
+    /// </summary>
+    public const string SetWorkspaceDataSlotName = "Metalama.Framework.DesignTime.VisualStudioInProcess.SetWorkspace";
 
     private static readonly object _dataSlotSync = new();
 
@@ -72,6 +87,9 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
         this._logger = userProcessServiceProvider.GetLoggerFactory().GetLogger( nameof(VsInProcessAnalysisProcess) );
         this._userProcessWorkspaceProvider = userProcessServiceProvider.GetRequiredService<LocalWorkspaceProvider>();
 
+        // The hub of the user process is created lazily. It must be listening before the analysis process connects to it.
+        _ = userProcessServiceProvider.GetRequiredService<ServiceHubServerEndpoint>();
+
         // The analysis process gets its own global services, as if it were another process. Backstage is shared, because it
         // is initialized once per process.
         var analysisProcessFactory = new VsAnalysisProcessServiceProviderFactory( new DesignTimeEntryPointManager() );
@@ -82,6 +100,8 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
         this._projectSourceGeneratorFactory = analysisProcessServiceProvider.GetRequiredService<VsAnalysisProcessProjectSourceGeneratorFactory>();
         this._applicationExitingToken = analysisProcessServiceProvider.GetRequiredService<ApplicationExitManager>().Token;
         this._sourceGenerator = new VsAnalysisProcessSourceGenerator( analysisProcessServiceProvider.Underlying ).AsSourceGenerator();
+
+        this.PublishDataSlots();
 
         this._logger.Trace?.Log( "The in-process analysis process has been created." );
     }
@@ -116,7 +136,6 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
         workspace.RegisterWorkspaceChangedHandler( _ => this.ScheduleAnalysis() );
 
         this._workspaceTask.TrySetResult( workspace );
-        this.PublishWaitDelegate();
 
         this.ScheduleAnalysis();
     }
@@ -255,25 +274,36 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
     }
 
     /// <summary>
-    /// Publishes <see cref="WaitForAnalysisAsync"/> in the data slot <see cref="WaitForAnalysisDataSlotName"/>.
+    /// Publishes <see cref="WaitForAnalysisAsync"/> in the data slot <see cref="WaitForAnalysisDataSlotName"/>, and
+    /// <see cref="SetWorkspace"/> in the data slot <see cref="SetWorkspaceDataSlotName"/>.
     /// </summary>
     /// <remarks>
-    /// Each Metalama version loaded in the process has its own instance of this class. When the slot already holds the
-    /// delegate of another version, the new delegate waits for both.
+    /// Each Metalama version loaded in the process has its own instance of this class. When a slot already holds the
+    /// delegate of another version, the new delegate calls both: the wait delegate waits for both analyses, and the workspace
+    /// delegate gives the workspace to both versions.
     /// </remarks>
-    private void PublishWaitDelegate()
+    private void PublishDataSlots()
     {
         lock ( _dataSlotSync )
         {
             Func<CancellationToken, Task> waitDelegate = this.WaitForAnalysisAsync;
 
-            if ( AppDomain.CurrentDomain.GetData( WaitForAnalysisDataSlotName ) is Func<CancellationToken, Task> existingDelegate )
+            if ( AppDomain.CurrentDomain.GetData( WaitForAnalysisDataSlotName ) is Func<CancellationToken, Task> existingWaitDelegate )
             {
-                var ownDelegate = waitDelegate;
-                waitDelegate = ct => Task.WhenAll( existingDelegate( ct ), ownDelegate( ct ) );
+                var ownWaitDelegate = waitDelegate;
+                waitDelegate = ct => Task.WhenAll( existingWaitDelegate( ct ), ownWaitDelegate( ct ) );
             }
 
             AppDomain.CurrentDomain.SetData( WaitForAnalysisDataSlotName, waitDelegate );
+
+            Action<Workspace> setWorkspaceDelegate = this.SetWorkspace;
+
+            if ( AppDomain.CurrentDomain.GetData( SetWorkspaceDataSlotName ) is Action<Workspace> existingSetWorkspaceDelegate )
+            {
+                setWorkspaceDelegate = existingSetWorkspaceDelegate + setWorkspaceDelegate;
+            }
+
+            AppDomain.CurrentDomain.SetData( SetWorkspaceDataSlotName, setWorkspaceDelegate );
         }
     }
 }
