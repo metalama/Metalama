@@ -31,6 +31,12 @@ namespace Metalama.Backstage.Infrastructure
         /// </summary>
         private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
 
+        /// <summary>
+        /// Reports the exceptions thrown by the callbacks of <see cref="WatchChanges"/>, or <see langword="null"/> when the
+        /// instance was created without a service provider.
+        /// </summary>
+        private readonly IBackgroundExceptionReporter? _exceptionReporter;
+
         private IStandardDirectories? _standardDirectories;
 
         public FileSystem() { }
@@ -42,6 +48,10 @@ namespace Metalama.Backstage.Infrastructure
             // Resolved untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
             // cannot derive from IBackstageService.
             this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
+
+            // The reporter resolves nothing when it is constructed, so depending on it does not create a cycle with the
+            // telemetry services, which depend on the file system.
+            this._exceptionReporter = serviceProvider.GetBackstageService<IBackgroundExceptionReporter>();
         }
 
         /// <summary>
@@ -398,15 +408,15 @@ namespace Metalama.Backstage.Infrastructure
         public IDisposable WatchChanges( string directory, string filter, Action<FileSystemEventArgs> callback )
         {
             var fileSystemWatcher = new FileSystemWatcher( directory, filter );
-            fileSystemWatcher.Created += ( _, args ) => InvokeWatcherCallback( callback, args );
-            fileSystemWatcher.Changed += ( _, args ) => InvokeWatcherCallback( callback, args );
-            fileSystemWatcher.Deleted += ( _, args ) => InvokeWatcherCallback( callback, args );
+            fileSystemWatcher.Created += ( _, args ) => this.InvokeWatcherCallback( callback, args );
+            fileSystemWatcher.Changed += ( _, args ) => this.InvokeWatcherCallback( callback, args );
+            fileSystemWatcher.Deleted += ( _, args ) => this.InvokeWatcherCallback( callback, args );
             fileSystemWatcher.EnableRaisingEvents = true;
 
             return fileSystemWatcher;
         }
 
-        private static void InvokeWatcherCallback( Action<FileSystemEventArgs> callback, FileSystemEventArgs args )
+        private void InvokeWatcherCallback( Action<FileSystemEventArgs> callback, FileSystemEventArgs args )
         {
             // The events of FileSystemWatcher are raised on a thread pool thread, where an exception would terminate
             // the process. See #2317.
@@ -416,7 +426,16 @@ namespace Metalama.Backstage.Infrastructure
             }
             catch ( Exception e )
             {
-                BackgroundExceptionHandler.Report( e, null, $"{nameof(FileSystemWatcher)} callback for '{args.FullPath}'" );
+                var boundary = $"{nameof(FileSystemWatcher)} callback for '{args.FullPath}'";
+
+                if ( this._exceptionReporter != null )
+                {
+                    this._exceptionReporter.Report( e, null, boundary );
+                }
+                else
+                {
+                    System.Diagnostics.Trace.TraceError( $"Metalama: unhandled exception in the {boundary}: {e}" );
+                }
             }
         }
     }

@@ -14,9 +14,11 @@ namespace Metalama.Backstage.Infrastructure
     internal sealed class CurrentDateTimeProvider : IDateTimeProvider
     {
         private readonly Timer _timer = new();
+        private readonly IBackgroundExceptionReporter _exceptionReporter;
 
-        public CurrentDateTimeProvider()
+        public CurrentDateTimeProvider( IBackgroundExceptionReporter exceptionReporter )
         {
+            this._exceptionReporter = exceptionReporter;
             this._timer.Elapsed += this.OnTimerElapsed;
             this.ScheduleNextMidnight();
         }
@@ -41,7 +43,7 @@ namespace Metalama.Backstage.Infrastructure
             catch ( Exception exception )
             {
                 // System.Timers.Timer would swallow the exception, and the timer would not be scheduled again.
-                BackgroundExceptionHandler.Report( exception, null, $"{nameof(CurrentDateTimeProvider)}.{nameof(this.DateChanged)}" );
+                this._exceptionReporter.Report( exception, null, $"{nameof(CurrentDateTimeProvider)}.{nameof(this.DateChanged)}" );
             }
             finally
             {

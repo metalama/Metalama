@@ -2,9 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
-using Metalama.Framework.Engine.Utilities.Diagnostics;
-
 namespace Metalama.Framework.DesignTime.Utilities;
 
 /// <summary>
@@ -18,6 +15,12 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
     private readonly string _path;
 
     private readonly string _filter;
+
+    /// <summary>
+    /// Receives the exceptions thrown on the thread pool threads of <see cref="FileSystemWatcher"/>, where an exception would
+    /// terminate the process. See #2317.
+    /// </summary>
+    private readonly Action<Exception> _onException;
 
     private FileSystemWatcher? _watcher;
 
@@ -46,10 +49,17 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
 
     public event FileSystemEventHandler? Created;
 
-    public RecursiveFileSystemWatcher( string path, string filter )
+    /// <param name="path">The directory to watch, which may not exist yet.</param>
+    /// <param name="filter">The filter of the file names.</param>
+    /// <param name="onException">
+    /// Receives the exceptions thrown by the event handlers and by the watcher itself. They are never rethrown, because
+    /// they are raised on thread pool threads.
+    /// </param>
+    public RecursiveFileSystemWatcher( string path, string filter, Action<Exception> onException )
     {
         this._path = path ?? throw new ArgumentNullException( nameof(path) );
         this._filter = filter;
+        this._onException = onException;
 
         if ( Directory.Exists( path ) )
         {
@@ -67,7 +77,7 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
                 return;
             }
 
-            this._parentDirectoryWatcher = new RecursiveFileSystemWatcher( parentDirectory, Path.GetFileName( path ) );
+            this._parentDirectoryWatcher = new RecursiveFileSystemWatcher( parentDirectory, Path.GetFileName( path ), onException );
 
             void OnParentDirectoryCreated( object? s, FileSystemEventArgs? e )
             {
@@ -97,7 +107,7 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
                 catch ( Exception exception )
                 {
                     // This handler runs on a thread pool thread, where an exception would terminate the process. See #2317.
-                    BackgroundExceptionHandler.Report( exception, Logger.DesignTime, $"{nameof(RecursiveFileSystemWatcher)}: watching '{path}'" );
+                    this.ReportException( exception );
                 }
             }
 
@@ -134,7 +144,19 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
         }
         catch ( Exception exception )
         {
-            BackgroundExceptionHandler.Report( exception, Logger.DesignTime, $"{nameof(RecursiveFileSystemWatcher)}: '{e.FullPath}'" );
+            this.ReportException( exception );
+        }
+    }
+
+    private void ReportException( Exception exception )
+    {
+        try
+        {
+            this._onException( exception );
+        }
+        catch
+        {
+            // The reporter must not make the process terminate either.
         }
     }
 

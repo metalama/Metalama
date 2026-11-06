@@ -161,7 +161,10 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
         if ( watchedDirectory != null )
         {
-            this._fileSystemWatcher = new RecursiveFileSystemWatcher( watchedDirectory, watchedFilter );
+            this._fileSystemWatcher = new RecursiveFileSystemWatcher(
+                watchedDirectory,
+                watchedFilter,
+                e => this._exceptionHandler.ReportException( e, this.ProjectOptions, this.Logger ) );
 
             this._fileSystemWatcher.Changed += this.OnTouchFileChanged;
             this._fileSystemWatcher.EnableRaisingEvents = true;
