@@ -90,6 +90,8 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
 
     public ICompilerServiceProvider ServiceProvider => this._serviceProvider ?? throw new InvalidOperationException();
 
+    public ICompileTimeEditingStatusService EditingStatus { get; private set; } = null!;
+
     public Project Project => this.Workspace.CurrentSolution.GetProject( this.ProjectId )!;
 
     public async ValueTask InitializeAsync()
@@ -114,6 +116,12 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
         var consumer = DesignTimeEntryPointManager.Instance.GetConsumer( CurrentContractVersions.All );
         this._serviceProvider = await consumer.GetServiceProviderAsync( version, cancellationToken );
         Assert.NotNull( this._serviceProvider );
+
+        // The extension gets the editing status service and attaches its user interface when the services are registered,
+        // before the analysis process has connected.
+        this.EditingStatus = (ICompileTimeEditingStatusService) this._serviceProvider.GetService( typeof(ICompileTimeEditingStatusService) )!;
+        Assert.NotNull( this.EditingStatus );
+        await this.EditingStatus.OnUserInterfaceAttachedAsync( cancellationToken );
 
         // ReSharper disable once SuspiciousTypeConversion.Global
         var workspaceReceiver = (IWorkspaceReceiver?) this._serviceProvider.GetService( typeof(IWorkspaceReceiver) );

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -74,6 +74,12 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
     public const string SetWorkspaceDataSlotName = "Metalama.Framework.DesignTime.VisualStudioInProcess.SetWorkspace";
 
     private const string _compilerExtensionsFileName = "Metalama.Framework.CompilerExtensions.dll";
+
+    /// <summary>
+    /// The identifier of the diagnostic that the configuration of the pipeline reports when the compile-time code of the
+    /// project contains C# errors.
+    /// </summary>
+    private const string _compileTimeCodeHasErrorsDiagnosticId = "LAMA0068";
 
     private static readonly object _dataSlotSync = new();
     private static readonly Version? _currentVersion = typeof(VsInProcessAnalysisProcess).Assembly.GetName().Version;
@@ -389,7 +395,8 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
     /// </para>
     /// <para>
     /// An error located in the source code, for instance a C# error in compile-time code, is a state of the project that a
-    /// test may want to observe, so it is not a failure of the analysis.
+    /// test may want to observe, so it is not a failure of the analysis. The configuration reports such errors with
+    /// <c>LAMA0068</c>, which has no location, so this diagnostic is not a failure either.
     /// </para>
     /// <para>
     /// The configuration is cached by the pipeline, so this call does not compute it again.
@@ -417,7 +424,7 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
         }
 
         var environmentErrors = configuration.Diagnostics
-            .Where( d => d.Severity == DiagnosticSeverity.Error && !d.Location.IsInSource )
+            .Where( d => d.Severity == DiagnosticSeverity.Error && !d.Location.IsInSource && d.Id != _compileTimeCodeHasErrorsDiagnosticId )
             .ToList();
 
         if ( environmentErrors.Count > 0 )
