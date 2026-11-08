@@ -128,7 +128,9 @@ In this mode, Metalama:
    installed. An error in the compile-time code of the project, such as a C# error in an aspect, is a state that a test
    may observe, so it does not make the task fail. When no Metalama source generator has been created in the process,
    for instance because no project of the workspace references the Metalama analyzers, the task is already complete.
-   A change to a document that contains compile-time
+   When `ICompileTimeEditingStatusService.OnEditingCompletedAsync` resumes the pipelines, Metalama analyzes the current
+   solution again, so a call to `WaitForAnalysisAsync` after `OnEditingCompletedAsync` returns waits for the results of
+   the resumed pipelines. A change to a document that contains compile-time
    code, such as an aspect, pauses the pipeline until the user resumes it, as in Visual Studio. A test that expects the
    services to follow a change must change a document that contains run-time code only.
 

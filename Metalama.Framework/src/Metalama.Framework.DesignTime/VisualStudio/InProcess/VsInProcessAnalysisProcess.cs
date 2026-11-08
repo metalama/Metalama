@@ -111,6 +111,9 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
         this._applicationExitingToken = analysisProcessServiceProvider.GetRequiredService<ApplicationExitManager>().Token;
         this._sourceGenerator = new VsAnalysisProcessSourceGenerator( analysisProcessServiceProvider.Underlying ).AsSourceGenerator();
 
+        // The pipeline factory subscribes to this event before this class does, so it starts resuming the pipelines first.
+        analysisProcessServiceProvider.GetRequiredService<AnalysisProcessEventHub>().EditingCompileTimeCodeCompleted += this.OnEditingCompileTimeCodeCompleted;
+
         this.PublishDataSlots();
 
         this._logger.Trace?.Log( "The in-process analysis process has been created." );
@@ -164,15 +167,39 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
     }
 
     /// <summary>
+    /// Schedules a new analysis of the current solution when the user process reports that the editing of compile-time code is
+    /// complete.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The user process reports it with <c>ICompileTimeEditingStatusService.OnEditingCompletedAsync</c>, and the pipelines
+    /// resume. In Visual Studio, Roslyn then runs the source generator again on the next change of the solution, which
+    /// publishes the results of the resumed pipelines. This class runs the source generator again immediately, because a test
+    /// may not change the solution.
+    /// </para>
+    /// <para>
+    /// The event is raised during the remote call of the user process, so the analysis is scheduled before the call returns,
+    /// and a call to <see cref="WaitForAnalysisAsync"/> that follows the call includes this analysis.
+    /// </para>
+    /// </remarks>
+    private void OnEditingCompileTimeCodeCompleted()
+    {
+        this._logger.Trace?.Log( "The editing of compile-time code is complete. Scheduling a new analysis." );
+
+        this.ScheduleAnalysis( force: true );
+    }
+
+    /// <summary>
     /// Schedules the analysis of the current solution of the workspace, unless it is already scheduled, and returns the task of
     /// this analysis.
     /// </summary>
+    /// <param name="force"><c>true</c> to schedule an analysis even when the current solution is the last scheduled one.</param>
     /// <remarks>
     /// The method compares the current solution with the last scheduled one, so it does not depend on the order in which
     /// the workspace raises its change events. A caller that changes the workspace and then calls this method gets a task
     /// that includes the analysis of the change.
     /// </remarks>
-    private Task ScheduleAnalysis()
+    private Task ScheduleAnalysis( bool force = false )
     {
         lock ( this._sync )
         {
@@ -185,7 +212,7 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
 
             var solution = workspace.CurrentSolution;
 
-            if ( solution == this._lastScheduledSolution )
+            if ( solution == this._lastScheduledSolution && !force )
             {
                 return this._pendingAnalysis;
             }

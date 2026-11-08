@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -86,6 +86,8 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
 
     public DocumentId DocumentId { get; private set; } = null!;
 
+    public DocumentId AspectDocumentId { get; private set; } = null!;
+
     public ICompilerServiceProvider ServiceProvider => this._serviceProvider ?? throw new InvalidOperationException();
 
     public Project Project => this.Workspace.CurrentSolution.GetProject( this.ProjectId )!;
@@ -147,6 +149,7 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
                             """;
 
         this.DocumentId = DocumentId.CreateNewId( this.ProjectId );
+        this.AspectDocumentId = DocumentId.CreateNewId( this.ProjectId );
 
         var projectInfo = ProjectInfo.Create(
                 this.ProjectId,
@@ -161,7 +164,7 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
                 analyzerReferences: analyzerReferences )
             .WithDocuments(
             [
-                CreateDocument( DocumentId.CreateNewId( this.ProjectId ), "Aspect.cs", AspectCode, projectDirectory ),
+                CreateDocument( this.AspectDocumentId, "Aspect.cs", AspectCode, projectDirectory ),
                 CreateDocument( this.DocumentId, "Code.cs", Code, projectDirectory )
             ] )
             .WithAnalyzerConfigDocuments( [CreateDocument( DocumentId.CreateNewId( this.ProjectId ), ".globalconfig", globalConfig, projectDirectory )] );
