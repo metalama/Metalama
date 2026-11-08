@@ -78,6 +78,23 @@ public sealed class VisualStudioInProcessTests
         Assert.Equal( "1 aspect", summary.Description );
     }
 
+    /// <summary>
+    /// Changes the project that references another version of <c>Metalama.Framework</c> and no Metalama analyzer, and expects
+    /// the analysis to succeed. Metalama must skip this project, as Roslyn does, instead of failing to configure its pipeline.
+    /// </summary>
+    [Fact]
+    public async Task ProjectWithoutTheMetalamaAnalyzersIsNotAnalyzed()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var workspace = this._fixture.Workspace;
+
+        Assert.True(
+            workspace.TryApplyChanges(
+                workspace.CurrentSolution.WithDocumentText( this._fixture.OtherVersionDocumentId, SourceText.From( "public class D { public void M() { } }" ) ) ) );
+
+        await VisualStudioInProcessHost.WaitForAnalysisAsync( cancellationToken );
+    }
+
     private async Task<ICodeLensSummary?> GetCodeLensSummaryAsync( Compilation compilation, string methodName )
     {
         var codeLens = (ICodeLensService?) this._fixture.ServiceProvider.GetService( typeof(ICodeLensService) );

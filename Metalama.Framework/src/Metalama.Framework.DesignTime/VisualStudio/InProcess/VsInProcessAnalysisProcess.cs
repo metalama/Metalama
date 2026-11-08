@@ -17,6 +17,7 @@ using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using SharpCrafters.Backstage.Diagnostics;
+using System.Reflection;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.InProcess;
 
@@ -35,7 +36,8 @@ namespace Metalama.Framework.DesignTime.VisualStudio.InProcess;
 /// <para>
 /// In Visual Studio, Roslyn runs the source generator of the analysis process whenever the solution changes, and this
 /// execution runs the aspect pipeline and registers the project with the user process. This class does the same: it runs
-/// <see cref="VsAnalysisProcessSourceGenerator"/> for every C# project of the workspace when it receives the workspace and
+/// <see cref="VsAnalysisProcessSourceGenerator"/> for every C# project of the workspace that references the
+/// <c>Metalama.Framework.CompilerExtensions.dll</c> assembly of the current version, when it receives the workspace and
 /// whenever the workspace changes.
 /// </para>
 /// <para>
@@ -71,7 +73,10 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
     /// </summary>
     public const string SetWorkspaceDataSlotName = "Metalama.Framework.DesignTime.VisualStudioInProcess.SetWorkspace";
 
+    private const string _compilerExtensionsFileName = "Metalama.Framework.CompilerExtensions.dll";
+
     private static readonly object _dataSlotSync = new();
+    private static readonly Version? _currentVersion = typeof(VsInProcessAnalysisProcess).Assembly.GetName().Version;
 
     private readonly object _sync = new();
     private readonly LocalWorkspaceProvider _userProcessWorkspaceProvider;
@@ -221,6 +226,13 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
                 continue;
             }
 
+            if ( !ReferencesCurrentCompilerExtensions( project ) )
+            {
+                this._logger.Trace?.Log( $"The project '{project.Name}' is skipped because it does not reference {_compilerExtensionsFileName} of version {_currentVersion}." );
+
+                continue;
+            }
+
             try
             {
                 var compilation = await this.AnalyzeProjectAsync( project, cancellationToken );
@@ -246,6 +258,48 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
         {
             await this.VerifyPipelineConfigurationAsync( project, compilation, cancellationToken );
         }
+    }
+
+    /// <summary>
+    /// Determines whether the analyzer references of a project include <c>Metalama.Framework.CompilerExtensions.dll</c> of the
+    /// version of the current assembly.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Roslyn runs a source generator only for the projects that reference it. A project that references another version of
+    /// Metalama is analyzed by the instance of this class of that version, and a project that references no Metalama analyzer
+    /// is not analyzed. All Metalama assemblies of a build have the same assembly version.
+    /// </para>
+    /// <para>
+    /// The method reads the assembly name from the file and does not load the assembly, so that it does not initialize
+    /// another version of Metalama.
+    /// </para>
+    /// </remarks>
+    private static bool ReferencesCurrentCompilerExtensions( Microsoft.CodeAnalysis.Project project )
+    {
+        foreach ( var reference in project.AnalyzerReferences )
+        {
+            var path = reference.FullPath;
+
+            if ( path == null || !string.Equals( Path.GetFileName( path ), _compilerExtensionsFileName, StringComparison.OrdinalIgnoreCase ) )
+            {
+                continue;
+            }
+
+            try
+            {
+                if ( AssemblyName.GetAssemblyName( path ).Version == _currentVersion )
+                {
+                    return true;
+                }
+            }
+            catch ( Exception e ) when ( e is IOException or BadImageFormatException or UnauthorizedAccessException )
+            {
+                // The file cannot be read, so it is not the assembly of the current version.
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

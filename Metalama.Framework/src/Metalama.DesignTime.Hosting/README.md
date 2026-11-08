@@ -50,8 +50,10 @@ In this mode, Metalama:
   `DesignTimeEntryPointManager`, so that only the user provider is registered;
 - serves `IWorkspaceReceiver` from the user provider (Visual Studio does not), and gives the workspace to both
   processes;
-- runs the source generator of the analysis process for each C# project when it receives the workspace and when the
-  workspace changes, as Roslyn does in the analysis process of Visual Studio;
+- runs the source generator of the analysis process when it receives the workspace and when the workspace changes, as
+  Roslyn does in the analysis process of Visual Studio. Like Roslyn, it runs it only for the C# projects whose analyzer
+  references include the `Metalama.Framework.CompilerExtensions.dll` of its own version. A project that references
+  another version of Metalama, or no Metalama analyzer, is not analyzed by this version;
 - shows no Backstage user interface, does not collect telemetry (it sets `METALAMA_TELEMETRY_OPT_OUT=1` unless it is
   set), and does not use licensing, as design time already does.
 
@@ -124,7 +126,9 @@ In this mode, Metalama:
    order of the workspace events. It fails when the analysis fails, and when the aspect pipeline of a project cannot be
    configured because of an error that has no location in the source code, such as `LAMA0082` for an SDK that is not
    installed. An error in the compile-time code of the project, such as a C# error in an aspect, is a state that a test
-   may observe, so it does not make the task fail. A change to a document that contains compile-time
+   may observe, so it does not make the task fail. When no Metalama source generator has been created in the process,
+   for instance because no project of the workspace references the Metalama analyzers, the task is already complete.
+   A change to a document that contains compile-time
    code, such as an aspect, pauses the pipeline until the user resumes it, as in Visual Studio. A test that expects the
    services to follow a change must change a document that contains run-time code only.
 

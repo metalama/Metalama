@@ -19,8 +19,8 @@ using Xunit;
 namespace Metalama.DesignTime.Hosting.Tests;
 
 /// <summary>
-/// Hosts Metalama in the in-process Visual Studio mode, with one <see cref="AdhocWorkspace"/> that contains one project, and
-/// gets the Metalama services the way the Metalama extension of Visual Studio gets them.
+/// Hosts Metalama in the in-process Visual Studio mode, with one <see cref="AdhocWorkspace"/>, and gets the Metalama services
+/// the way the Metalama extension of Visual Studio gets them.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -34,6 +34,12 @@ namespace Metalama.DesignTime.Hosting.Tests;
 /// wait for the analysis.
 /// </para>
 /// <para>
+/// The workspace contains two projects. The project <see cref="ProjectName"/> references the Metalama analyzers. The project
+/// <see cref="OtherVersionProjectName"/> defines <c>METALAMA</c> and references a <c>Metalama.Framework</c> assembly of
+/// another version, but no Metalama analyzer. Roslyn does not run the Metalama source generator for this project, so
+/// Metalama must not analyze it.
+/// </para>
+/// <para>
 /// The aspect and the code to which it applies are in two documents. A change to a document that contains compile-time
 /// code pauses the design-time pipeline until the user resumes it, as in Visual Studio, so a test that changes the
 /// workspace must change a document that contains run-time code only.
@@ -42,6 +48,8 @@ namespace Metalama.DesignTime.Hosting.Tests;
 public sealed class VisualStudioInProcessFixture : IAsyncLifetime
 {
     public const string ProjectName = "AspectProject";
+
+    public const string OtherVersionProjectName = "OtherVersionProject";
 
     public const string AspectCode = """
                                      using System;
@@ -72,6 +80,10 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
 
     public ProjectId ProjectId { get; } = ProjectId.CreateNewId();
 
+    public ProjectId OtherVersionProjectId { get; } = ProjectId.CreateNewId();
+
+    public DocumentId OtherVersionDocumentId { get; private set; } = null!;
+
     public DocumentId DocumentId { get; private set; } = null!;
 
     public ICompilerServiceProvider ServiceProvider => this._serviceProvider ?? throw new InvalidOperationException();
@@ -89,6 +101,7 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
         VisualStudioInProcessHost.Enable( Path.Combine( rootDirectory, "t" ) );
 
         this.AddProject( Path.Combine( rootDirectory, ProjectName ) );
+        this.AddOtherVersionProject( Path.Combine( rootDirectory, OtherVersionProjectName ) );
 
         // Creating the source generator of Metalama.Framework.CompilerExtensions.dll registers the Visual Studio services.
         var generatorCount = await VisualStudioInProcessHost.CreateGeneratorsAsync( this.Project );
@@ -156,6 +169,62 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
         this.Workspace.AddProject( projectInfo );
     }
 
+    /// <summary>
+    /// Adds a project that defines <c>METALAMA</c> and references a <c>Metalama.Framework</c> assembly of version
+    /// 2025.0.10.0, without any analyzer reference.
+    /// </summary>
+    private void AddOtherVersionProject( string projectDirectory )
+    {
+        var projectPath = Path.Combine( projectDirectory, OtherVersionProjectName + ".csproj" );
+
+        var globalConfig = $"""
+                            is_global = true
+                            build_property.MetalamaEnabled = true
+                            build_property.AssemblyName = {OtherVersionProjectName}
+                            build_property.TargetFramework = netstandard2.0
+                            build_property.MSBuildProjectFullPath = {projectPath}
+                            build_property.NETCoreSdkVersion = {GetMetadata( "NETCoreSdkVersion" )}
+                            """;
+
+        this.OtherVersionDocumentId = DocumentId.CreateNewId( this.OtherVersionProjectId );
+
+        var projectInfo = ProjectInfo.Create(
+                this.OtherVersionProjectId,
+                VersionStamp.Create(),
+                OtherVersionProjectName,
+                OtherVersionProjectName,
+                LanguageNames.CSharp,
+                filePath: projectPath,
+                compilationOptions: new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ),
+                parseOptions: new CSharpParseOptions( LanguageVersion.Latest, preprocessorSymbols: ["METALAMA"] ),
+                metadataReferences: GetRuntimeAssemblies()
+                    .Select( p => MetadataReference.CreateFromFile( p ) )
+                    .Append( CreateOtherVersionMetalamaFrameworkReference() ) )
+            .WithDocuments( [CreateDocument( this.OtherVersionDocumentId, "Code.cs", "public class D { }", projectDirectory )] )
+            .WithAnalyzerConfigDocuments(
+                [CreateDocument( DocumentId.CreateNewId( this.OtherVersionProjectId ), ".globalconfig", globalConfig, projectDirectory )] );
+
+        this.Workspace.AddProject( projectInfo );
+    }
+
+    /// <summary>
+    /// Compiles an assembly named <c>Metalama.Framework</c> that declares only its version, 2025.0.10.0.
+    /// </summary>
+    private static MetadataReference CreateOtherVersionMetalamaFrameworkReference()
+    {
+        var compilation = CSharpCompilation.Create(
+            "Metalama.Framework",
+            [CSharpSyntaxTree.ParseText( """[assembly: System.Reflection.AssemblyVersion( "2025.0.10.0" )]""" )],
+            GetRuntimeAssemblies().Select( p => MetadataReference.CreateFromFile( p ) ),
+            new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
+
+        using var stream = new MemoryStream();
+        var result = compilation.Emit( stream );
+        Assert.True( result.Success, string.Join( Environment.NewLine, result.Diagnostics ) );
+
+        return MetadataReference.CreateFromImage( stream.ToArray() );
+    }
+
     private static DocumentInfo CreateDocument( DocumentId id, string name, string text, string directory )
         => DocumentInfo.Create(
             id,
@@ -167,6 +236,12 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
     /// Returns the references of the hosted project: the assemblies of the current runtime, and <c>Metalama.Framework.dll</c>.
     /// </summary>
     private static IEnumerable<MetadataReference> GetMetadataReferences()
+        => GetRuntimeAssemblies().Append( GetMetadata( "MetalamaFrameworkPath" ) ).Select( p => MetadataReference.CreateFromFile( p ) );
+
+    /// <summary>
+    /// Returns the paths of the assemblies of the current runtime that the hosted projects reference.
+    /// </summary>
+    private static IEnumerable<string> GetRuntimeAssemblies()
     {
 #if NET
         // The assemblies of the shared framework, which include the ones that the compiler requires for dynamic code.
@@ -182,7 +257,7 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
             .Select( f => Path.Combine( runtimeDirectory, f ) );
 #endif
 
-        return runtimeAssemblies.Append( GetMetadata( "MetalamaFrameworkPath" ) ).Select( p => MetadataReference.CreateFromFile( p ) );
+        return runtimeAssemblies;
     }
 
     private static string GetMetadata( string key )

@@ -237,15 +237,24 @@ public static class VisualStudioInProcessHost
     /// change of the workspace, before calling a Metalama service.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The task compares the current solution of the workspace with the last one that Metalama analyzed, so it does not depend
     /// on the order in which the workspace raises its events. When the workspace has not been given to Metalama yet, the task
     /// waits for it. The task fails when the analysis fails, and when the aspect pipeline of a project cannot be configured
     /// because of an error that has no location in the source code, for instance <c>LAMA0082</c> when the .NET SDK named by
     /// the <c>NETCoreSdkVersion</c> build property is not installed. An error in the compile-time code of the project does not
     /// make the task fail.
+    /// </para>
+    /// <para>
+    /// When the data slot is not set, no Metalama source generator has been created in the process, so Metalama has nothing
+    /// to analyze, and the method returns a completed task. This happens when no project of the workspace references the
+    /// Metalama analyzers.
+    /// </para>
     /// </remarks>
     public static Task WaitForAnalysisAsync( CancellationToken cancellationToken )
-        => GetDataSlot<Func<CancellationToken, Task>>( WaitForAnalysisDataSlotName )( cancellationToken );
+        => AppDomain.CurrentDomain.GetData( WaitForAnalysisDataSlotName ) is Func<CancellationToken, Task> wait
+            ? wait( cancellationToken )
+            : Task.CompletedTask;
 
     private static T GetDataSlot<T>( string name )
         where T : class
