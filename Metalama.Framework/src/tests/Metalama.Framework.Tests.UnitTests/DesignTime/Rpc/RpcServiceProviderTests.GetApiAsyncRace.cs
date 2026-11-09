@@ -77,7 +77,7 @@ public sealed partial class RpcServiceProviderTests
         testContext.SyncProvider.ReleaseSyncPoint( afterStartsListening );
 
         var api = await getApiTask.WithCancellation( ct );
-        await api.HelloAsync();
+        await api.HelloAsync().WithCancellation( ct );
         Assert.True( extensionServiceFactory.IsHelloMethodCalled );
 
         await clientEndpoint.WhenBackgroundTasksCompletedAsync( ct );
