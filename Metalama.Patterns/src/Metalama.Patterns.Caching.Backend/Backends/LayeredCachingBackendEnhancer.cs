@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Implementation;
 using System.Globalization;
+using static Flashtrace.Messages.FormattedMessageBuilder;
 
 namespace Metalama.Patterns.Caching.Backends;
 
@@ -12,6 +13,17 @@ namespace Metalama.Patterns.Caching.Backends;
 /// A <see cref="CachingBackendEnhancer"/> that adds a local (fast) <see cref="MemoryCachingBackend"/> to a remote (slower) cache.
 /// This class is typically instantiated in the back-end factory method. You should normally not use this class unless you develop a custom caching back-end.
 /// </summary>
+/// <remarks>
+/// <para>
+/// When the remote cache reports <see cref="CachingBackendFeatures.Blocking"/> as <c>false</c>, a removal or an invalidation
+/// may reach the remote cache after a later read. To prevent the read from storing the stale remote value in the local cache,
+/// the enhancer replaces the local item with a <see cref="RemovedValue"/> that expires after <see cref="_removedItemTransitionPeriod"/>.
+/// A read that finds a <see cref="RemovedValue"/> returns the remote value only if <see cref="MaterializedCacheItem.Timestamp"/>
+/// is strictly greater than <see cref="RemovedValue.Timestamp"/>. Both timestamps come from <see cref="GetTimestamp"/>, which
+/// reads the clock of the backend, the system clock by default, and the remote value may have been written by another machine. The remarks of
+/// <see cref="CachingBackendFeatures.Blocking"/> document the resulting assumption and its failure modes.
+/// </para>
+/// </remarks>
 [PublicAPI]
 internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
 {
@@ -45,12 +57,34 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     {
         await base.InitializeCoreAsync( cancellationToken );
         await this.LocalCache.InitializeAsync( cancellationToken );
+        this.WarnIfUnderlyingBackendIsNonBlocking();
     }
 
     protected override void InitializeCore()
     {
         base.InitializeCore();
         this.LocalCache.Initialize();
+        this.WarnIfUnderlyingBackendIsNonBlocking();
+    }
+
+    private void WarnIfUnderlyingBackendIsNonBlocking()
+    {
+        if ( !this.UnderlyingBackend.SupportedFeatures.Blocking )
+        {
+            this.LogSource.Warning.Write(
+                Formatted(
+                    "The underlying backend '{Backend}' is non-blocking. When an item is removed or invalidated, the L1 cache "
+                    + "records the removal for {TransitionPeriod} with a timestamp taken from the clock of this machine, and a value "
+                    + "read from the underlying backend during this period is returned only if its own timestamp, taken from the clock "
+                    + "of the machine that wrote it, is strictly greater. This requires the clocks of all machines sharing the backend "
+                    + "to be synchronized. If the clock of the writing machine is behind the clock of this machine by some offset, a value "
+                    + "written within that offset after the removal receives a timestamp that is not greater than the timestamp of the "
+                    + "removal, and is reported as absent until the record expires. If the clock of the writing machine is ahead by some "
+                    + "offset, a value written within that offset before the removal receives a greater timestamp, and is returned and "
+                    + "stored in the L1 cache although the pending removal is about to delete it from the underlying backend.",
+                    this.UnderlyingBackend,
+                    this._removedItemTransitionPeriod ) );
+        }
     }
 
     /// <inheritdoc />
@@ -196,6 +230,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                         }
                         else
                         {
+                            // Wall-clock comparison between the machine that removed the item and the machine that wrote the
+                            // remote value. A tie counts as a removal. See the remarks of CachingBackendFeatures.Blocking.
                             if ( remoteCacheItem.Timestamp > removedValue.Timestamp )
                             {
                                 this.SetMemoryCacheFromRemote( key, remoteCacheItem );
@@ -284,6 +320,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                         }
                         else
                         {
+                            // Wall-clock comparison between the machine that removed the item and the machine that wrote the
+                            // remote value. A tie counts as a removal. See the remarks of CachingBackendFeatures.Blocking.
                             if ( remoteCacheItem.Timestamp > removedValue.Timestamp )
                             {
                                 this.SetMemoryCacheFromRemote( key, remoteCacheItem );
@@ -410,8 +448,10 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     protected override CachingBackendFeatures CreateFeatures() => new Features( this.UnderlyingBackend.SupportedFeatures );
 
     /// <summary>
-    /// Gets the current instant, in ticks, from the clock of the backend. The value is the timestamp of a
-    /// materialized cache item and of a removal.
+    /// Gets the current instant, in UTC ticks, from the clock of the backend. The value is serialized with every
+    /// <see cref="MaterializedCacheItem"/> sent to the remote cache and compared, possibly on another machine, with the
+    /// timestamp of a <see cref="RemovedValue"/>. The comparison is therefore only meaningful when the clocks of all
+    /// machines sharing the remote cache are synchronized.
     /// </summary>
     internal long GetTimestamp() => this.TimeProvider.GetUtcNow().UtcTicks;
 
