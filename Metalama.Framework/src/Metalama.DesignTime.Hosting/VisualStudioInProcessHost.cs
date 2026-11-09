@@ -3,8 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 #if NETFRAMEWORK
@@ -217,11 +221,62 @@ public static class VisualStudioInProcessHost
             }
 
             var language = project.Language;
-            var generators = await Task.Run( () => reference.GetGenerators( language ) );
+            var generators = await Task.Run( () => GetGenerators( reference, language ) );
             count += generators.Length;
         }
 
         return count;
+    }
+
+    /// <summary>
+    /// Returns the source generators of an analyzer reference, and throws <see cref="InvalidOperationException"/> when the
+    /// reference reports that it failed to load or to create one of them.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="AnalyzerFileReference"/> reports a failure to load the assembly or to call the constructor of a generator
+    /// through the <see cref="AnalyzerFileReference.AnalyzerLoadFailed"/> event, and returns the generators that it could
+    /// create. Without this method, such a failure would be reported as a project without generators.
+    /// </remarks>
+    private static ImmutableArray<ISourceGenerator> GetGenerators( AnalyzerReference reference, string language )
+    {
+        if ( reference is not AnalyzerFileReference fileReference )
+        {
+            return reference.GetGenerators( language );
+        }
+
+        var failures = new List<AnalyzerLoadFailureEventArgs>();
+
+        void OnAnalyzerLoadFailed( object? sender, AnalyzerLoadFailureEventArgs e )
+        {
+            lock ( failures )
+            {
+                failures.Add( e );
+            }
+        }
+
+        fileReference.AnalyzerLoadFailed += OnAnalyzerLoadFailed;
+
+        ImmutableArray<ISourceGenerator> generators;
+
+        try
+        {
+            generators = fileReference.GetGenerators( language );
+        }
+        finally
+        {
+            fileReference.AnalyzerLoadFailed -= OnAnalyzerLoadFailed;
+        }
+
+        if ( failures.Count > 0 )
+        {
+            throw new InvalidOperationException(
+                $"The analyzer reference '{reference.FullPath}' failed to load:{Environment.NewLine}"
+                + string.Join(
+                    Environment.NewLine,
+                    failures.Select( f => $"{f.ErrorCode} {f.TypeName}: {f.Message}{(f.Exception == null ? "" : $" ({f.Exception})")}" ) ) );
+        }
+
+        return generators;
     }
 
     /// <summary>

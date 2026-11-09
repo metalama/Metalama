@@ -100,6 +100,19 @@ public sealed class VisualStudioInProcessTests
     }
 
     /// <summary>
+    /// Expects <see cref="DesignTimeHost.RunVisualStudioInProcessAsync"/> to reject an order of the projects, because Metalama
+    /// analyzes the projects in solution order and the report would otherwise give an order that was not executed.
+    /// </summary>
+    [Fact]
+    public async Task VisualStudioModeRejectsAProjectOrder()
+    {
+        var host = new DesignTimeHost( new DesignTimeHostOptions { Traversal = TraversalOrder.Reverse } );
+
+        await Assert.ThrowsAsync<NotSupportedException>(
+            () => host.RunVisualStudioInProcessAsync( this._fixture.Workspace, TestContext.Current.CancellationToken ) );
+    }
+
+    /// <summary>
     /// Changes the document that contains the aspect, and expects the user process to be told that compile-time code is being
     /// edited. Then completes the editing, and expects the user process to be told that it is complete, and the services to
     /// answer from the resumed pipeline. Then introduces a C# error in the aspect, completes the editing, and expects the

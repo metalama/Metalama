@@ -47,7 +47,8 @@ of the Metalama extension of Visual Studio; its README documents the Visual Stud
    (`DesignTimeHost.RunVisualStudioInProcessAsync`): the Metalama source generators of each project are created in
    the user process, which registers the Metalama services; the workspace is given to Metalama, which runs its
    analysis process for each project; and the diagnostics of each compilation are collected once the analysis is
-   complete. A failure of the analysis is reported for the `<analysis>` project.
+   complete, with the diagnostics that the source generators report. A failure of the analysis is reported for the
+   `<analysis>` project.
 4. Reports every diagnostic, and fails when it sees an infrastructure failure: an analyzer that threw (`AD0001`),
    an unhandled Metalama exception (`LAMA0001`), a Metalama error, or an analyzer assembly that failed to load.
 
@@ -67,7 +68,8 @@ Metalama.DesignTime.HostSimulator <solution> [options]
   --timeout <SECONDS> Abandon the simulation and report a failure after this long. Defaults to 600. Zero disables.
   --verbose, -v       Print every diagnostic, not only the ones that indicate a failure.
   --visual-studio     Simulate Visual Studio: Metalama hosts its user process and its analysis process in this
-                      process, connected by named pipes. Mutually exclusive with --permutations.
+                      process, connected by named pipes. Metalama analyzes the projects in solution order, so
+                      this option is mutually exclusive with --permutations, --order and --traversal.
 ```
 
 The timeout is enforced by racing the work against a delay and then killing the process, not by a cancellation

@@ -17,6 +17,7 @@ using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using SharpCrafters.Backstage.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.InProcess;
@@ -81,7 +82,6 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
     /// </summary>
     private const string _compileTimeCodeHasErrorsDiagnosticId = "LAMA0068";
 
-    private static readonly object _dataSlotSync = new();
     private static readonly Version? _currentVersion = typeof(VsInProcessAnalysisProcess).Assembly.GetName().Version;
 
     private readonly object _sync = new();
@@ -440,13 +440,31 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
     /// <see cref="SetWorkspace"/> in the data slot <see cref="SetWorkspaceDataSlotName"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Each Metalama version loaded in the process has its own instance of this class. When a slot already holds the
     /// delegate of another version, the new delegate calls both: the wait delegate waits for both analyses, and the workspace
     /// delegate gives the workspace to both versions.
+    /// </para>
+    /// <para>
+    /// The read, the combination and the write of the slots are synchronized by a named <see cref="Mutex"/> whose name
+    /// contains the identifier of the current process. A lock on a static field would not be enough, because each Metalama
+    /// version, and each load context, has its own static fields, and two versions can publish their delegates concurrently.
+    /// </para>
     /// </remarks>
     private void PublishDataSlots()
     {
-        lock ( _dataSlotSync )
+        using var mutex = new Mutex( false, $"Metalama.Framework.DesignTime.VisualStudioInProcess.DataSlots.{Process.GetCurrentProcess().Id}" );
+
+        try
+        {
+            mutex.WaitOne();
+        }
+        catch ( AbandonedMutexException )
+        {
+            // Another thread of this process exited while it held the mutex. The current thread now owns it.
+        }
+
+        try
         {
             Func<CancellationToken, Task> waitDelegate = this.WaitForAnalysisAsync;
 
@@ -466,6 +484,10 @@ internal sealed class VsInProcessAnalysisProcess : IGlobalService, ICompilerServ
             }
 
             AppDomain.CurrentDomain.SetData( SetWorkspaceDataSlotName, setWorkspaceDelegate );
+        }
+        finally
+        {
+            mutex.ReleaseMutex();
         }
     }
 }

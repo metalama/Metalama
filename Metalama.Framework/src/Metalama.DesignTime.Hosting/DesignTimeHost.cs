@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -69,11 +70,16 @@ public sealed class DesignTimeHost
     /// The method does what Visual Studio and the Metalama extension do. It creates the Metalama source generators of each
     /// project in the user process, which registers the Metalama services. It gives the workspace to Metalama, which then
     /// runs the analysis process for each project. It waits until the analysis is complete. Finally, it reports the
-    /// diagnostics of each compilation, which includes the sources that the generators of the user process produced.
+    /// diagnostics of each compilation, which includes the sources that the generators of the user process produced, and the
+    /// diagnostics that the generators reported.
     /// </para>
     /// <para>
     /// The analyzer references of the workspace are used as they are, so their assemblies are loaded by the loader of the
     /// workspace. A failure of the analysis is reported as an error of the <c>&lt;analysis&gt;</c> project.
+    /// </para>
+    /// <para>
+    /// Metalama analyzes the projects in solution order, so this method throws <see cref="NotSupportedException"/> when the
+    /// options request another order.
     /// </para>
     /// </remarks>
     public async Task<SimulationReport> RunVisualStudioInProcessAsync( Workspace workspace, CancellationToken cancellationToken )
@@ -83,8 +89,15 @@ public sealed class DesignTimeHost
             throw new InvalidOperationException( $"{nameof(VisualStudioInProcessHost)}.{nameof(VisualStudioInProcessHost.Enable)} has not been called." );
         }
 
+        if ( this._options.Traversal != TraversalOrder.Solution || !this._options.OrderedProjectNames.IsDefaultOrEmpty )
+        {
+            throw new NotSupportedException(
+                $"{nameof(this.RunVisualStudioInProcessAsync)} analyzes the projects in solution order, so it does not support "
+                + $"the {nameof(DesignTimeHostOptions.Traversal)} and {nameof(DesignTimeHostOptions.OrderedProjectNames)} options." );
+        }
+
         var report = new SimulationReport();
-        var projects = this.OrderProjects( workspace.CurrentSolution );
+        var projects = workspace.CurrentSolution.Projects.ToImmutableArray();
         report.ProjectOrder = projects.Select( p => p.Name ).ToImmutableArray();
 
         var metalamaProjectCount = 0;
@@ -143,8 +156,10 @@ public sealed class DesignTimeHost
                     continue;
                 }
 
-                projectReport.GeneratedDocumentCount = (await project.GetSourceGeneratedDocumentsAsync( cancellationToken )).Count();
+                var generatedDocuments = (await project.GetSourceGeneratedDocumentsAsync( cancellationToken )).ToList();
+                projectReport.GeneratedDocumentCount = generatedDocuments.Count;
                 projectReport.AddDiagnostics( compilation.GetDiagnostics( cancellationToken ) );
+                projectReport.AddDiagnostics( await GetGeneratorDiagnosticsAsync( project, compilation, generatedDocuments, cancellationToken ) );
             }
             catch ( Exception exception ) when ( exception is not OperationCanceledException )
             {
@@ -153,6 +168,57 @@ public sealed class DesignTimeHost
         }
 
         return report;
+    }
+
+    /// <summary>
+    /// Returns the diagnostics that the source generators of a project report, such as CS8785 when a generator throws.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The diagnostics of the compilation do not include the diagnostics of the generators, and version 5.0 of the Roslyn
+    /// workspace API does not make the generator diagnostics of a project public. This method therefore runs the generators of
+    /// the project again, in a separate <see cref="CSharpGeneratorDriver"/>, on the compilation without the generated syntax
+    /// trees, and returns the diagnostics of this run only. Its output compilation is ignored.
+    /// </para>
+    /// <para>
+    /// The analyzer references cache their generators, so this run uses the instances that the workspace uses. In the Visual
+    /// Studio mode, these are the generators of the user process, which return the results of the analysis process.
+    /// </para>
+    /// </remarks>
+    private static async Task<ImmutableArray<Diagnostic>> GetGeneratorDiagnosticsAsync(
+        Project project,
+        Compilation compilation,
+        IReadOnlyList<SourceGeneratedDocument> generatedDocuments,
+        CancellationToken cancellationToken )
+    {
+        var generators = project.AnalyzerReferences.SelectMany( r => r.GetGenerators( project.Language ) ).ToImmutableArray();
+
+        if ( generators.IsEmpty )
+        {
+            return ImmutableArray<Diagnostic>.Empty;
+        }
+
+        var generatedTrees = new List<SyntaxTree>();
+
+        foreach ( var document in generatedDocuments )
+        {
+            var tree = await document.GetSyntaxTreeAsync( cancellationToken );
+
+            if ( tree != null && compilation.ContainsSyntaxTree( tree ) )
+            {
+                generatedTrees.Add( tree );
+            }
+        }
+
+        var driver = CSharpGeneratorDriver.Create(
+            generators,
+            project.AnalyzerOptions.AdditionalFiles,
+            (CSharpParseOptions?) project.ParseOptions,
+            project.AnalyzerOptions.AnalyzerConfigOptionsProvider );
+
+        var result = driver.RunGenerators( compilation.RemoveSyntaxTrees( generatedTrees ), cancellationToken ).GetRunResult();
+
+        return result.Diagnostics;
     }
 
     /// <summary>

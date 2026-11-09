@@ -150,6 +150,11 @@ internal sealed class SimulateCommandSettings : CommandSettings
             return ValidationResult.Error( "--permutations and --visual-studio are mutually exclusive." );
         }
 
+        if ( this.VisualStudio && (this.Order != null || this.Traversal != TraversalOrder.Solution) )
+        {
+            return ValidationResult.Error( "--visual-studio analyzes the projects in solution order, so it excludes --order and --traversal." );
+        }
+
         if ( this.AllPermutations && this.Traversal != TraversalOrder.Solution )
         {
             return ValidationResult.Error( "--permutations and --traversal are mutually exclusive." );

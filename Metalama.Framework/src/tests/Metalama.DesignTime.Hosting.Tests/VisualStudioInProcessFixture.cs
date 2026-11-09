@@ -264,8 +264,12 @@ public sealed class VisualStudioInProcessFixture : IAsyncLifetime
 #else
         var runtimeDirectory = Path.GetDirectoryName( typeof(object).Assembly.Location )!;
 
+        // The signatures of the async iterator templates of OverrideMethodAspect name IAsyncEnumerable{T} and
+        // IAsyncEnumerator{T}. On .NET Framework, these types come from Microsoft.Bcl.AsyncInterfaces, which a real project
+        // obtains as a dependency of Metalama.Framework.Redist. Without this reference, the pipeline reports LAMA0268.
         var runtimeAssemblies = new[] { "mscorlib.dll", "System.dll", "System.Core.dll", "netstandard.dll", "System.Runtime.dll" }
-            .Select( f => Path.Combine( runtimeDirectory, f ) );
+            .Select( f => Path.Combine( runtimeDirectory, f ) )
+            .Append( typeof(IAsyncEnumerable<>).Assembly.Location );
 #endif
 
         return runtimeAssemblies;
