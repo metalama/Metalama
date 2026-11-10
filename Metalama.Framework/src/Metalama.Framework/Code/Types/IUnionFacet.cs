@@ -26,6 +26,7 @@ namespace Metalama.Framework.Code.Types;
 /// </remarks>
 /// <seealso cref="INamedType.IsUnion"/>
 /// <seealso cref="INamedType.Facets"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 [InternalImplement]
 public interface IUnionFacet : ITypeFacet

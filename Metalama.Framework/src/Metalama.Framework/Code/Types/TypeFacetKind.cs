@@ -10,6 +10,7 @@ namespace Metalama.Framework.Code.Types;
 /// Kinds of <see cref="ITypeFacet"/>.
 /// </summary>
 /// <seealso cref="ITypeFacet.FacetKind"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 public enum TypeFacetKind
 {

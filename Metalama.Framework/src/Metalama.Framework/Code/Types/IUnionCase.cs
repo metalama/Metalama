@@ -19,6 +19,7 @@ namespace Metalama.Framework.Code.Types;
 /// </para>
 /// </remarks>
 /// <seealso cref="IUnionFacet.Cases"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 [InternalImplement]
 public interface IUnionCase
