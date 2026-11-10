@@ -237,8 +237,8 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
             "Category",
             "https://example.com/errors/{0}" );
 
-        var oldTree = CSharpSyntaxTree.ParseText( "class C {}", path: "code.cs" );
-        var newTree = CSharpSyntaxTree.ParseText( "class C {}", path: "code.cs" );
+        var oldTree = CSharpSyntaxTree.ParseText( "class C {}", path: "code.cs", cancellationToken: TestContext.Current.CancellationToken );
+        var newTree = CSharpSyntaxTree.ParseText( "class C {}", path: "code.cs", cancellationToken: TestContext.Current.CancellationToken );
         var diagnostic = definition.CreateRoslynDiagnostic( Location.Create( oldTree, new TextSpan( 6, 1 ) ), "x" );
         var newLocation = Location.Create( newTree, new TextSpan( 6, 1 ) );
 
