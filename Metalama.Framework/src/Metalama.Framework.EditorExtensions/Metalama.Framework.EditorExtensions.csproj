@@ -30,6 +30,7 @@
         <ProjectReference Include="../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj"/>
         <Compile Include="..\Metalama.Framework.CompilerExtensions\ProcessKindHelper.cs" Link="ProcessKindHelper.cs" />
 		<Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
+		<Compile Include="..\Metalama.Framework.DesignTime\DesignTimeHostOverride.cs" Link="DesignTimeHostOverride.cs" />
     </ItemGroup>
 
 </Project>

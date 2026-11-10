@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- net472 for the Visual Studio extension and its tests, net10.0 for the host simulator. -->
+        <TargetFrameworks>net472;net10.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>Metalama.DesignTime.Hosting</RootNamespace>
+        <AssemblyName>Metalama.DesignTime.Hosting</AssemblyName>
+
+        <!-- This project deliberately does not reference Metalama. It hosts Metalama the way an IDE does, through the
+             Roslyn analyzer references of the hosted projects, so that it exercises the analyzer assemblies that each
+             project references rather than the ones compiled into the host process. -->
+        <MetalamaEnabled>false</MetalamaEnabled>
+        <UseMetalamaCompiler>false</UseMetalamaCompiler>
+
+        <!-- Packaging -->
+        <IsPackable>true</IsPackable>
+        <PackageId>Metalama.DesignTime.Hosting</PackageId>
+        <InternalOnlyPackage>True</InternalOnlyPackage>
+        <Description>Hosts the design-time pipeline of Metalama in a test process, the way an IDE hosts it. For tests only.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The lowest supported Roslyn API, because the host process provides Roslyn. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

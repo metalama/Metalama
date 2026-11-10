@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Metalama.DesignTime.HostSimulator;
+namespace Metalama.DesignTime.Hosting;
 
 /// <summary>
 /// Runs, for a single project, the work an IDE performs at design time: source generation followed by the analyzer
@@ -23,13 +23,13 @@ namespace Metalama.DesignTime.HostSimulator;
 /// compilation, because an editor asks for the diagnostics of the documents it is showing, which is what makes the
 /// order of requests observable to a stateful analyzer such as Metalama.
 /// </remarks>
-internal sealed class ProjectDesignTimeSession
+public sealed class ProjectDesignTimeSession
 {
     private readonly Project _project;
-    private readonly IsolatedAnalyzerAssemblyLoader _loader;
+    private readonly HostAnalyzerAssemblyLoader _loader;
     private readonly SimulationReport _report;
 
-    public ProjectDesignTimeSession( Project project, IsolatedAnalyzerAssemblyLoader loader, SimulationReport report )
+    public ProjectDesignTimeSession( Project project, HostAnalyzerAssemblyLoader loader, SimulationReport report )
     {
         this._project = project;
         this._loader = loader;
@@ -96,7 +96,7 @@ internal sealed class ProjectDesignTimeSession
     /// <para>
     /// These do not make the simulation fail. A design-time scenario is allowed to be one that does not compile, and
     /// <see cref="ProjectReport.HasFailure"/> deliberately counts only the failures of the analysis infrastructure. A
-    /// scenario that wants a compiler diagnostic to be a failure says so in its <see cref="TestOptions.FileName"/>.
+    /// scenario that wants a compiler diagnostic to be a failure says so in its <c>designtime-test.json</c> file.
     /// </para>
     /// </remarks>
     private void AddCompilerDiagnostics( Compilation compilation, ProjectReport projectReport, CancellationToken cancellationToken )

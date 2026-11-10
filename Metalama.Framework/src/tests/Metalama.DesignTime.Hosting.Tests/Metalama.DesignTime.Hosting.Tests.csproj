@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- net472 is the runtime of Visual Studio, net10.0 the runtime of the host simulator. -->
+        <TargetFrameworks>net472;net10.0</TargetFrameworks>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>Metalama.DesignTime.Hosting.Tests</RootNamespace>
+
+        <!-- Like the library under test, this project does not compile against Metalama: it loads Metalama from analyzer
+             references, as an IDE does. -->
+        <MetalamaEnabled>false</MetalamaEnabled>
+        <UseMetalamaCompiler>false</UseMetalamaCompiler>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit.v3" />
+        <!-- xunit.v3.common depends on Microsoft.Bcl.AsyncInterfaces 6.0, which conflicts with the version that Roslyn requires. -->
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" VersionOverride="$(MicrosoftBclAsyncInterfacesLatestVersion)" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+
+        <ProjectReference Include="../../Metalama.DesignTime.Hosting/Metalama.DesignTime.Hosting.csproj" />
+
+        <!-- The contracts, which the Metalama extension of Visual Studio references in the same way. -->
+        <ProjectReference Include="../../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" />
+
+        <!-- The hosted Metalama. These projects are built before this one, but they are not referenced: the tests load
+             their output as analyzer references and as metadata references. The paths are passed in assembly metadata. -->
+        <ProjectReference Include="../../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" ReferenceOutputAssembly="false" />
+
+        <!-- Metalama.Compiler.Interface.dll is an analyzer of this package, which a project referencing Metalama.Framework gets
+             as an analyzer reference. Only its path is needed. -->
+        <PackageReference Include="Metalama.Compiler" ExcludeAssets="all" PrivateAssets="all" GeneratePathProperty="true" />
+    </ItemGroup>
+
+    <!-- Visual Studio binds System.Text.Json to its own version with binding redirects, and so must a .NET Framework host.
+         See VisualStudioInProcessHost.BindingRedirectsAppConfigFragment and App.config. -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <PackageReference Include="System.Text.Json" VersionOverride="10.0.10" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>CompilerExtensionsPath</_Parameter1>
+            <_Parameter2>$(MSBuildThisFileDirectory)..\..\Metalama.Framework.CompilerExtensions\bin\$(Configuration)\netstandard2.0\Metalama.Framework.CompilerExtensions.dll</_Parameter2>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>MetalamaFrameworkPath</_Parameter1>
+            <_Parameter2>$(MSBuildThisFileDirectory)..\..\Metalama.Framework\bin\$(Configuration)\netstandard2.0\Metalama.Framework.dll</_Parameter2>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>CompilerInterfacePath</_Parameter1>
+            <_Parameter2>$(PkgMetalama_Compiler)\analyzers\dotnet\cs\Metalama.Compiler.Interface.dll</_Parameter2>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>NETCoreSdkVersion</_Parameter1>
+            <_Parameter2>$(NETCoreSdkVersion)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+</Project>

@@ -21,7 +21,7 @@ namespace Metalama.Framework.CompilerExtensions
 
         public MetalamaCodeRefactoringProvider()
         {
-            switch ( ProcessKindHelper.CurrentProcessKind )
+            switch ( ProcessKindHelper.EntryPointProcessKind )
             {
                 case ProcessKind.Compiler:
                     break;

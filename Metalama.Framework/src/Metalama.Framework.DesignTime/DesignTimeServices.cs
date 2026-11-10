@@ -18,10 +18,38 @@ internal static class DesignTimeServices
             throw new InvalidOperationException( "This method cannot be called from the Metalama Compiler process." );
         }
 
+        var isTestHost = DesignTimeHostOverride.IsVisualStudioInProcess;
+
+        if ( isTestHost )
+        {
+            DisableTelemetry();
+        }
+
         BackstageServiceFactoryInitializer.Initialize(
             new BackstageInitializationOptions( new MetalamaDesignTimeApplicationInfo(), MetalamaProduct.Instance )
             {
-                AddSupportServices = true, AddUserInterface = true, AddLicensing = false
+                AddSupportServices = true,
+
+                // A test process must not show a user interface, for instance a toast notification.
+                AddUserInterface = !isTestHost,
+                AddLicensing = false
             } );
+    }
+
+    /// <summary>
+    /// Disables telemetry in a process that hosts both Visual Studio processes for a test.
+    /// </summary>
+    /// <remarks>
+    /// The options of Backstage that control the collection and the upload of telemetry are not public, so the process
+    /// sets the environment variable that Backstage reads. A value that the caller has already set is left unchanged.
+    /// </remarks>
+    private static void DisableTelemetry()
+    {
+        const string telemetryOptOutVariableName = "METALAMA_TELEMETRY_OPT_OUT";
+
+        if ( string.IsNullOrEmpty( Environment.GetEnvironmentVariable( telemetryOptOutVariableName ) ) )
+        {
+            Environment.SetEnvironmentVariable( telemetryOptOutVariableName, "1" );
+        }
     }
 }

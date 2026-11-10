@@ -23,7 +23,7 @@ namespace Metalama.Framework.DesignTime.VisualStudio.Services
     /// <summary>
     /// The implementation of <see cref="ICompilerServiceProvider"/> for the Visual Studio UI process.
     /// </summary>
-    internal sealed class VsUserProcessCompilerServiceProvider : CompilerServiceProvider
+    internal class VsUserProcessCompilerServiceProvider : CompilerServiceProvider
     {
         protected override ICompilerService? GetServiceCore( string name )
             => name switch

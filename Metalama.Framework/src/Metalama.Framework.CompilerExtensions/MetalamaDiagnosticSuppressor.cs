@@ -19,7 +19,7 @@ namespace Metalama.Framework.CompilerExtensions
 
         public MetalamaDiagnosticSuppressor()
         {
-            switch ( ProcessKindHelper.CurrentProcessKind )
+            switch ( ProcessKindHelper.EntryPointProcessKind )
             {
                 case ProcessKind.Compiler:
                     break;

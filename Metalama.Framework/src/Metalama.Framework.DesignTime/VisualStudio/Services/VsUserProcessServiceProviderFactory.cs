@@ -12,7 +12,7 @@ using Metalama.Framework.Services;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.Services;
 
-internal sealed class VsUserProcessServiceProviderFactory : DesignTimeUserProcessServiceProviderFactory
+internal class VsUserProcessServiceProviderFactory : DesignTimeUserProcessServiceProviderFactory
 {
     [UsedImplicitly]
     public VsUserProcessServiceProviderFactory() : this( null ) { }

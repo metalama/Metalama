@@ -49,6 +49,14 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint
 
     private static bool TryGetPipeName( GlobalServiceProvider serviceProvider, [NotNullWhen( true )] out string? pipeName )
     {
+        // When the current process hosts both Visual Studio processes, the hub is in the current process.
+        if ( DesignTimeHostOverride.IsVisualStudioInProcess )
+        {
+            pipeName = PipeNameProvider.GetPipeName( EndpointRole.Discovery );
+
+            return true;
+        }
+
         var parentProcesses = serviceProvider.GetRequiredBackstageService<IParentProcessSearch>().GetParentProcesses();
 
         Engine.Utilities.Diagnostics.Logger.Remoting.Trace?.Log(

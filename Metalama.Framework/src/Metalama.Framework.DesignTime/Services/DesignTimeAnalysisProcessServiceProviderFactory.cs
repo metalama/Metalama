@@ -29,6 +29,13 @@ internal class DesignTimeAnalysisProcessServiceProviderFactory : DesignTimeServi
     {
         // TODO: WorkspaceProvider should be refactored as an IGlobalService.
 
+        // When the current process hosts both Visual Studio processes, VsInProcessAnalysisProcess gives the workspace of the
+        // user process to the analysis process.
+        if ( DesignTimeHostOverride.IsVisualStudioInProcess )
+        {
+            return new LocalWorkspaceProvider( serviceProvider );
+        }
+
         switch ( serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().ProcessKind )
         {
             case ProcessKind.Rider:

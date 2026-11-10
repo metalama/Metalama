@@ -20,6 +20,14 @@ shared state between them. Several classes of defect are invisible there:
 - Editors ask for diagnostics **per document**, not per compilation, so the number and order of requests differ
   from a batch build.
 
+## Structure
+
+The engine is the library `Metalama.DesignTime.Hosting` (`Metalama.Framework/src/Metalama.DesignTime.Hosting`), which
+targets `net472` and `net10.0`, takes any Roslyn `Solution` or `Workspace`, and does not reference Metalama either. This
+program is a command line around it: it opens the solution with `MSBuildWorkspace` (`SolutionSimulator`), calls the
+library, writes the report (`ReportRenderer`), and evaluates `designtime-test.json`. The library is also used by the tests
+of the Metalama extension of Visual Studio; its README documents the Visual Studio in-process mode.
+
 ## What it does
 
 1. Registers the .NET SDK whose MSBuild opens the solution (`MSBuildEnvironment`), the same way
@@ -27,7 +35,7 @@ shared state between them. Several classes of defect are invisible there:
 2. Opens the solution with `MSBuildWorkspace`, passing `DesignTimeBuild=true` and `BuildingInsideVisualStudio=true`
    so that projects evaluate as they do in an IDE.
 3. For each project, in the requested order (`ProjectDesignTimeSession`):
-   - re-creates the analyzer references with `IsolatedAnalyzerAssemblyLoader`, which allocates one
+   - re-creates the analyzer references with `HostAnalyzerAssemblyLoader.Create()`, which on .NET allocates one
      `AssemblyLoadContext` per analyzer directory, reproducing
      `Microsoft.CodeAnalysis.AnalyzerAssemblyLoader.DirectoryLoadContext` (that type is internal, so it cannot be
      reused);
@@ -35,6 +43,12 @@ shared state between them. Several classes of defect are invisible there:
      analyzers must see generated code;
    - issues, for every document, the syntax and semantic analyzer requests an editor issues when the document is
      open.
+   With `--visual-studio`, step 3 is replaced by what Visual Studio and the Metalama extension do
+   (`DesignTimeHost.RunVisualStudioInProcessAsync`): the Metalama source generators of each project are created in
+   the user process, which registers the Metalama services; the workspace is given to Metalama, which runs its
+   analysis process for each project; and the diagnostics of each compilation are collected once the analysis is
+   complete, with the diagnostics that the source generators report. A failure of the analysis is reported for the
+   `<analysis>` project.
 4. Reports every diagnostic, and fails when it sees an infrastructure failure: an analyzer that threw (`AD0001`),
    an unhandled Metalama exception (`LAMA0001`), a Metalama error, or an analyzer assembly that failed to load.
 
@@ -53,6 +67,9 @@ Metalama.DesignTime.HostSimulator <solution> [options]
                       prevents that host from starting, which hangs the workspace.
   --timeout <SECONDS> Abandon the simulation and report a failure after this long. Defaults to 600. Zero disables.
   --verbose, -v       Print every diagnostic, not only the ones that indicate a failure.
+  --visual-studio     Simulate Visual Studio: Metalama hosts its user process and its analysis process in this
+                      process, connected by named pipes. Metalama analyzes the projects in solution order, so
+                      this option is mutually exclusive with --permutations, --order and --traversal.
 ```
 
 The timeout is enforced by racing the work against a delay and then killing the process, not by a cancellation
@@ -150,9 +167,13 @@ Stated explicitly, because the gap matters when interpreting a green run:
 
 - **Incremental editing.** It analyzes each document once. It does not type into a document, re-request
   diagnostics, or exercise the dependency-invalidation paths that a real editing session does.
-- **The two-process split.** Visual Studio runs Metalama's analysis in a separate process and talks to it over RPC.
-  This host loads analyzers in-process, which is what Rider and OmniSharp do, and what Visual Studio does for the
-  parts that run in the analyzer host.
+- **Two operating-system processes.** By default, this host loads analyzers in-process, which is what Rider and the
+  Visual Studio Code language server do. With `--visual-studio`, Metalama runs the Visual Studio user process and
+  analysis process and their named pipes, but both in this one process. The two roles have separate service
+  providers, but they share the loaded assemblies, the Backstage services and the static state of the process.
+- **The Roslyn analysis process of Visual Studio.** With `--visual-studio`, Metalama itself runs its analysis-process
+  source generator over each project. The analyzers of the analysis process are not run, and the workspace of the
+  analysis process is the same instance as the one of the user process.
 - **Roslyn's own scheduling.** A real IDE analyzes documents concurrently, on its own priority order, and cancels
   requests. This host is deterministic and sequential, which is what makes a failing order reproducible, but it
   means a race that needs concurrency will not appear.

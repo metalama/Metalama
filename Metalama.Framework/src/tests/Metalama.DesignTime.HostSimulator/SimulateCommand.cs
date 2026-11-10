@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.DesignTime.Hosting;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System;
@@ -102,6 +103,12 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
         // This process reproduces crashes on purpose, so its telemetry would be indistinguishable from a real
         // user's crash in the reports that these scenarios are written from.
         SetEnvironmentVariableIfAbsent( "METALAMA_TELEMETRY_OPT_OUT", "1" );
+
+        if ( settings.VisualStudio )
+        {
+            // Metalama reads the variable once, when its assemblies are loaded, so it is set before any project is opened.
+            VisualStudioInProcessHost.Enable();
+        }
     }
 
     private static void SetEnvironmentVariableIfAbsent( string name, string value )
@@ -114,7 +121,7 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
 
     private static async Task<int> RunOnceAsync( SimulateCommandSettings settings, CancellationToken cancellationToken )
     {
-        using var host = new DesignTimeHost( settings );
+        using var host = new SolutionSimulator( settings );
 
         AnsiConsole.MarkupLineInterpolated( $"Simulating [bold]{Path.GetFileName( settings.FullSolutionPath )}[/]." );
 
@@ -122,7 +129,7 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
             .Spinner( Spinner.Known.Dots )
             .StartAsync( "Loading the solution and running the pipelines...", _ => host.RunAsync( cancellationToken ) );
 
-        var reportedLines = report.Render( settings.Verbose );
+        var reportedLines = ReportRenderer.Render( report, settings.Verbose );
 
         var testOptions = settings.IgnoreAssertions ? null : TestOptions.TryLoad( settings.FullSolutionPath );
 
@@ -167,7 +174,7 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
     {
         ImmutableArray<string> projectNames;
 
-        using ( var host = new DesignTimeHost( settings ) )
+        using ( var host = new SolutionSimulator( settings ) )
         {
             projectNames = await host.GetProjectNamesAsync( cancellationToken );
         }

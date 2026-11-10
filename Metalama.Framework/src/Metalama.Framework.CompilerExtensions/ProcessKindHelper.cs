@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.DesignTime;
 using SharpCrafters.Backstage.ProcessClassification;
 
 namespace Metalama.Framework.CompilerExtensions;
@@ -28,4 +29,12 @@ internal static class ProcessKindHelper
     /// cached for the lifetime of the process.
     /// </summary>
     public static ProcessKind CurrentProcessKind { get; } = ProcessKindDetector.GetCurrentProcessKind();
+
+    /// <summary>
+    /// Gets the kind of process whose entry points the facades must create. It is <see cref="CurrentProcessKind"/>,
+    /// except when <see cref="DesignTimeHostOverride.IsVisualStudioInProcess"/> is <c>true</c>. The process then takes
+    /// the role of the Visual Studio user process, and the value is <see cref="ProcessKind.DevEnv"/>.
+    /// </summary>
+    public static ProcessKind EntryPointProcessKind { get; } =
+        DesignTimeHostOverride.IsVisualStudioInProcess ? ProcessKind.DevEnv : CurrentProcessKind;
 }
