@@ -10,6 +10,8 @@ namespace Metalama.Framework.Engine.CompileTime
 {
     public static class AttributeDeserializerDiagnostics
     {
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         // Reserved range 400-499
 
         private const string _category = "Metalama.AttributeDeserializer";
@@ -22,7 +24,8 @@ namespace Metalama.Framework.Engine.CompileTime
                     "Cannot instantiate a custom attribute: cannot find the compile-time type '{0}'. Make sure that the type exists and is annotated " +
                     "with [CompileTime] or [RunTimeOrCompileTime].",
                     Error,
-                    "Cannot instantiate a custom attribute: cannot find type." );
+                    "Cannot instantiate a custom attribute: cannot find type.",
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<string>
             PropertyHasNoSetter
@@ -31,6 +34,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     _category,
                     "Cannot instantiate a custom attribute: the property '{0}' has no setter.",
                     Error,
-                    "Cannot instantiate a custom attribute: a property has no setter." );
+                    "Cannot instantiate a custom attribute: a property has no setter.",
+                    _helpLinkFormat );
     }
 }

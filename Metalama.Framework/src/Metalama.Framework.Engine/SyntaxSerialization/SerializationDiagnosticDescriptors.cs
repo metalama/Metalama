@@ -12,6 +12,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
 {
     public static class SerializationDiagnosticDescriptors
     {
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         // Reserved range 200-219
 
         private const string _category = "Metalama.Serialization";
@@ -25,7 +27,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             _category,
             UnsupportedSerializationMessage,
             Error,
-            "Compile-time type not serializable." );
+            "Compile-time type not serializable.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<object> CycleInSerialization = new(
             "LAMA0201",
@@ -33,7 +36,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "Cannot serialize the compile-time value of type '{0}' to a run-time value because it contains a cyclic reference or is nested more " +
             "than 32 levels deep.",
             Error,
-            "A compile-time value contains a cyclic reference or is nested too deeply." );
+            "A compile-time value contains a cyclic reference or is nested too deeply.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<object> MultidimensionalArray = new(
             "LAMA0202",
@@ -41,7 +45,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "Cannot serialize the compile-time array of type '{0}' to a run-time value because it has more than one dimension. Use a jagged " +
             "array instead.",
             Error,
-            "Multidimensional arrays not supported." );
+            "Multidimensional arrays not supported.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<object> UnsupportedDictionaryComparer = new(
             "LAMA0203",
@@ -50,7 +55,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "default comparer and, for string keys, the predefined StringComparer comparers such as StringComparer.OrdinalIgnoreCase are " +
             "supported.",
             Error,
-            "Custom equality comparers not supported." );
+            "Custom equality comparers not supported.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(INamedTypeSymbol Type, INamedTypeSymbol BaseType)> MissingBaseConstructor = new(
             "LAMA0204",
@@ -59,7 +65,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "serializable but has neither an accessible parameterless constructor nor an accessible deserializing constructor with a single " +
             "parameter of type IArgumentsReader. Add one of these constructors to '{1}'.",
             Error,
-            "Missing base parameterless or deserializing constructor." );
+            "Missing base parameterless or deserializing constructor.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(INamedTypeSymbol Type, INamedTypeSymbol BaseType)> MissingBaseParameterlessConstructor = new(
             "LAMA0205",
@@ -68,7 +75,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "a public or protected parameterless constructor. Make '{1}' implement ICompileTimeSerializable, or add a public or protected " +
             "parameterless constructor to it.",
             Error,
-            "Missing base parameterless constructor." );
+            "Missing base parameterless constructor.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(INamedTypeSymbol Type, INamedTypeSymbol BaseTypeSerializer)> MissingBaseSerializerConstructor = new(
             "LAMA0207",
@@ -76,7 +84,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "Cannot generate a compile-time serializer for '{0}' because the serializer '{1}' of its base type does not have a public or " +
             "protected parameterless constructor. Add such a constructor to '{1}'.",
             Error,
-            "Missing base serializer constructor." );
+            "Missing base serializer constructor.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<INamedTypeSymbol> AmbiguousManualSerializer = new(
             "LAMA0208",
@@ -84,7 +93,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "The compile-time serializable type '{0}' declares several nested types that implement ISerializer. Only one manual serializer is " +
             "allowed.",
             Error,
-            "Ambiguous manual serializer." );
+            "Ambiguous manual serializer.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(INamedTypeSymbol Type, INamedTypeSymbol BaseType)> AmbiguousBaseSerializer = new(
             "LAMA0209",
@@ -92,7 +102,8 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "Cannot generate a compile-time serializer for '{0}' because the base type '{1}' declares several nested types that implement " +
             "ISerializer.",
             Error,
-            "Ambiguous base serializer." );
+            "Ambiguous base serializer.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<INamedTypeSymbol> RecordSerializersNotSupported = new(
             "LAMA0210",
@@ -101,6 +112,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             +
             "You can provide a manual serializer (public nested class) derived from ReferenceTypeSerializer (record classes) or ValueTypeSerializer (record structs) instead.",
             Error,
-            "Generated serializers are not supported for positional records." );
+            "Generated serializers are not supported for positional records.",
+            _helpLinkFormat );
     }
 }

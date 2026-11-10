@@ -43,19 +43,46 @@ namespace Metalama.Framework.Diagnostics
     public sealed class DiagnosticDefinition : DiagnosticDefinition<None>, IDiagnostic
     {
         // Constructor used by internal code.
-        internal DiagnosticDefinition( string id, string category, string messageFormat, Severity severity, string title )
-            : this( id, severity, messageFormat, title, category ) { }
+        internal DiagnosticDefinition( string id, string category, string messageFormat, Severity severity, string title, string? helpLinkUri = null )
+            : this( id, severity, messageFormat, title, category, helpLinkUri ) { }
 
         // Constructor used by internal code.
-        internal DiagnosticDefinition( string id, string title, string messageFormat, string category, Severity severity )
-            : this( id, severity, messageFormat, title, category ) { }
+        internal DiagnosticDefinition( string id, string title, string messageFormat, string category, Severity severity, string? helpLinkUri = null )
+            : this( id, severity, messageFormat, title, category, helpLinkUri ) { }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiagnosticDefinition"/> class.
+        /// </summary>
+        /// <param name="id">An unique identifier for the diagnostic (e.g. <c>MY001</c>).</param>
+        /// <param name="severity">The severity of the diagnostic.</param>
+        /// <param name="messageFormat">The formatting string of the diagnostic message.</param>
+        /// <param name="title">An optional short title for the diagnostic. If no value is provided for this parameter, <paramref name="messageFormat"/> is used.</param>
+        /// <param name="category">An optional category to which this diagnostic belong. The default value is <c>Metalama.User</c>.</param>
         public DiagnosticDefinition( string id, Severity severity, string messageFormat, string? title = null, string? category = null ) : base(
             id,
             severity,
             messageFormat,
             title,
             category ) { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DiagnosticDefinition"/> class and specifies the URL of the documentation page of the diagnostic.
+        /// </summary>
+        /// <param name="id">An unique identifier for the diagnostic (e.g. <c>MY001</c>).</param>
+        /// <param name="severity">The severity of the diagnostic.</param>
+        /// <param name="messageFormat">The formatting string of the diagnostic message.</param>
+        /// <param name="title">A short title for the diagnostic. If the value is <c>null</c>, <paramref name="messageFormat"/> is used.</param>
+        /// <param name="category">The category to which this diagnostic belong. If the value is <c>null</c>, <c>Metalama.User</c> is used.</param>
+        /// <param name="helpLinkUri">The URL of the documentation page of the diagnostic, or <c>null</c>. If the URL contains the <c>{0}</c> placeholder,
+        /// the placeholder is replaced by the lower-case value of <paramref name="id"/>. For instance, <c>https://example.com/errors/{0}</c> becomes
+        /// <c>https://example.com/errors/my001</c>.</param>
+        public DiagnosticDefinition( string id, Severity severity, string messageFormat, string? title, string? category, string? helpLinkUri ) : base(
+            id,
+            severity,
+            messageFormat,
+            title,
+            category,
+            helpLinkUri ) { }
 
         IDiagnosticDefinition IDiagnostic.Definition => this;
 

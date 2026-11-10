@@ -13,6 +13,8 @@ namespace Metalama.Patterns.Wpf.Implementation;
 [CompileTime]
 internal static class Diagnostics
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     private const string _category = "Metalama.Patterns.Wpf";
 
     // Reserved range 5200-5220
@@ -25,7 +27,9 @@ internal static class Diagnostics
             "LAMA5201",
             Error,
             $"The {nameof(CommandAttribute.CanExecuteMethod)} and {nameof(CommandAttribute.CanExecuteProperty)} properties cannot both be defined at the same time.",
-            $"Invalid {nameof(CommandAttribute)} properties." );
+            $"Invalid {nameof(CommandAttribute)} properties.",
+            null,
+            _helpLinkFormat );
 
     /// <summary>
     /// The can-execute property for command method {0} is not public, and INotifyPropertyChanged integration is enabled and applicable.
@@ -38,7 +42,9 @@ internal static class Diagnostics
             "The can-execute property of the command method '{0}' is not public, but INotifyPropertyChanged integration is enabled. Because " +
             "INotifyPropertyChanged implementations usually raise the PropertyChanged event only for public properties, the CanExecuteChanged " +
             "event of the command might not be raised. Make the property public or disable INotifyPropertyChanged integration.",
-            "Notifiable can-execute property is not public." );
+            "Notifiable can-execute property is not public.",
+            null,
+            _helpLinkFormat );
 
     /// <summary>
     /// The name of existing {0} {1}, that is defined in or inherited by class {2}, conflicts with the {3}{4} name determined by the {5} naming convention.
@@ -52,7 +58,8 @@ internal static class Diagnostics
                 "The name of the existing {0} '{1}', defined in or inherited by the type '{2}', conflicts with the {4} name determined by the '{5}' " +
                 "naming convention. Rename the existing {0} or change the naming convention.",
                 "Existing member conflicts with member to be introduced.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
     /// <summary>
     /// To be applied to each invalid member:
@@ -75,7 +82,8 @@ internal static class Diagnostics
                 Error,
                 "The '{0}' {1} has an invalid signature and cannot be used as a {2} for {3}'{4}' {5}by the '{6}' naming convention.{7}",
                 "Invalid candidate member signature.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
     /// <summary>
     /// The {0} was identified as a valid candidate {1} for {2}{3} {4}by the {5} naming convention, but other members also matched.
@@ -89,7 +97,8 @@ internal static class Diagnostics
                 "Several members can be used as the {1} for {2}'{3}' {4}by the '{5}' naming convention. Rename or remove the " +
                 "members that must not be used, so that only one member matches.",
                 "Ambiguous candidate member.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
     /// <summary>
     /// No {0} was found {1} the {2} naming convention, with candidate member name{3} {4}.
@@ -106,7 +115,8 @@ internal static class Diagnostics
                 Error,
                 "No {0} matching {2} was found for the {1} '{3}'.",
                 "Required member not found.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
     /// <summary>
     /// No match was found using the {0} naming convention{1}. See other warnings for details.
@@ -119,7 +129,8 @@ internal static class Diagnostics
                 "No {0} naming convention matched '{1}'. Add a naming convention that matches this name, or do not remove the default naming " +
                 "convention.",
                 "No configured naming convention matched.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
     public static readonly DiagnosticDefinition<IMethod>
         CancellationInNonAsyncNotSupported =
@@ -129,5 +140,6 @@ internal static class Diagnostics
                 "The '{0}' method has a CancellationToken parameter, but it does not return a Task and the Background property of the [Command] " +
                 "attribute is not set to true.",
                 "A command method with a CancellationToken parameter must return a Task or run in the background.",
-                _category );
+                _category,
+                _helpLinkFormat );
 }

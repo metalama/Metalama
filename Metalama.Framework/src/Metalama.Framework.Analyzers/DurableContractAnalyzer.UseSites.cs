@@ -20,7 +20,8 @@ namespace Metalama.Framework.Analyzers.Durability
             + "Retention path: {2}.",
             _category,
             DiagnosticSeverity.Warning,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0871" ) );
 
         internal static readonly DiagnosticDescriptor ArgumentIsNotDurable = new(
             "LAMA0872",
@@ -29,7 +30,8 @@ namespace Metalama.Framework.Analyzers.Durability
             + "Retention path: {2}.",
             _category,
             DiagnosticSeverity.Warning,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0872" ) );
 
         /// <remarks>
         /// The rule that the design document calls the trap that costs the most, because the captured object is
@@ -43,7 +45,8 @@ namespace Metalama.Framework.Analyzers.Durability
             + "Retention path: {1}.",
             _category,
             DiagnosticSeverity.Warning,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0878" ) );
 
         /// <remarks>
         /// A weak reference is durable whatever it refers to, so nothing else in this analyzer would say anything
@@ -57,7 +60,8 @@ namespace Metalama.Framework.Analyzers.Durability
             "'{0}' holds a weak reference, so its name should end in 'Dangerous' to show that the value may be absent.",
             _category,
             DiagnosticSeverity.Info,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0875" ) );
 
         internal static readonly DiagnosticDescriptor UnknownDeclaredTypeName = new(
             "LAMA0879",
@@ -67,7 +71,8 @@ namespace Metalama.Framework.Analyzers.Durability
             _category,
             DiagnosticSeverity.Warning,
             true,
-            customTags: WellKnownDiagnosticTags.CompilationEnd );
+            customTags: WellKnownDiagnosticTags.CompilationEnd,
+            helpLinkUri: GetHelpLinkUri( "LAMA0879" ) );
 
         private static void RegisterUseSiteActions( CompilationStartAnalysisContext context, DurabilityContext durabilityContext )
         {

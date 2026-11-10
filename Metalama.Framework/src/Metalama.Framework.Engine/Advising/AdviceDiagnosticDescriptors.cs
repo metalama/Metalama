@@ -13,6 +13,8 @@ namespace Metalama.Framework.Engine.Advising
 {
     public static class AdviceDiagnosticDescriptors
     {
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         // Reserved range 500-599.
 
         private const string _category = "Metalama.Advices";
@@ -25,7 +27,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a member into a type because it already exists.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}'. Use a different OverrideStrategy or skip the member.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, IDeclaration DeclaringType)>
             CannotIntroduceOverrideOfSealed = new(
@@ -35,7 +38,8 @@ namespace Metalama.Framework.Engine.Advising
                 "non-virtual or sealed, so it cannot be overridden. Use OverrideStrategy.New to hide the existing member, or " +
                 "OverrideStrategy.Ignore to keep it.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, IDeclaration DeclaringType, IType
                 ReturnType)>
@@ -45,7 +49,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}' " +
                 "and has a different type or return type '{4}'.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, IDeclaration DeclaringType)>
             CannotIntroduceWithDifferentStaticity = new(
@@ -54,7 +59,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}', and one of the two " +
                 "members is static while the other is not.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceInstanceMember = new(
@@ -62,7 +68,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce an instance member into a static type.",
                 "The aspect '{0}' cannot introduce instance member '{1}' into type '{2}' because the type is static.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, DeclarationKind DeclarationKind)>
             CannotIntroduceWithDifferentKind = new(
@@ -70,7 +77,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a member into a type because another member of a different kind already exists.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because there is already a {3} of the same name declared in the type or in a base type.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotIntroduceStaticVirtualMember = new(
@@ -78,7 +86,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a virtual member because it is also static.",
                 "The aspect '{0}' cannot introduce virtual member '{1}' because it is also static.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotIntroduceStaticSealedMember = new(
@@ -86,7 +95,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a sealed member because it is also static.",
                 "The aspect '{0}' cannot introduce sealed member '{1}' because it is also static.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceNewMemberWhenItAlreadyExists = new(
@@ -94,7 +104,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a new member into a type because a member with the same name and signature already exists.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' with OverrideStrategy.New because the member is already declared in the type.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         // Sub-range 510-519: Interface implementation diagnostics.
 
@@ -106,7 +117,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot implement interface '{2}' in the type '{1}' because the aspect member '{3}', marked with the " +
                 "[InterfaceMember] attribute, does not have the same type or return type as the corresponding interface member '{4}'.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType InterfaceType, INamedType TargetType)>
             InterfaceIsAlreadyImplemented = new(
@@ -116,7 +128,8 @@ namespace Metalama.Framework.Engine.Advising
                 "the existing implementation, set the whenExists parameter of ImplementInterface to OverrideStrategy.Ignore or " +
                 "OverrideStrategy.Override.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType InterfaceType, INamedType TargetType)>
             CannotImplementCanonicalGenericInstanceOfGenericInterface = new(
@@ -125,7 +138,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot implement interface type '{1}' in the type '{2}' because it is a canonical generic instance. " +
                 "Specify all type arguments of the generic interface type. If needed, use type parameters of the target type.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IMember InterfaceMember, INamedType TargetType, IMember ExistingDeclaration)>
             ImplicitInterfaceMemberAlreadyExists = new(
@@ -135,7 +149,8 @@ namespace Metalama.Framework.Engine.Advising
                 "the same signature. Set the WhenExists property of the [InterfaceMember] attribute to Ignore or MakeExplicit, or pass " +
                 "OverrideStrategy.Override to ImplementInterface.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType InterfaceType, INamedType TargetType, OverrideStrategy Strategy)>
             InterfaceUnsupportedOverrideStrategy = new(
@@ -145,7 +160,8 @@ namespace Metalama.Framework.Engine.Advising
                 "interfaces. Use Fail, Ignore, or Override. To handle conflicts with individual members, use the WhenExists property of the " +
                 "[InterfaceMember] attribute.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IMember InterfaceProperty, INamedType TargetType, IMember TemplateMember, string
                 AccessorKind)>
@@ -155,7 +171,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot implement the interface property '{1}' in the type '{2}' because the template '{3}' does not have the " +
                 "'{4}' accessor required by the interface property.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IMember InterfaceProperty, INamedType TargetType, IMember TemplateMember, string
                 AccessorKind)>
@@ -166,7 +183,8 @@ namespace Metalama.Framework.Engine.Advising
                 "'{4}' accessor, which the interface property does not have. Remove the accessor from the template or implement the property " +
                 "implicitly.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType InterfaceType, IMember TargetMember)>
             ImplicitInterfaceImplementationHasToBePublic = new(
@@ -176,7 +194,8 @@ namespace Metalama.Framework.Engine.Advising
                 "is not public. Make the member and its accessors public, or set the IsExplicit property of the [InterfaceMember] attribute to " +
                 "true.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         // Sub-range 520-549: Various introduction diagnostics.
         internal static readonly DiagnosticDefinition<(string AspectType, IConstructor Constructor)>
@@ -185,7 +204,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a parameter into a static constructor.",
                 "The aspect '{0}' cannot introduce a parameter into '{1}' because it is a static constructor.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType AttributeType, IDeclaration TargetDeclaration)>
             AttributeAlreadyPresent = new(
@@ -194,7 +214,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the custom attribute '{1}' into '{2}' because this attribute is already present on the " +
                 "declaration. To keep or replace the existing attribute, set the 'whenExists' parameter to 'Ignore' or 'Override'.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration TargetType, OverrideStrategy OverrideStrategy)>
             CannotUseNewOverrideStrategyWithFinalizers = new(
@@ -203,7 +224,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce a finalizer into the type '{1}' because the override strategy '{2}' is not supported for " +
                 "finalizers. Use 'Fail', 'Ignore', or 'Override'.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType Record)>
             CannotAddInitializerToRecord = new(
@@ -211,7 +233,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot add an initializer to all constructors of a record.",
                 "The aspect '{0}' cannot add an initializer to all constructors of the record '{1}', because the copy constructor cannot be changed. Consider adding initializers directly to the relevant constructors.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         // LAMA0525 was removed. It was previously used to report errors when introducing virtual members into
         // sealed types or structs. Virtual introductions into sealed types and structs are now silently accepted
@@ -224,7 +247,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the indexer '{1}' into the type '{2}' because the indexer has no parameter. An indexer must have " +
                 "at least one parameter.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceStaticIndexer = new(
@@ -233,7 +257,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the indexer '{1}' into the type '{2}' because the indexer is static. C# does not support static " +
                 "indexers.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotOverrideNonPublicInterfaceMember = new(
@@ -242,7 +267,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot override the member '{1}' to implement an interface member because '{1}' is not public. Make '{1}' public, " +
                 "or implement the interface member explicitly.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotOverrideNonVirtualInterfaceMember = new(
@@ -251,7 +277,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot override the member '{1}' to implement an interface member because '{1}' is inherited from a base type and " +
                 "is either not virtual or sealed. Make '{1}' virtual and not sealed.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, string Parameter, IDeclaration TargetDeclaration, string ExistingParameterName)>
             CannotIntroduceParameterAlreadyExists = new(
@@ -260,7 +287,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the parameter '{1}' into '{2}' because an aspect has already introduced a parameter named '{3}' " +
                 "into this constructor.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType Type, INamespaceOrNamedType TargetNamespaceOrType)>
             CannotIntroduceNewTypeWhenItAlreadyExists = new(
@@ -269,7 +297,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the type '{1}' into '{2}' because '{2}' already contains or inherits a type with the same name " +
                 "and the same number of type parameters. Use a different name, or specify another OverrideStrategy.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceAbstractMemberToNonAbstractType = new(
@@ -277,7 +306,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce an abstract member into a non-abstract type.",
                 "The aspect '{0}' cannot introduce the abstract member '{1}' into the type '{2}' because '{2}' is not abstract.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, OverrideStrategy OverrideStrategy)>
             CannotIntroduceAbstractMemberWithOverrideStrategy = new(
@@ -286,7 +316,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the abstract member '{1}' with the override strategy '{2}' because an introduced abstract member " +
                 "cannot override or hide an existing member. Use the override strategy 'Fail' or 'Ignore'.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceFieldIntoInterface = new(
@@ -294,7 +325,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a field into an interface.",
                 "The aspect '{0}' cannot introduce the field '{1}' into interface type '{2}'.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroducePartialMemberToNonPartialType = new(
@@ -303,7 +335,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the partial member '{1}' into the type '{2}' because the type is not partial. Add the partial " +
                 "modifier to the type.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IParameter IntroducedParameter, IConstructor Forwarder, string ReturnedKind)>
             InvalidPullActionForForwardingConstructor = new(
@@ -313,7 +346,8 @@ namespace Metalama.Framework.Engine.Advising
                 "'{1}'. For a forwarding constructor, the pull strategy must provide a value, for instance with PullAction.UseExpression, and must " +
                 "not return PullAction.None.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         // Sub-range 540-549: Extension block introduction diagnostics.
 
@@ -323,7 +357,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce an extension block into a non-static class.",
                 "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target type is not a static class.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IType ReceiverType, INamedType TargetType)>
             CannotIntroduceExtensionBlockIntoExtensionBlock = new(
@@ -331,7 +366,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce an extension block into another extension block.",
                 "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceInitOnlyIndexerIntoExtensionBlock = new(
@@ -339,7 +375,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce an indexer with an init accessor into an extension block.",
                 "The aspect '{0}' cannot introduce indexer '{1}' into '{2}' because the indexer has an 'init' accessor, which the language forbids for an extension member.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, string Modifier)>
             CannotIntroduceMemberWithModifierIntoExtensionBlock = new(
@@ -347,7 +384,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce a member with this modifier into an extension block.",
                 "The aspect '{0}' cannot introduce '{1}' into '{2}' because the member is '{3}', which the language forbids for an extension member.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         // Sub-range 550-559: Initialization diagnostics.
 
@@ -359,7 +397,8 @@ namespace Metalama.Framework.Engine.Advising
                 "'virtual' (or 'override'). Since '{1}' is not sealed, its 'Initialize' method must be 'public virtual' so that derived types can " +
                 "extend the initialization. Make the method 'public virtual', or make the type 'sealed'.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType, INamedType BaseType)>
             OnConstructedBaseWithoutContextConstructor = new(
@@ -367,7 +406,8 @@ namespace Metalama.Framework.Engine.Advising
                 "Base type has OnConstructed method but no constructor accepting InitializationContext.",
                 "The aspect '{0}' targets type '{1}' whose base type '{2}' defines an 'OnConstructed(InitializationContext)' method but has no instance constructor accepting an 'InitializationContext' parameter. The base type must provide such a constructor (and call 'OnConstructed' from it, guarded by 'IsHandled(InitializationSlot.OnConstructed)') so that derived types can pass 'context.Descend(InitializationSlot.OnConstructed)' and skip the base's OnConstructed call.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration DeclaringType)>
             CannotOverrideNonDeclarableRecordMember = new(
@@ -376,7 +416,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot override '{1}' because the C# compiler adds this member to record '{2}' unconditionally, so it cannot be declared explicitly. " +
                 "Override the strongly typed 'Equals' overload instead. The equality operators and 'Equals(object)' both call it.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, string TypeName)>
             UnionMustDeclareACase = new(
@@ -385,7 +426,8 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce the union '{1}' because a union declaration must declare at least one case. "
                 + "Call 'AddCase' at least once in the callback that builds the union.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, string MemberKind, IDeclaration TargetType)>
             CannotIntroduceStateIntoUnion = new(
@@ -395,7 +437,8 @@ namespace Metalama.Framework.Engine.Advising
                 + "no automatic property and no field-like event. Introduce a property whose accessors have a body, or an event whose "
                 + "accessors have a body.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotIntroduceAttributeOnSynthesizedMember = new(
@@ -404,6 +447,7 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce a custom attribute on '{1}' because the compiler synthesizes that member and there is "
                 + "no declaration on which to write the attribute.",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
     }
 }

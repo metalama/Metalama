@@ -14,6 +14,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
     /// </summary>
     public static class ImmutabilityDiagnosticDescriptors
     {
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         // Reserved range 880-899.
 
         private const string _category = "Metalama";
@@ -36,7 +38,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 _because + ", but the field '{1}' is neither read-only nor private, so not every assignment to it can be "
                          + "seen. Add the 'readonly' modifier, or make the field private.",
                 "A field of a type that must be immutable can be written from outside the type.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Type, string Member)> PropertyHasSetter
             = new(
@@ -46,7 +49,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                          + "to it can be seen. Replace 'set' with 'init', make the setter private, or, for a positional record "
                          + "struct, declare it as a 'readonly record struct'.",
                 "An automatic property of a type that must be immutable has a setter that is not private.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Type, string MemberType, string Path)> MemberIsNotImmutable
             = new(
@@ -54,7 +58,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 Warning,
                 _because + ", but '{1}' is not immutable. Path: {2}.",
                 "A member of a type that must be immutable is of a mutable type.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Type, string BaseType, string Path)> BaseTypeIsNotImmutable
             = new(
@@ -62,7 +67,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 Warning,
                 _because + ", but its base type '{1}' is not immutable. Path: {2}.",
                 "A type that must be immutable derives from a mutable type.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Type, string MemberType, string Path)> InterfaceIsNotImmutable
             = new(
@@ -71,7 +77,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 _because + ", but '{1}' is not marked [ImmutableType]. Marking it requires every implementation "
                          + "to be immutable, which Metalama verifies. Path: {2}.",
                 "A member of a type that must be immutable is typed as an interface or abstract type that is not marked [ImmutableType].",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Name, string ItemName)> UnknownDeclaredTypeName
             = new(
@@ -80,7 +87,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 "The name '{0}', declared in {1}, matches no type in this compilation. A generic type must be written "
                 + "with its arity, as in System.Collections.Immutable.ImmutableArray`1.",
                 "A declared immutable type name matches no type.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Type, string Source)> RedundantImmutableTypeAttribute
             = new(
@@ -89,7 +97,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 "The [ImmutableType] attribute on '{0}' has no effect, because '{0}' derives from or implements '{1}', "
                 + "which already requires it. Remove the attribute.",
                 "An [ImmutableType] attribute is redundant because the contract is already inherited.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Type, string Member)> MemberIsWrittenOutsideConstructor
             = new(
@@ -98,7 +107,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 _because + ", but '{1}' is assigned here, outside a constructor. Move the assignment into a constructor "
                          + "or an 'init' accessor.",
                 "A member of a type that must be immutable is written outside a constructor.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         /// <remarks>
         /// A <c>ref</c> argument is not reported: it may only read, as <c>Volatile.Read( ref field )</c> does, and the
@@ -111,7 +121,8 @@ namespace Metalama.Framework.Engine.Templating.Immutability
                 _because + ", but '{1}' is passed as an 'out' argument here, which writes it. Pass a local instead, and "
                          + "assign the member in a constructor.",
                 "A member of a type that must be immutable is passed as an 'out' argument.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Type, string Member)> StaticFieldIsNotReadOnly
             = new(

@@ -32,7 +32,8 @@ namespace Metalama.Framework.Analyzers.Durability
             _category,
             DiagnosticSeverity.Warning,
             true,
-            customTags: WellKnownDiagnosticTags.Unnecessary );
+            customTags: WellKnownDiagnosticTags.Unnecessary,
+            helpLinkUri: GetHelpLinkUri( "LAMA0874" ) );
 
         private static void AnalyzeRedundantAttribute( SymbolAnalysisContext context, INamedTypeSymbol type )
         {

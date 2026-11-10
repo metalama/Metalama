@@ -17,6 +17,8 @@ namespace Metalama.Framework.Diagnostics;
 [CompileTime]
 public static class CodeFixHelper
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     /// <summary>
     /// The name of the diagnostic property that contains code fix titles.
     /// </summary>
@@ -34,5 +36,5 @@ public static class CodeFixHelper
     /// This diagnostic uses <see cref="Severity.Hidden"/> so it doesn't appear in the IDE's error list,
     /// but still allows code fixes to be attached. Requires a premium edition of Metalama.
     /// </remarks>
-    public static readonly DiagnosticDefinition SuggestionDiagnostic = new( "LAMA0043", Severity.Hidden, "Code fix" );
+    public static readonly DiagnosticDefinition SuggestionDiagnostic = new( "LAMA0043", Severity.Hidden, "Code fix", null, null, _helpLinkFormat );
 }

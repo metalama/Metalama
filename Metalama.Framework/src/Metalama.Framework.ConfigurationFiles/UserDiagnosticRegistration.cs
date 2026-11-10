@@ -46,5 +46,10 @@ namespace Metalama.Framework.ConfigurationFiles
         /// and does not contain formatting string parameters.
         /// </summary>
         public string Title { get; }
+
+        /// <summary>
+        /// Gets the URL of the documentation page of the diagnostic, or <c>null</c> if the diagnostic has no documentation page.
+        /// </summary>
+        public string? HelpLinkUri { get; init; }
     }
 }

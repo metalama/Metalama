@@ -46,7 +46,8 @@ namespace Metalama.Framework.DesignTime.Diagnostics
                         d.Value.Title,
                         d.Value.Id,
                         (DiagnosticSeverity) d.Value.Severity,
-                        true ) ),
+                        true,
+                        helpLinkUri: d.Value.HelpLinkUri ) ),
                 this._registrationFile.Suppressions.SelectAsImmutableArray( SuppressionFactories.CreateDescriptor ) );
 
         /// <summary>
@@ -70,11 +71,11 @@ namespace Metalama.Framework.DesignTime.Diagnostics
 
                         return f with
                         {
-                            Diagnostics = f.Diagnostics.AddRange(
+                            Diagnostics = f.Diagnostics.SetItems(
                                 missing.Diagnostics.SelectAsReadOnlyCollection(
                                     d => new KeyValuePair<string, UserDiagnosticRegistration>(
                                         d.Id,
-                                        new UserDiagnosticRegistration( d.Id, (int) d.Severity, d.Category, d.Title ) ) ) ),
+                                        new UserDiagnosticRegistration( d.Id, (int) d.Severity, d.Category, d.Title ) { HelpLinkUri = d.HelpLinkUri } ) ) ),
                             Suppressions = f.Suppressions.AddRange( missing.Suppressions )
                         };
                     } );
@@ -105,8 +106,12 @@ namespace Metalama.Framework.DesignTime.Diagnostics
 
             foreach ( var diagnostic in diagnosticManifest.DiagnosticDefinitions.Values )
             {
+                // A registration is also refreshed when it lacks the help link of the definition, because it was written by a version
+                // of Metalama that did not support help links. A registration whose link differs from a non-null link is not refreshed,
+                // so that two definitions of the same ID with different links do not cause an update on every pipeline execution.
                 if ( !DesignTimeDiagnosticDefinitions.StandardDiagnosticDescriptors.ContainsKey( diagnostic.Id )
-                     && !file.Diagnostics.ContainsKey( diagnostic.Id ) )
+                     && (!file.Diagnostics.TryGetValue( diagnostic.Id, out var registration )
+                         || (registration.HelpLinkUri == null && diagnostic.HelpLinkUri != null)) )
                 {
                     // Duplicates here would cause an exception in RegisterDescriptors.
                     // They can happen if the diagnostic is defined as a property, since it is reported from its backing field as well.

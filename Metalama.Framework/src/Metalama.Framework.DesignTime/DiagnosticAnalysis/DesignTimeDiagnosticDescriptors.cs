@@ -12,6 +12,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 {
     internal static class DesignTimeDiagnosticDescriptors
     {
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         // Reserved range 300-319
 
         private const string _category = "Metalama.DesignTime";
@@ -24,7 +26,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
                     "An error diagnostic is not yet registered in the current IDE session.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
             UserWarning
@@ -34,7 +37,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
                     "A warning diagnostic is not yet registered in the current IDE session.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
             UserInfo
@@ -44,7 +48,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
                     "An informational diagnostic is not yet registered in the current IDE session.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
             UserHidden
@@ -54,7 +59,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
                     "A hidden diagnostic is not yet registered in the current IDE session.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         /// <summary>
         /// Reported when several syntax trees of the compilation have one path, which the project system can produce
@@ -73,7 +79,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     + "of the others is not seen by aspects. Verify that the file is not included several times by the project file, "
                     + "for instance by a Compile item that repeats a glob, by Link metadata, or by a shared project.",
                     "Several source files of the project have the same path.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Id, ISymbol Symbol)>
             UnregisteredSuppression
@@ -83,6 +90,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     "An aspect suppressed the diagnostic '{0}' on '{1}', but this suppression is not yet registered in the current IDE session due to " +
                     "an IDE limitation. Restart your IDE to apply the suppression.",
                     "A diagnostic suppression defined by an aspect is not yet registered in the IDE.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
     }
 }

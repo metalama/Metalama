@@ -9,6 +9,9 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -181,6 +184,69 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         Assert.Equal( diagnostic1.DefaultSeverity, diagnostic2.DefaultSeverity );
         Assert.Equal( diagnostic1.WarningLevel, diagnostic2.WarningLevel );
         Assert.Equal( diagnostic1.Properties, diagnostic2.Properties );
+    }
+
+    /// <summary>
+    /// Tests that the analyzer reports a user diagnostic with the help link given in its definition.
+    /// </summary>
+    [Fact]
+    public async Task HelpLinkOfUserDiagnosticIsReported()
+    {
+        const string code = """
+                            using Metalama.Framework.Advising;
+                            using Metalama.Framework.Aspects;
+                            using Metalama.Framework.Code;
+                            using Metalama.Framework.Diagnostics;
+
+                            class ErrorAspect : TypeAspect
+                            {
+                                static readonly DiagnosticDefinition _error = new( "MLTEST", Severity.Error, "Error!", null, null, "https://example.com/errors/{0}" );
+
+                                public override void BuildAspect( IAspectBuilder<INamedType> builder )
+                                {
+                                    builder.Diagnostics.Report( _error );
+                                }
+                            }
+
+                            [ErrorAspect]
+                            class C {}
+                            """;
+
+        var diagnostics = await this.RunAnalyzer( code );
+
+        var diagnostic = Assert.Single( diagnostics );
+        Assert.Equal( "MLTEST", diagnostic.Id );
+        Assert.Equal( "https://example.com/errors/mltest", diagnostic.Descriptor.HelpLinkUri );
+    }
+
+    /// <summary>
+    /// Tests that <see cref="TheDiagnosticAnalyzer.CreateRelocatedDiagnostic"/> preserves the help link of the diagnostic.
+    /// </summary>
+    /// <remarks>
+    /// The analyzer creates a diagnostic again when it maps a location from a syntax tree of an earlier compilation to the
+    /// syntax tree of the current compilation, because the location of a <see cref="Diagnostic"/> cannot be replaced.
+    /// </remarks>
+    [Fact]
+    public void RelocatedDiagnosticPreservesHelpLink()
+    {
+        var definition = new Metalama.Framework.Diagnostics.DiagnosticDefinition<string>(
+            "MLTEST",
+            Metalama.Framework.Diagnostics.Severity.Warning,
+            "The value is {0}.",
+            "Title.",
+            "Category",
+            "https://example.com/errors/{0}" );
+
+        var oldTree = CSharpSyntaxTree.ParseText( "class C {}", path: "code.cs", cancellationToken: TestContext.Current.CancellationToken );
+        var newTree = CSharpSyntaxTree.ParseText( "class C {}", path: "code.cs", cancellationToken: TestContext.Current.CancellationToken );
+        var diagnostic = definition.CreateRoslynDiagnostic( Location.Create( oldTree, new TextSpan( 6, 1 ) ), "x" );
+        var newLocation = Location.Create( newTree, new TextSpan( 6, 1 ) );
+
+        var relocatedDiagnostic = TheDiagnosticAnalyzer.CreateRelocatedDiagnostic( diagnostic, newLocation, [] );
+
+        Assert.Equal( newLocation, relocatedDiagnostic.Location );
+        Assert.Equal( "https://example.com/errors/mltest", relocatedDiagnostic.Descriptor.HelpLinkUri );
+        Assert.Equal( diagnostic.GetMessage( CultureInfo.InvariantCulture ), relocatedDiagnostic.GetMessage( CultureInfo.InvariantCulture ) );
     }
 
     [Fact]
