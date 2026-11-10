@@ -22,6 +22,8 @@ namespace Metalama.Framework.Engine;
 [UsedImplicitly]
 internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     private const string _diagnosticCategory = "Metalama.GeneratedCodeAnalyzer";
 
     private static readonly DiagnosticDefinition<(string AspectType, ISymbol Target, string Addendum)> _aspectAppliedToGeneratedCode = new(
@@ -29,7 +31,8 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
         "An aspect cannot be applied to source-generated code.",
         "The aspect '{0}' cannot be applied to '{1}' because it is in source-generated code.{2}",
         _diagnosticCategory,
-        Severity.Warning );
+        Severity.Warning,
+        _helpLinkFormat );
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create( _aspectAppliedToGeneratedCode.ToRoslynDescriptor() );
 

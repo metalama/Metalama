@@ -11,21 +11,32 @@ namespace Metalama.Patterns.Immutability;
 [CompileTime]
 internal static class ImmutabilityDiagnostics
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     // Reserved range 5020-5039
 
     public static DiagnosticDefinition<IField> FieldMustBeReadOnly { get; } = new(
         "LAMA5020",
         Severity.Warning,
-        "The '{0}' field must be read-only because of the [Immutable] aspect." );
+        "The '{0}' field must be read-only because of the [Immutable] aspect.",
+        null,
+        null,
+        _helpLinkFormat );
 
     public static DiagnosticDefinition<IProperty> PropertyMustHaveNoSetter { get; } = new(
         "LAMA5021",
         Severity.Warning,
-        "The '{0}' property must not have a setter because of the [Immutable] aspect." );
+        "The '{0}' property must not have a setter because of the [Immutable] aspect.",
+        null,
+        null,
+        _helpLinkFormat );
 
     public static DiagnosticDefinition<(IFieldOrProperty FieldOrProperty, DeclarationKind DeclarationKind)>
         FieldOrPropertyMustBeOfDeeplyImmutableType { get; } = new(
         "LAMA5022",
         Severity.Warning,
-        "The type of the '{0}' {1} must be deeply immutable." );
+        "The type of the '{0}' {1} must be deeply immutable.",
+        null,
+        null,
+        _helpLinkFormat );
 }

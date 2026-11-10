@@ -12,6 +12,8 @@ namespace Metalama.Patterns.Contracts;
 [CompileTime]
 internal static class ContractDiagnostics
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     // Reserved range: 5000-5019
 
     public static DiagnosticDefinition<(IDeclaration Declaration, string TargetBasicType, string AspectType, NumericRange Range)> RangeCannotBeApplied { get; }
@@ -20,7 +22,8 @@ internal static class ContractDiagnostics
             Severity.Error,
             "The [{2}] contract cannot be applied to '{0}' because the value range {3} cannot be satisfied by the type {1}.",
             $"The Range contract cannot be applied because the range cannot be satisfied by the type of the target declaration.",
-            "Metalama.Patterns.Contracts" );
+            "Metalama.Patterns.Contracts",
+            _helpLinkFormat );
 
     public static DiagnosticDefinition<(IDeclaration Declaration, string AspectType)> NotNullableOnNullable { get; }
         = new(
@@ -28,7 +31,8 @@ internal static class ContractDiagnostics
             Severity.Warning,
             "The [{1}] contract has been applied to '{0}', but its type is nullable.",
             $"A non-nullable contract has been applied to a declaration of nullable type.",
-            "Metalama.Patterns.Contracts" );
+            "Metalama.Patterns.Contracts",
+            _helpLinkFormat );
 
     public static DiagnosticDefinition<(IDeclaration Declaration, string AspectType)> ContractRedundant { get; }
         = new(
@@ -36,7 +40,8 @@ internal static class ContractDiagnostics
             Severity.Warning,
             "The [{1}] contract is redundant because a fabric automatically adds the [NotNull] contract to this declaration.",
             $"The non-nullable contract is redundant because it is automatically added by a fabric.",
-            "Metalama.Patterns.Contracts" );
+            "Metalama.Patterns.Contracts",
+            _helpLinkFormat );
 
     public static DiagnosticDefinition<(IMethod Method, INamedType Type)> SuspensionNotSupported { get; }
         = new(
@@ -44,14 +49,18 @@ internal static class ContractDiagnostics
             Severity.Error,
             $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method '{{0}}' because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} contract option is not enabled for the type '{{1}}'. " +
             $"Enable this option in {nameof(ContractOptions)} using a fabric.",
-            $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} option is not enabled for its declaring type." );
+            $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} option is not enabled for its declaring type.",
+            null,
+            _helpLinkFormat );
 
     public static DiagnosticDefinition<(IMethod Method, INamedType Type)> SuspensionRedundant { get; }
         = new(
             "LAMA5005",
             Severity.Warning,
             $"The [{nameof(SuspendInvariantsAttribute)}] aspect on method '{{0}}' is redundant because the type '{{1}}' does not contain any invariants.",
-            $"The [{nameof(SuspendInvariantsAttribute)}] aspect is redundant because the type does not contain any invariants." );
+            $"The [{nameof(SuspendInvariantsAttribute)}] aspect is redundant because the type does not contain any invariants.",
+            null,
+            _helpLinkFormat );
 
     public static DiagnosticDefinition<(IDeclaration Declaration, string TargetBasicType, string AspectType, NumericRange Range)> RangeIsRedundant { get; }
         = new(
@@ -59,7 +68,8 @@ internal static class ContractDiagnostics
             Severity.Warning,
             "The [{2}] contract is redundant on '{0}' because the value range {3} is always satisfied by the type {1}.",
             $"The Range contract is redundant because the range is always satisfied by the type of the target declaration.",
-            "Metalama.Patterns.Contracts" );
+            "Metalama.Patterns.Contracts",
+            _helpLinkFormat );
 
     public static DiagnosticDefinition<(IDeclaration Declaration, string OldName, string NewName1, string NewName2, InequalityStrictness Strictness)>
         AttributeMeaningIsAmbiguous { get; }
@@ -71,5 +81,6 @@ internal static class ContractDiagnostics
             $"Use either [{{2}}] or [{{3}}], or specify the {nameof(ContractOptions.DefaultInequalityStrictness)} property in {nameof(ContractOptions)} " +
             $"using the {nameof(ContractConfigurationExtensions.ConfigureContracts)} fabric extension method.",
             $"The meaning of the inequality contract is ambiguous.",
-            "Metalama.Patterns.Contracts" );
+            "Metalama.Patterns.Contracts",
+            _helpLinkFormat );
 }

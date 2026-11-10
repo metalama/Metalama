@@ -10,6 +10,8 @@ namespace Metalama.Framework.Engine.Analyzers;
 
 internal static class AdditionalDiagnosticDescriptors
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     // Reserved range: | 0120-0139 | Additional
     private const string _category = "Metalama.General";
 
@@ -20,5 +22,6 @@ internal static class AdditionalDiagnosticDescriptors
             "The interface '{0}' cannot be implemented in this project. It can only be implemented in '{1}' or in a project to which '{1}' " +
             "grants access with the InternalsVisibleTo attribute.",
             "The interface cannot be implemented in this project.",
-            _category );
+            _category,
+            _helpLinkFormat );
 }

@@ -11,6 +11,8 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 [CompileTime]
 internal static class DiagnosticDescriptors
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     private const string _category = "Metalama.Extensions.DependencyInjection";
 
     // Diagnostics need to be declared in an aspect or fabric at the moment.
@@ -23,7 +25,8 @@ internal static class DiagnosticDescriptors
             "The dependency '{0}' in type '{1}' cannot be handled because no dependency injection framework is registered. Register a framework " +
             "by calling the RegisterFramework method from ConfigureDependencyInjection in a fabric.",
             "No dependency injection framework has been registered.",
-            _category );
+            _category,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(IType DependencyType, INamedType TargetType)>
         NoSuitableDependencyInjectionFramework = new(
@@ -32,7 +35,8 @@ internal static class DiagnosticDescriptors
             "None of the registered dependency injection frameworks can handle the dependency '{0}' in type '{1}'. Note that the default " +
             "framework does not support static dependencies.",
             "None of the registered dependency injection frameworks can handle a dependency.",
-            _category );
+            _category,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<IDeclaration>
         AdviceUsedInNonTypeContext = new(
@@ -40,7 +44,8 @@ internal static class DiagnosticDescriptors
             Severity.Error,
             "Cannot use the [IntroduceDependency] advice because the target declaration '{0}' is not a type or a type member.",
             "Cannot use the [IntroduceDependency] advice because the target declaration is not a type or a type member.",
-            _category );
+            _category,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(IType DependencyType, IConstructor Constructor)>
         DependencyLessAccessibleThanConstructor = new(
@@ -48,7 +53,8 @@ internal static class DiagnosticDescriptors
             Severity.Error,
             "The dependency '{0}' cannot be pulled from the constructor '{1}' because '{0}' has lower accessibility than the constructor.",
             "The dependency type has lower accessibility than the constructor that would pull it.",
-            _category );
+            _category,
+            _helpLinkFormat );
 
     internal static readonly SuppressionDefinition NonNullableFieldMustContainValue = new( "CS8618" );
 

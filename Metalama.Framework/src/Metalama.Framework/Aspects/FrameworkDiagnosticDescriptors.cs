@@ -14,6 +14,8 @@ namespace Metalama.Framework.Aspects;
 /// </summary>
 public static class FrameworkDiagnosticDescriptors
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     internal static readonly DiagnosticDefinition<(string AspectType, DeclarationKind IntroducedDeclarationKind, DeclarationKind TargetDeclarationKind)>
         CannotUseIntroduceWithoutDeclaringType = new(
             "LAMA0700",
@@ -21,7 +23,8 @@ public static class FrameworkDiagnosticDescriptors
             "The aspect '{0}' cannot introduce a member of kind '{1}' because it has been applied to a declaration of kind '{2}', which is " +
             "neither a type nor a type member.",
             "Metalama.Advices",
-            Severity.Error );
+            Severity.Error,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(string AspectType, DeclarationKind IntroducedDeclarationKind, TypeKind TargetTypeKind)>
         CannotApplyAdviceOnTypeOrItsMembers = new(
@@ -30,7 +33,8 @@ public static class FrameworkDiagnosticDescriptors
             "The aspect '{0}' cannot introduce a member of kind '{1}' because the target type is of kind '{2}'. Members can be introduced only " +
             "into a class, a struct, or an interface.",
             "Metalama.Advices",
-            Severity.Error );
+            Severity.Error,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(IDeclaration InterfaceType, INamedType ImplementingType)>
         InternalImplementConstraint = new(
@@ -38,5 +42,6 @@ public static class FrameworkDiagnosticDescriptors
             "An interface cannot be implemented by a type because of the [InternalImplement] constraint.",
             "The interface '{0}' cannot be implemented by the type '{1}' because of the [InternalImplement] constraint.",
             "Metalama.Advices",
-            Severity.Warning );
+            Severity.Warning,
+            _helpLinkFormat );
 }

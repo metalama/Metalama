@@ -18,7 +18,14 @@ namespace Metalama.Framework.Engine.Diagnostics;
 public static class DiagnosticDescriptorExtensions
 {
     public static DiagnosticDescriptor ToRoslynDescriptor( this IDiagnosticDefinition definition )
-        => new( definition.Id, definition.Title, definition.MessageFormat, definition.Category, definition.Severity.ToRoslynSeverity(), true );
+        => new(
+            definition.Id,
+            definition.Title,
+            definition.MessageFormat,
+            definition.Category,
+            definition.Severity.ToRoslynSeverity(),
+            true,
+            helpLinkUri: definition.HelpLinkUri );
 
     /// <summary>
     /// Creates an <see cref="DiagnosticException"/> instance based on the current descriptor and given arguments.
@@ -153,6 +160,7 @@ public static class DiagnosticDescriptorExtensions
             true,
             definition.Severity == Severity.Error ? 0 : 1,
             new NonLocalizedString( definition.Title, durableArguments ),
+            helpLink: definition.HelpLinkUri,
             location: location,
             additionalLocations: additionalLocations,
             properties: propertiesWithAdditions,

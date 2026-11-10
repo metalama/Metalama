@@ -35,7 +35,8 @@ namespace Metalama.Framework.Analyzers.Durability
             + "field or the setter private.",
             _category,
             DiagnosticSeverity.Warning,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0877" ) );
 
         /// <remarks>
         /// Registered on the member rather than reached from the walk over the members of a durable type, because the

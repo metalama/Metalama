@@ -18,6 +18,8 @@ namespace Metalama.Framework.Engine.Diagnostics
 {
     public sealed class GeneralDiagnosticDescriptors
     {
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         // Reserved range 0-99
 
         private const string _category = "Metalama.General";
@@ -29,7 +31,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Unexpected exception occurred in Metalama: {0} Exception details are in '{1}'. " +
                 "Please report this issue at https://www.postsharp.net/support and attach this file to the ticket. You may want to remove sensitive data from the report.",
                 Error,
-                "Unexpected exception in Metalama." );
+                "Unexpected exception in Metalama.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<string> CannotWriteCrashReportFile =
             new(
@@ -37,7 +40,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "Metalama could not write the crash report of an unexpected exception. {0}",
                 Warning,
-                "Cannot write the Metalama crash report file." );
+                "Cannot write the Metalama crash report file.",
+                _helpLinkFormat );
 
         internal static readonly
             DiagnosticDefinition<(string AspectType, DeclarationKind DeclarationKind, IDeclaration Declaration, ITypeSymbol InterfaceType)>
@@ -47,14 +51,15 @@ namespace Metalama.Framework.Engine.Diagnostics
                     _category,
                     "Aspect '{0}' cannot be applied to {1} '{2}', because this aspect does not implement the '{3}' interface.",
                     Error,
-                    "Aspect applied to incorrect kind of declaration." );
+                    "Aspect applied to incorrect kind of declaration.",
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(IDeclaration Member, int RequiredArgumentsCount, int ActualArgumentsCount)> MemberRequiresNArguments =
-            new( "LAMA0012", _category, "The member '{0}' requires {1} argument(s), but the invocation passes {2}.", Error, "Wrong number of arguments in the invocation of a member." );
+            new( "LAMA0012", _category, "The member '{0}' requires {1} argument(s), but the invocation passes {2}.", Error, "Wrong number of arguments in the invocation of a member.", _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(IDeclaration Member, int RequiredArgumentsCount, int ActualArgumentsCount)>
             MemberRequiresAtLeastNArguments =
-                new( "LAMA0013", _category, "The member '{0}' requires at least {1} argument(s), but the invocation passes {2}.", Error, "Too few arguments in the invocation of a member with a params parameter." );
+                new( "LAMA0013", _category, "The member '{0}' requires at least {1} argument(s), but the invocation passes {2}.", Error, "Too few arguments in the invocation of a member with a params parameter.", _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<IMemberOrNamedType> CannotProvideInstanceForLocalFunction =
             new(
@@ -62,7 +67,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "'{0}' is a local function, so it cannot be invoked on an instance or a type.",
                 Error,
-                "Cannot invoke a local function on an instance or a type." );
+                "Cannot invoke a local function on an instance or a type.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Expression, string ParameterName, IMemberOrNamedType Method)>
             CannotPassExpressionToByRefParameter =
@@ -71,12 +77,14 @@ namespace Metalama.Framework.Engine.Diagnostics
                     _category,
                     "Cannot pass the expression '{0}' to the 'out' or 'ref' parameter '{1}' of method '{2}' because the expression is not a variable.",
                     Error,
-                    "Cannot pass an expression that is not a variable to an out or ref parameter." );
+                    "Cannot pass an expression that is not a variable to an out or ref parameter.",
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string TypeName, string AssemblyClause)> CannotFindType =
             new( "LAMA0020", _category, "Cannot find the type '{0}'{1} in the project or its references. Use the reflection name of the type: separate " +
             "nested types with '+', and write generic types with a backtick followed by the number of type parameters, for example " +
-            "'System.Collections.Generic.List`1'.", Error, "Cannot find a type" );
+            "'System.Collections.Generic.List`1'.", Error, "Cannot find a type",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<string> CycleInAspectOrdering =
             new(
@@ -84,7 +92,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "A cycle was found in the specifications of aspect ordering between the following aspect layers: {0}.",
                 Error,
-                "A cycle was found in aspect ordering." );
+                "A cycle was found in aspect ordering.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string ParentType, string ChildType)> CannotAddChildAspectToPreviousPipelineStep = new(
             "LAMA0022",
@@ -92,7 +101,8 @@ namespace Metalama.Framework.Engine.Diagnostics
             "The aspect '{0}' cannot add a child aspect of type '{1}' because the '{1}' aspect is processed before '{0}'. Use the [AspectOrder] " +
             "assembly attribute to process '{0}' before '{1}'.",
             Error,
-            "Cannot add an aspect to a previous step of the compilation pipeline." );
+            "Cannot add an aspect to a previous step of the compilation pipeline.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, string MethodName)> AspectMustHaveExactlyOneTemplateMember = new(
             "LAMA0025",
@@ -100,7 +110,8 @@ namespace Metalama.Framework.Engine.Diagnostics
             "The type '{0}' does not contain any template member named '{1}'. Check the template name, for instance by using the 'nameof' " +
             "operator.",
             _category,
-            Error );
+            Error,
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<AssemblyIdentity> CannotFindCompileTimeAssembly = new(
             "LAMA0027",
@@ -108,7 +119,8 @@ namespace Metalama.Framework.Engine.Diagnostics
             "The assembly '{0}' is required by the compile-time code of a referenced assembly, but it cannot be found among the references of " +
             "the current project. Add a reference to '{0}'.",
             Error,
-            "Cannot find an assembly required by the compile-time assembly." );
+            "Cannot find an assembly required by the compile-time assembly.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string TemplateName, string ClassName)>
             TemplateWithSameNameAlreadyDefined = new(
@@ -116,7 +128,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "The class '{1}' defines several templates named '{0}'. Template names must be unique.",
                 Error,
-                "The class already defines a template of the same name." );
+                "The class already defines a template of the same name.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string ClassName, string MemberName)>
             MemberDoesNotHaveTemplateAttribute = new(
@@ -124,7 +137,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "The class '{0}' defines a member named '{1}', but the member is not annotated with the [Template] custom attribute.",
                 Error,
-                "The member does not have a template custom attribute." );
+                "The member does not have a template custom attribute.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Layer1, string Layer2)> UnorderedLayers = new(
             "LAMA0035",
@@ -132,7 +146,8 @@ namespace Metalama.Framework.Engine.Diagnostics
             "The aspect layers '{0}' and '{1}' are not strongly ordered. Add an [assembly: AspectOrder(...)] attribute to specify the order of these two layers, " +
             $"or set the {MSBuildPropertyNames.MetalamaRequireOrderedAspects} MSBuild property to False.",
             Error,
-            "Two layers are not strongly ordered." );
+            "Two layers are not strongly ordered.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, string WeaverAspectType)> AspectLayersSeparatedByWeaver = new(
             "LAMA0042",
@@ -142,7 +157,8 @@ namespace Metalama.Framework.Engine.Diagnostics
             + "because it would split that aspect across two pipeline stages. Add an [assembly: AspectOrder(...)] attribute to order '{1}' "
             + "before or after all layers of '{0}'.",
             Error,
-            "A low-level aspect weaver is ordered between two layers of another aspect." );
+            "A low-level aspect weaver is ordered between two layers of another aspect.",
+            _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string TemplateName, string ClassName, string BaseClassName)>
             TemplateWithSameNameAlreadyDefinedInBaseClass = new(
@@ -151,7 +167,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "The class '{1}' defines a new template named '{0}', but the base class '{2}' already defines a template of the same name. Rename " +
                 "the template, or make the template of the base class virtual and override it.",
                 Error,
-                "The class already defines a template of the same name." );
+                "The class already defines a template of the same name.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectName, DeclarationKind DeclarationKind, IDeclaration Target, FormattableString Reason)>
             AspectNotEligibleOnTarget = new(
@@ -159,7 +176,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "The aspect '{0}' cannot be applied to the {1} '{2}' because {3}.",
                 Error,
-                "The aspect cannot be applied to a declaration because eligibility conditions are not met." );
+                "The aspect cannot be applied to a declaration because eligibility conditions are not met.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(FormattableString Predecessor, IDeclaration Child, IDeclaration Parent)>
             CanAddChildAspectOnlyUnderParent = new(
@@ -167,7 +185,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "The {0} cannot add a child aspect to '{1}' because it is not contained in '{2}'.",
                 "An aspect or fabric can add child aspects only to declarations contained in its target type or namespace.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(FormattableString Predecessor, string AspectType, IDeclaration Child, FormattableString Reason)>
             IneligibleChildAspect = new(
@@ -175,7 +194,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "The {0} cannot add a child aspect of type '{1}' to '{2}' because {3}.",
                 "A parent aspect or fabric cannot add a child aspect to a declaration that is not eligible for this aspect.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<Type>
             TypeMustHavePublicDefaultConstructor = new(
@@ -183,7 +203,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "The type '{0}' must have a public parameterless constructor.",
                 Error,
-                "The type must have a public parameterless constructor." );
+                "The type must have a public parameterless constructor.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(UserCodeDescription TemplateSymbol, string ExceptionType, string ExceptionMessage, string Details)>
             ExceptionInUserCode
@@ -193,7 +214,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "An exception of type '{1}' was thrown while {0}: {2}. Exception details are in '{3}'. To attach a debugger to the compiler, use " +
                     "the '-p:MetalamaDebugCompiler=True' command-line option.",
                     _category,
-                    Error );
+                    Error,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(FormattableString Predecessor, IDeclaration Child, IDeclaration Parent)>
             CanSetOptionsOnlyUnderParent = new(
@@ -201,7 +223,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "The {0} cannot set options for '{1}' because it is not contained in '{2}'.",
                 "An aspect or fabric can set options only for declarations contained in the type or namespace it targets.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<INamedTypeSymbol>
             LiveTemplateMustHaveDefaultConstructor = new(
@@ -209,7 +232,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 $"The class '{{0}}' must have a parameterless constructor because of the [{nameof(EditorExperienceAttribute)}({nameof(EditorExperienceAttribute.SuggestAsLiveTemplate)} = true)] attribute.",
                 Error,
-                "A live template must have a parameterless constructor." );
+                "A live template must have a parameterless constructor.",
+                _helpLinkFormat );
 
         public static readonly DiagnosticDefinition<INamedType>
             TypeNotPartial
@@ -219,7 +243,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "Aspects add members to '{0}', but it is not marked as 'partial'. Make the type 'partial' to make it possible to reference " +
                     "aspect-generated members from source code.",
                     _category,
-                    Warning );
+                    Warning,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Message, string File)> IgnorableUnhandledException =
             new(
@@ -228,7 +253,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Unexpected exception occurred in Metalama: {0} Exception details are in '{1}'. Please report this issue at " +
                 "https://www.postsharp.net/support and attach this file to the ticket. You may want to remove sensitive data from the report.",
                 Warning,
-                "Unexpected exception in Metalama." );
+                "Unexpected exception in Metalama.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string WeaverType, string AspectType)> CannotFindAspectWeaver =
             new(
@@ -237,7 +263,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "The weaver type '{0}' required to weave aspect '{1}' is not found in the project. Make sure that the project references the " +
                 "assembly that defines this weaver, and that the weaver type is annotated with [MetalamaPlugIn].",
                 Error,
-                "Cannot find an aspect weaver." );
+                "Cannot find an aspect weaver.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<string[]> PreviewCSharpVersionNotSupported =
             new(
@@ -247,7 +274,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "following supported values: {0}. If you want to use preview features at your own risk, set the MSBuild property " +
                 "'MetalamaAllowPreviewLanguageFeatures' to 'true'. This may work if you do not use preview features in templates.",
                 "Metalama does not support the 'preview' C# language version",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string SelectedVersion, string PropertyName, string[] SupportedVersions)> CSharpVersionNotSupported =
             new(
@@ -257,7 +285,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "values: {2}. Do not use 'latest' or 'latestMajor' because these values are interpreted inconsistently when you use a .NET SDK or " +
                 "IDE that is more recent than Metalama.",
                 "The selected C# language version is not supported",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition MissingMetalamaPreprocessorSymbol =
             new(
@@ -266,7 +295,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Metalama is enabled in this project, but the METALAMA preprocessor symbol is not defined. This symbol is defined by " +
                 "Metalama.Framework.targets. Verify that the DefineConstants property is appended to and not overwritten.",
                 "Metalama is enabled in this project, but the METALAMA preprocessor symbol is not defined.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         /// <summary>
         /// Reported when the <c>METALAMA_PROJECT_&lt;hash&gt;</c> symbol that makes a <c>ProjectKey</c> identify a
@@ -293,7 +323,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "of the solution that produces an assembly of the same name. Verify that the DefineConstants property is appended to and not " +
                 "overwritten.",
                 "Metalama is enabled in this project, but no METALAMA_PROJECT_* preprocessor symbol is defined.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string[] SelectedVersions, string SupportedVersion)> MetalamaVersionNotSupported =
             new(
@@ -302,7 +333,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "The project references the following version(s) of Metalama.Framework: {0}. The project must reference a single version of " +
                 "Metalama.Framework, and this version must not be higher than '{1}', the version of the Metalama engine that compiles the project.",
                 "The project references an unsupported version of Metalama.Framework.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly
             DiagnosticDefinition<(string AspectType, IDeclaration ParentTarget, DeclarationKind ParentTargetKind, IDeclaration ChildTarget, DeclarationKind
@@ -313,7 +345,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "processed by aspects of this type. An aspect can add an aspect of its own type only to a declaration that is processed later, such " +
                 "as a member or a parameter of its target.",
                 Error,
-                "Cannot add an aspect to a previous step of the compilation pipeline." );
+                "Cannot add an aspect to a previous step of the compilation pipeline.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition MetalamaNotInstalled =
             new(
@@ -321,7 +354,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "Metalama is not enabled in this project.",
                 "Metalama is not enabled in this project.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<ISymbol> GenericAspectTypeNotSupported =
             new(
@@ -329,7 +363,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "The type '{0}' is not a valid aspect type because it is generic and not abstract. Only abstract aspect types can be generic.",
                 "Non-abstract generic aspect types are not supported.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<ISymbol> RefMembersNotSupported =
             new(
@@ -337,7 +372,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "'{0}' cannot be used as a template because it returns 'ref'. This feature is not yet supported.",
                 "'ref' members cannot be used as templates.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(AssemblyIdentity AssemblyIdentity, string Version)>
             DependencyMustBeRecompiled =
@@ -347,7 +383,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The referenced assembly '{0}' has been compiled with Metalama {1}, which stores compile-time code in a format that is incompatible " +
                     "with the current version of Metalama. Use the same version of Metalama to compile '{0}' and the current project.",
                     "The referenced assembly has been compiled with an incompatible version of Metalama.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         // Both of the following are reported only for a ProjectReference, never for a package: consuming a package
         // built with another version of Metalama is normal, whereas two projects of one solution on two versions is
@@ -362,7 +399,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "versions of Metalama in the same solution is not recommended: it makes the build and the IDE slower, and it exposes you to " +
                     "compatibility issues. Align the version of Metalama across the projects of the solution.",
                     "Several versions of Metalama are used in the same solution.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         // A warning and not an error, and worded for the IDE only, because the build genuinely is not affected: the
         // compile-time pipeline reads the embedded compile-time project of an older version and applies its aspects.
@@ -378,7 +416,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "the current version cannot consume it, so aspects inherited from it will not appear in the editor. The build is not " +
                     "affected. Upgrade '{0}' to Metalama {2} or a later version to restore the design-time experience.",
                     "The project reference has been compiled with a version of Metalama that the IDE support cannot consume.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         // An error and not a warning: the situation has no usable outcome. The compile-time domain is a single
         // AssemblyLoadContext, which can hold only one assembly per simple name, and the closure maps a compile-time
@@ -394,7 +433,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "versions of the same compile-time assembly. Fix the references of the project so that a single version of " +
                     "'{0}' is referenced.",
                     "Two references provide the same compile-time assembly.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(IMember Member, INamedType TargetType, InvokerOptions InvokerOptions)>
             CantInvokeBaseOrCurrentOutsideTargetType =
@@ -404,7 +444,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "Cannot invoke the member '{0}' with InvokerOptions.{2} on an explicit object or type, because '{0}' is not a member of the " +
                     "template target type '{1}', of its base types, or of its interfaces. Use InvokerOptions.Default or InvokerOptions.Final instead.",
                     "Cannot invoke a member that does not belong to the template target type when specifying InvokerOptions.Base or InvokerOptions.Current.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(IMember Member, string ExceptionMessage)>
             CantGetMemberInitializer =
@@ -413,7 +454,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     Error,
                     "Cannot generate the initializer of '{0}': {1}",
                     "Cannot generate the initializer of a member.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string OptionName, DeclarationKind DeclarationKind, IDeclaration Target, FormattableString Reason)>
             OptionNotEligibleOnTarget = new(
@@ -421,7 +463,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "The option '{0}' cannot be applied to the {1} '{2}' because {3}.",
                 Error,
-                "The option cannot be applied to a declaration because eligibility conditions are not met." );
+                "The option cannot be applied to a declaration because eligibility conditions are not met.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition
             CodeFormattingEnabled = new(
@@ -429,7 +472,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "Formatting of generated code is enabled. Build performance could be significantly affected.",
                 Warning,
-                "Code formatting is enabled. Build performance could be significantly affected." );
+                "Code formatting is enabled. Build performance could be significantly affected.",
+                _helpLinkFormat );
 
         // An error, because only an error makes the compiler stop before running the source generators and the analyzers,
         // and before emitting the assembly. The `metalama preview` command recognizes it and does not report it.
@@ -443,12 +487,13 @@ namespace Metalama.Framework.Engine.Diagnostics
 
         internal static readonly DiagnosticDefinition<IConstructor>
             CannotInvokeStaticConstructor =
-                new( "LAMA0067", _category, "Constructor '{0}' cannot be invoked because it is static.", Error, "Static constructor cannot be invoked." );
+                new( "LAMA0067", _category, "Constructor '{0}' cannot be invoked because it is static.", Error, "Static constructor cannot be invoked.", _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition
             ErrorsInSourceCode =
                 new( "LAMA0068", _category, "The compile-time code of the project contains C# errors, so it cannot be compiled. Fix the C# errors reported in the compile-time " +
-                "code.", Error, "Compile-time code contains C# errors." );
+                "code.", Error, "Compile-time code contains C# errors.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(FormattableString Predecessor, IDeclaration Child, IDeclaration Parent)>
             CanReportDiagnosticOnlyUnderParent = new(
@@ -456,7 +501,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "The {0} cannot report or suppress a diagnostic on '{1}' because it is not contained in '{2}'.",
                 "An aspect or fabric can report or suppress diagnostics only on declarations contained in its target type or namespace.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string Path, string Message)>
             CannotLoadExtensionAssembly = new(
@@ -464,7 +510,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "Cannot load the extension assembly '{0}': {1}",
                 "Cannot load an extension assembly.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<IMethod>
             CannotInferTypeArguments = new(
@@ -472,7 +519,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "Cannot infer the type arguments for method '{0}'. Supply the type arguments explicitly using IMethod.MakeGenericInstance.",
                 Error,
-                "Cannot infer the type arguments for a generic method." );
+                "Cannot infer the type arguments for a generic method.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<string>
             UnknownTransitiveAspectClass = new(
@@ -481,7 +529,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Cannot find the transitive aspect class '{0}'. This can happen when a referenced assembly was compiled with a different version of " +
                 "Metalama. Align the version of Metalama used by the current project with the version used to compile the referenced assembly.",
                 Error,
-                "Unknown transitive aspect class." );
+                "Unknown transitive aspect class.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string FilePath, string ExceptionType, string ExceptionMessage)>
             GeneratedCodeParseFailed = new(
@@ -491,7 +540,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "This indicates a code generation issue where the generated syntax tree produces invalid text. " +
                 "Exception: {1}: {2}",
                 Error,
-                "Failed to parse generated code." );
+                "Failed to parse generated code.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string FilePath, string OriginalMessage, int Line, int Column, string ProblematicCode)>
             GeneratedCodeSyntaxError = new(
@@ -499,7 +549,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "Syntax error in generated code for file '{0}': {1}. Location: Line {2}, Column {3}. Problematic code: '{4}'.",
                 Error,
-                "Syntax error in generated code." );
+                "Syntax error in generated code.",
+                _helpLinkFormat );
 
         // Surfaces a warning produced while resolving the repository-root metalama.json (e.g. a misplaced or malformed
         // file). The {0} text field carries the full explanation computed by the repository-configuration reader in
@@ -510,7 +561,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 _category,
                 "A Metalama repository configuration file (metalama.json) has been ignored. {0}",
                 Warning,
-                "A repository configuration file (metalama.json) has been ignored." );
+                "A repository configuration file (metalama.json) has been ignored.",
+                _helpLinkFormat );
 
         // Reported when two assemblies of a different identity contribute an aspect weaver under the same type name,
         // which happens when two versions or two builds of the same aspect library reach the compilation. Metalama
@@ -525,7 +577,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "same aspect library are referenced, for instance through a package and through a project reference. Remove one of the conflicting " +
                 "references.",
                 Error,
-                "An aspect weaver is provided by several assemblies." );
+                "An aspect weaver is provided by several assemblies.",
+                _helpLinkFormat );
 
         // The nested build that resolves the compile-time reference assemblies fails almost exclusively for reasons that
         // belong to the environment (a NuGet feed that requires credentials, a global.json that pins an absent .NET SDK,
@@ -540,7 +593,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "Metalama could not build the internal project that resolves the compile-time reference assemblies, therefore the compilation "
                     + "cannot continue. The build of '{0}' exited with code {1}. {2} {3} The binary log of that build is '{4}'.",
                     "The build of the reference-assembly project failed.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         // A separate diagnostic from ReferenceAssemblyBuildFailed because the remedy is different: there is no output to
         // interpret, and the timeout itself is configurable. See #1740.
@@ -554,7 +608,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     + "instance because it must download NuGet packages, raise the timeout by setting the '{2}' MSBuild property to a higher value, "
                     + "expressed in milliseconds. The binary log of that build, if it was written, is '{3}'.",
                     "The build of the reference-assembly project timed out.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         // The value of this property is written by the user and can only be corrected by the user, so an invalid one is
         // a diagnostic and not an exception. It used to throw an InvalidOperationException, which surfaced as LAMA0001
@@ -567,7 +622,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The '{0}' MSBuild property has the value '{1}', which is not valid because {2}. Set this property to a list of target frameworks, " +
                     "separated by semicolons or commas, that meets this requirement.",
                     "The MSBuild property that selects the compile-time target frameworks is invalid.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         // The two diagnostics below are produced by UserCodeRetentionAnalyzer, which runs only when the
         // MetalamaDiagnoseMemoryLeaks MSBuild property is set. They describe a retention that is harmless during
@@ -583,7 +639,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "solution is open. The chain of references is: {2}. Store a durable reference, obtained with ToDurableRef() or IRef.ToDurable(), " +
                     "instead, and resolve it against the current compilation with GetTarget().",
                     Warning,
-                    "Compile-time code holds a reference that pins the compilation." );
+                    "Compile-time code holds a reference that pins the compilation.",
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(int UserCodeCount, int FrameworkCount, string Completeness, string ReportPath)>
             UserCodeRetentionAnalysisCompleted =
@@ -593,7 +650,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The analysis of the references retained by compile-time code found {0} retention(s) in code written by the user "
                     + "and {1} retention(s) in Metalama itself. {2} The full report is in '{3}'.",
                     Warning,
-                    "The analysis of the references retained by compile-time code is complete." );
+                    "The analysis of the references retained by compile-time code is complete.",
+                    _helpLinkFormat );
 
         // A manifest that cannot be read makes one reference unusable, so the aspects inherited through that reference
         // are lost. It says nothing about the consuming project, whose own aspects, diagnostics and suppressions must
@@ -610,7 +668,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The rest of the project is analyzed normally. The reason is: {1} Rebuild the referenced project or restore its package again. If " +
                     "the problem persists, report it at https://www.postsharp.net/support.",
                     Error,
-                    "The transitive aspect manifest of a reference cannot be read." );
+                    "The transitive aspect manifest of a reference cannot be read.",
+                    _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string DeclaringType, string Declaration, string Compilation)>
             IntroducedDeclaringTypeNotFound =
@@ -620,7 +679,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The declaring type '{0}' of the declaration '{1}', which was introduced by an aspect, cannot be resolved in the compilation '{2}'. " +
                     "This is an internal error in Metalama. Please report this issue at https://www.postsharp.net/support.",
                     Error,
-                    "The declaring type of an introduced declaration cannot be resolved." );
+                    "The declaring type of an introduced declaration cannot be resolved.",
+                    _helpLinkFormat );
 
         // The language version of a compile-time project is serialized as an integer, so a project built by a higher
         // Roslyn version can carry a version that the Roslyn of the current process does not accept. Parsing at that
@@ -638,7 +698,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                 + "weaver, and contributions are processed only before the first low-level aspect weaver. Order the aspect before the aspects that "
                 + "require a low-level weaver.",
                 Error,
-                "An extension contribution cannot be made after a low-level aspect weaver." );
+                "An extension contribution cannot be made after a low-level aspect weaver.",
+                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(AssemblyIdentity ReferencedAssembly, string RequiredVersion, string SupportedVersion)>
             CompileTimeLanguageVersionTooHigh =
@@ -651,7 +712,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     + "Use a more recent version of the .NET SDK or of the IDE, or compile '{0}' with the "
                     + "MetalamaTemplateLanguageVersion property set to {2} or lower.",
                     Warning,
-                    "The compile-time code of a reference requires a more recent C# language version than the current process supports." );
+                    "The compile-time code of a reference requires a more recent C# language version than the current process supports.",
+                    _helpLinkFormat );
 
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
@@ -660,6 +722,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Feature is not yet supported.",
                 "Feature is not yet supported: {0}",
                 _category,
-                Error );
+                Error,
+                _helpLinkFormat );
     }
 }

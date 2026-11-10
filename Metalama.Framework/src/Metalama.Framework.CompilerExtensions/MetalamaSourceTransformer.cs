@@ -6,6 +6,7 @@ using Metalama.Compiler;
 using Microsoft.CodeAnalysis;
 using System;
 using System.ComponentModel;
+using System.Globalization;
 
 namespace Metalama.Framework.CompilerExtensions
 {
@@ -15,6 +16,8 @@ namespace Metalama.Framework.CompilerExtensions
     [DisplayName( "Metalama.Framework" )] // This name is used in telemetry. Changing it causes inconsistent data.
     public sealed class MetalamaSourceTransformer : ISourceTransformerWithServices
     {
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         /// <summary>
         /// The descriptor of the diagnostic reported when the Roslyn version of the compiler is below the lowest
         /// supported one. At compile time, doing nothing would apply no aspect and report nothing, which is worse
@@ -28,7 +31,10 @@ namespace Metalama.Framework.CompilerExtensions
             + "or use a version of Metalama that supports Roslyn {1}.",
             "Metalama.General",
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true );
+            isEnabledByDefault: true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0089" ) );
+
+        private static string GetHelpLinkUri( string id ) => string.Format( CultureInfo.InvariantCulture, _helpLinkFormat, id.ToLowerInvariant() );
 
         /// <summary>
         /// The implementation, or <c>null</c> when the Roslyn version of the host is below the lowest supported one.

@@ -10,6 +10,8 @@ namespace Metalama.Framework.Engine.Linking;
 
 public static class AspectLinkerDiagnosticDescriptors
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     // Reserved range 650-699
 
     private const string _category = "Metalama.Linker";
@@ -21,7 +23,8 @@ public static class AspectLinkerDiagnosticDescriptors
             "Cannot invoke the base implementation of '{0}' on an instance other than 'this', because C# allows base calls only on the current " +
             "instance. Use InvokerOptions.Final to invoke the member on another instance.",
             _category,
-            Error );
+            Error,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(ISymbol Member, ISymbol RecordType, ISymbol Property)>
         SynthesizedRecordMemberReadsPropertyVirtually = new(
@@ -31,7 +34,8 @@ public static class AspectLinkerDiagnosticDescriptors
             + "backing field. The backing field of an auto-property cannot be read from source code. The two implementations differ when a "
             + "derived type overrides the property. Declare the property explicitly with a backing field, or make it non-overridable.",
             _category,
-            Warning );
+            Warning,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(ISymbol Member, ISymbol RecordType, ISymbol Property)>
         SynthesizedRecordMemberReadsReplacedProperty = new(
@@ -42,7 +46,8 @@ public static class AspectLinkerDiagnosticDescriptors
             + "property has no backing field left and the generated body reads the value that the aspect returns instead of the value "
             + "that the record stores. Call 'meta.Proceed()' in the template that overrides the property.",
             _category,
-            Warning );
+            Warning,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(ISymbol Member, ISymbol RecordType, ISymbol Property)>
         SynthesizedRecordMemberReadsSemiAutoProperty = new(
@@ -53,7 +58,8 @@ public static class AspectLinkerDiagnosticDescriptors
             + "other than the one that the backing field holds, and the two implementations then differ. Declare the property explicitly "
             + "with a backing field, or give it an automatic getter.",
             _category,
-            Warning );
+            Warning,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(ISymbol Member, ISymbol RecordType, ISymbol Event)>
         SynthesizedRecordMemberReadsReplacedEvent = new(
@@ -64,7 +70,8 @@ public static class AspectLinkerDiagnosticDescriptors
             + "linker replaces the event by one that stores no handler and the generated body cannot be compiled. Call 'meta.Proceed()' in "
             + "the templates that override the event.",
             _category,
-            Error );
+            Error,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<ISymbol>
         InitializeNotCalledInExpressionTree = new(
@@ -72,7 +79,8 @@ public static class AspectLinkerDiagnosticDescriptors
             "The Initialize method is not called after an object creation expression in an expression tree.",
             "The 'Initialize' method of '{0}' is not called after this object creation expression, because the expression is in a lambda expression converted to an expression tree, and an expression tree cannot contain this call.",
             _category,
-            Warning );
+            Warning,
+            _helpLinkFormat );
 
     // Range 657-669 is reserved for the primitives that the linker offers to extensions.
 
@@ -84,7 +92,8 @@ public static class AspectLinkerDiagnosticDescriptors
             "rewrite, for instance the initializer of a field that an aspect has promoted to a property. Move the call to a position that the " +
             "linker rewrites, for instance to a constructor.",
             _category,
-            Warning );
+            Warning,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(string VariableKind, string Name, string NewName, ISymbol? Member, string Description)>
         HidingVariableRenamed = new(
@@ -94,7 +103,8 @@ public static class AspectLinkerDiagnosticDescriptors
             + "{4}. The compiled code no longer matches the source code, so the debugger shows the new name. Rename the {0} in the source code to "
             + "remove this warning.",
             _category,
-            Warning );
+            Warning,
+            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(string AspectType, ISymbol TargetDeclaration)>
         DeclarationMustBeInlined = new(
@@ -104,5 +114,6 @@ public static class AspectLinkerDiagnosticDescriptors
             "indexers. Call meta.Proceed() at most once in the template, in a simple statement such as 'meta.Proceed();' or 'return " +
             "meta.Proceed();'.",
             _category,
-            Error );
+            Error,
+            _helpLinkFormat );
 }

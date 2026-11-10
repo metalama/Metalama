@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Utilities;
+using System;
 using System.Collections.Immutable;
+using System.Globalization;
 
 namespace Metalama.Framework.Diagnostics;
 
@@ -51,12 +53,12 @@ public class DiagnosticDefinition<T> : IDiagnosticDefinition
     where T : notnull
 {
     // Constructor used by internal code.
-    internal DiagnosticDefinition( string id, string category, string messageFormat, Severity severity, string title )
-        : this( id, severity, messageFormat, title, category ) { }
+    internal DiagnosticDefinition( string id, string category, string messageFormat, Severity severity, string title, string? helpLinkUri = null )
+        : this( id, severity, messageFormat, title, category, helpLinkUri ) { }
 
     // Constructor used by internal code.
-    internal DiagnosticDefinition( string id, string title, string messageFormat, string category, Severity severity )
-        : this( id, severity, messageFormat, title, category ) { }
+    internal DiagnosticDefinition( string id, string title, string messageFormat, string category, Severity severity, string? helpLinkUri = null )
+        : this( id, severity, messageFormat, title, category, helpLinkUri ) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DiagnosticDefinition{T}"/> class.
@@ -67,13 +69,33 @@ public class DiagnosticDefinition<T> : IDiagnosticDefinition
     /// <param name="title">An optional short title for the diagnostic. If no value is provided for this parameter, <paramref name="messageFormat"/> is used.</param>
     /// <param name="category">An optional category to which this diagnostic belong. The default value is <c>Metalama.User</c>.</param>
     public DiagnosticDefinition( string id, Severity severity, string messageFormat, string? title = null, string? category = null )
+        : this( id, severity, messageFormat, title, category, null ) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DiagnosticDefinition{T}"/> class and specifies the URL of the documentation page of the diagnostic.
+    /// </summary>
+    /// <param name="id">An unique identifier for the diagnostic (e.g. <c>MY001</c>).</param>
+    /// <param name="severity">The severity of the diagnostic.</param>
+    /// <param name="messageFormat">The formatting string of the diagnostic message.</param>
+    /// <param name="title">A short title for the diagnostic. If the value is <c>null</c>, <paramref name="messageFormat"/> is used.</param>
+    /// <param name="category">The category to which this diagnostic belong. If the value is <c>null</c>, <c>Metalama.User</c> is used.</param>
+    /// <param name="helpLinkUri">The URL of the documentation page of the diagnostic, or <c>null</c>. If the URL contains the <c>{0}</c> placeholder,
+    /// the placeholder is replaced by the lower-case value of <paramref name="id"/>. For instance, <c>https://example.com/errors/{0}</c> becomes
+    /// <c>https://example.com/errors/my001</c>.</param>
+    public DiagnosticDefinition( string id, Severity severity, string messageFormat, string? title, string? category, string? helpLinkUri )
     {
         this.Severity = severity;
         this.Id = id;
         this.MessageFormat = messageFormat;
         this.Title = title ?? messageFormat;
         this.Category = category ?? "Metalama.User";
+        this.HelpLinkUri = FormatHelpLinkUri( id, helpLinkUri );
     }
+
+    private static string? FormatHelpLinkUri( string id, string? helpLinkUri )
+        => helpLinkUri == null || helpLinkUri.IndexOf( "{0}", StringComparison.Ordinal ) < 0
+            ? helpLinkUri
+            : string.Format( CultureInfo.InvariantCulture, helpLinkUri, id.ToLowerInvariant() );
 
     /// <inheritdoc />
     public Severity Severity { get; }
@@ -89,6 +111,9 @@ public class DiagnosticDefinition<T> : IDiagnosticDefinition
 
     /// <inheritdoc />
     public string Title { get; }
+
+    /// <inheritdoc />
+    public string? HelpLinkUri { get; }
 
     /// <summary>
     /// Creates a diagnostic instance with the specified arguments.

@@ -14,6 +14,8 @@ namespace Metalama.Patterns.Caching.Aspects;
 [CompileTime]
 internal static class CachingDiagnosticDescriptors
 {
+    private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
     private const string _category = "Metalama.Patterns.Caching";
 
     // Reserved range 5100-5120
@@ -26,7 +28,9 @@ internal static class CachingDiagnosticDescriptors
         "The method '{0}' cannot be static because caching is configured to use dependency injection, and a static method cannot access an " +
         "injected dependency. Make the method non-static, or disable dependency injection by setting the UseDependencyInjection property of " +
         "the [Cache] or [CachingConfiguration] attribute to false.",
-        "A static method cannot use caching with dependency injection." );
+        "A static method cannot use caching with dependency injection.",
+        null,
+        _helpLinkFormat );
 
     public static class InvalidateCache
     {
@@ -40,7 +44,8 @@ internal static class CachingDiagnosticDescriptors
                 Error,
                 "The [InvalidateCache] aspect applied to '{0}' cannot invalidate '{1}': this method is not cached by the [Cache] aspect.",
                 "Method is not cached.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         /// <summary>
         /// Was PS CAC003:
@@ -56,7 +61,8 @@ internal static class CachingDiagnosticDescriptors
                     "instance method, the IgnoreThisParameter option is not enabled for '{1}', and '{0}' is either static or declared in the type " +
                     "'{2}', which is neither '{3}' nor derived from '{3}'.",
                     "'this' parameter cannot be mapped.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         /// <summary>
         /// Was PS CAC004:
@@ -70,7 +76,8 @@ internal static class CachingDiagnosticDescriptors
                     "The [InvalidateCache] aspect applied to '{0}' cannot invalidate '{1}': the invalidating method does not contain a parameter named " +
                     "'{2}'. Make sure '{0}' contains a parameter named '{2}' or add the [NotCacheKey] attribute to the '{2}' parameter in '{1}'.",
                     "No matching parameter in invalidating method.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         /// <summary>
         /// Was PS CAC005:
@@ -85,7 +92,8 @@ internal static class CachingDiagnosticDescriptors
                     +
                     "with the type of the '{2}' parameter in the invalidating method.",
                     "Parameter type is not compatible.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         /// <summary>
         /// Was PS CAC006:
@@ -97,7 +105,8 @@ internal static class CachingDiagnosticDescriptors
                 Error,
                 "Invalid [InvalidateCache] aspect on '{0}': the constructor parameters cannot contain a null, empty or whitespace-only string.",
                 "[InvalidateCache] parameters cannot contain a null, empty or whitespace string.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         /// <summary>
         /// Was PS CAC007:
@@ -109,7 +118,8 @@ internal static class CachingDiagnosticDescriptors
                 Error,
                 "Invalid [InvalidateCache] aspect on '{0}': the constructor parameters must contain at least one method name.",
                 "[InvalidateCache] must contain at least one method name.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         /// <summary>
         /// Was PS CAC008:
@@ -122,7 +132,8 @@ internal static class CachingDiagnosticDescriptors
                     Error,
                     "Invalid [InvalidateCache] aspect on '{0}': there is no method named '{1}' in type '{2}'.",
                     "Cached method not found.",
-                    _category );
+                    _category,
+                    _helpLinkFormat );
 
         /// <summary>
         /// Was PS CAC009:
@@ -135,7 +146,8 @@ internal static class CachingDiagnosticDescriptors
                 "Invalid [InvalidateCache] aspect on '{0}': there are several suitable overloads of the '{1}' method. Set the " +
                 "AllowMultipleOverloads property to true to invalidate all of them.",
                 "Multiple suitable overloads found.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         // TODO: Reinstate equivalent annotations when supported by the Metalama framework.
 #if false
@@ -145,7 +157,8 @@ internal static class CachingDiagnosticDescriptors
                 Info,
                 "This method is invalidated by {0}.",
                 "Invalidated by an [InvalidateCache] method.",
-                _cagtegory );
+                _cagtegory,
+                _helpLinkFormat );
 
         public static readonly DiagnosticDefinition<IMethod> InfoMethodInvalidates =
             new(
@@ -153,7 +166,8 @@ internal static class CachingDiagnosticDescriptors
                 Info,
                 "This method invalidates {0}.",
                 "Invalidates a [Cache] method.",
-                _cagtegory );
+                _cagtegory,
+                _helpLinkFormat );
 #endif
     }
 
@@ -168,7 +182,8 @@ internal static class CachingDiagnosticDescriptors
                 Error,
                 "The [Cache] aspect can be applied at most once to a method.",
                 "[Cache] aspect applied more than once.",
-                _category );
+                _category,
+                _helpLinkFormat );
 
         public static readonly DiagnosticDefinition<(IMethod Method, string Classifier, string ParameterName)> ParameterClassifiedAsIneligible =
             new(
@@ -176,6 +191,7 @@ internal static class CachingDiagnosticDescriptors
                 Error,
                 "The [Cache] aspect cannot be applied to the method '{0}' because the classifier '{1}' marked the parameter '{2}' as ineligible.",
                 "[Cache] aspect cannot be applied to the method because a parameter is ineligible.",
-                _category );
+                _category,
+                _helpLinkFormat );
     }
 }

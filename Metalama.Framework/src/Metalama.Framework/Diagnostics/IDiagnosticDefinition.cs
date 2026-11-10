@@ -43,5 +43,11 @@ namespace Metalama.Framework.Diagnostics
         /// and does not contain formatting string parameters.
         /// </summary>
         string Title { get; }
+
+        /// <summary>
+        /// Gets the URL of the documentation page of the diagnostic, or <c>null</c> if the diagnostic has no documentation page.
+        /// The IDE displays this URL as a hyperlink on the diagnostic identifier, for instance in the error list.
+        /// </summary>
+        string? HelpLinkUri { get; }
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 
 namespace Metalama.Framework.Analyzers.Durability
@@ -32,6 +33,8 @@ namespace Metalama.Framework.Analyzers.Durability
     {
         private const string _category = "Metalama";
 
+        private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
+
         // Range: 0870-0879.
         internal static readonly DiagnosticDescriptor MemberIsNotDurable = new(
             "LAMA0870",
@@ -39,7 +42,8 @@ namespace Metalama.Framework.Analyzers.Durability
             "'{0}' does not satisfy the [Durable] contract because '{1}' is not durable. Retention path: {2}.",
             _category,
             DiagnosticSeverity.Warning,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0870" ) );
 
         internal static readonly DiagnosticDescriptor BaseTypeIsNotDurable = new(
             "LAMA0873",
@@ -47,7 +51,8 @@ namespace Metalama.Framework.Analyzers.Durability
             "'{0}' is marked [Durable] but its base type '{1}' is not durable. Retention path: {2}.",
             _category,
             DiagnosticSeverity.Warning,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0873" ) );
 
         /// <remarks>
         /// Separate from <see cref="MemberIsNotDurable"/> because the remedy differs in kind, not because the case is
@@ -64,7 +69,10 @@ namespace Metalama.Framework.Analyzers.Durability
             + "every implementation to be durable, which this analyzer verifies. Retention path: {2}.",
             _category,
             DiagnosticSeverity.Warning,
-            true );
+            true,
+            helpLinkUri: GetHelpLinkUri( "LAMA0876" ) );
+
+        private static string GetHelpLinkUri( string id ) => string.Format( CultureInfo.InvariantCulture, _helpLinkFormat, id.ToLowerInvariant() );
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
             ImmutableArray.Create(
