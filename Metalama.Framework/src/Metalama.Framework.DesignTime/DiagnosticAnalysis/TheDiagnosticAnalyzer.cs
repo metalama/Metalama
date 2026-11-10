@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -356,21 +356,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 
                 if ( wasAnyLocationRemapped )
                 {
-                    var relocatedDiagnostic =
-                        Diagnostic.Create(
-                            designTimeDiagnostic.Id,
-                            designTimeDiagnostic.Descriptor.Category,
-                            new NonLocalizedString( designTimeDiagnostic.GetLocalizedMessage() ),
-                            designTimeDiagnostic.Severity,
-                            designTimeDiagnostic.DefaultSeverity,
-                            isEnabledByDefault: true,
-                            designTimeDiagnostic.WarningLevel,
-                            designTimeDiagnostic.Descriptor.Title,
-                            location: mappedLocation,
-                            properties: designTimeDiagnostic.Properties,
-                            additionalLocations: mappedAdditionalLocations );
-
-                    reportDiagnostic( relocatedDiagnostic );
+                    reportDiagnostic( CreateRelocatedDiagnostic( designTimeDiagnostic, mappedLocation, mappedAdditionalLocations ) );
                 }
                 else
                 {
@@ -378,6 +364,29 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a copy of a diagnostic whose locations have been mapped to the syntax trees of the current compilation.
+        /// </summary>
+        /// <remarks>
+        /// A <see cref="Diagnostic"/> does not allow its location to be replaced, so the diagnostic is created again from its
+        /// identifier, message, severity, title and help link. The help link must be copied explicitly, because otherwise the
+        /// IDE does not show the identifier of the relocated diagnostic as a hyperlink.
+        /// </remarks>
+        internal static Diagnostic CreateRelocatedDiagnostic( Diagnostic diagnostic, Location location, IEnumerable<Location> additionalLocations )
+            => Diagnostic.Create(
+                diagnostic.Id,
+                diagnostic.Descriptor.Category,
+                new NonLocalizedString( diagnostic.GetLocalizedMessage() ),
+                diagnostic.Severity,
+                diagnostic.DefaultSeverity,
+                isEnabledByDefault: true,
+                diagnostic.WarningLevel,
+                diagnostic.Descriptor.Title,
+                helpLink: diagnostic.Descriptor.HelpLinkUri,
+                location: location,
+                properties: diagnostic.Properties,
+                additionalLocations: additionalLocations );
 
         /// <summary>
         /// Reports <see cref="DesignTimeDiagnosticDescriptors.DuplicateSyntaxTreePath"/> when several syntax trees of
