@@ -67,7 +67,8 @@
     The build script to execute inside Docker. Defaults to 'Build.ps1'.
 
 .PARAMETER Dockerfile
-    Path to a custom Dockerfile. Defaults to Dockerfile or Dockerfile.claude based on -Claude.
+    Path to a custom Dockerfile. Defaults to the default Dockerfile of the product in <eng>/docker (build.Dockerfile
+    unless the product sets another), or to claude.Dockerfile with -Claude.
 
 .PARAMETER OS
     The operating system of the containers this run builds and starts: windows or linux. Defaults to the
@@ -212,7 +213,7 @@ param(
     [switch]$LoadEnvFromKeyVault, # Forces loading environment variables form the key vault.
     [switch]$StartVsmon, # Enable the remote debugger.
     [string]$Script = 'Build.ps1', # The build script to be executed inside Docker.
-    [string]$Dockerfile, # Path to custom Dockerfile (defaults to Dockerfile or Dockerfile.claude based on -Claude).
+    [string]$Dockerfile, # Path to custom Dockerfile (defaults to the default Dockerfile of the product, or claude.Dockerfile with -Claude).
     [ValidateSet('windows', 'linux')]
     [string]$OS, # The operating system of the containers. Defaults to the host's. On a Windows development machine, 'linux' re-executes this script inside WSL.
     [switch]$Test, # Run an isolated Docker test container. Requires -Dockerfile and -Command. Resolves the product image chain only when -Dockerfile names one of its Dockerfiles.
@@ -264,6 +265,7 @@ function Assert-NuGetPackagesPathSafe([string]$path)
 $EngPath = 'eng'
 $EnvironmentVariables = 'AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AZ_IDENTITY_USERNAME,AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_DEVOPS_TOKEN,AZURE_DEVOPS_USER,AZURE_TENANT_ID,CLAUDE_CODE_OAUTH_TOKEN,DOC_API_KEY,DOWNLOADS_API_KEY,ENG_USERNAME,GIT_USER_EMAIL,GIT_USER_NAME,GITHUB_APP_ID,GITHUB_APP_PRIVATE_KEY,GITHUB_AUTHOR_EMAIL,GITHUB_REVIEWER_TOKEN,GITHUB_TOKEN,IS_POSTSHARP_OWNED,IS_TEAMCITY_AGENT,MetalamaLicense,NUGET_ORG_API_KEY,PostSharpLicense,SIGNSERVER_SECRET,TEAMCITY_CLOUD_TOKEN,TYPESENSE_API_KEY,VS_MARKETPLACE_ACCESS_TOKEN,VSS_NUGET_EXTERNAL_FEED_ENDPOINTS'
 $DockerImagePrefix = 'metalama-2027.0'
+$DefaultDockerfileStem = 'build'
 $OvercommitRatio = 1.0
 ####
 
@@ -2548,8 +2550,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         if (-not $Dockerfile)
         {
             # Dockerfile names are prefix-free ("<layer>.Dockerfile"). -Claude targets the claude leaf; otherwise
-            # the build leaf. The chain resolver walks ARG BASE_IMAGE to build/pull the ancestors first.
-            $layer = if ($Claude) { 'claude' } else { 'build' }
+            # the default Dockerfile of the product (Product.DefaultDockerfileStem, 'build' unless the product sets it).
+            # The chain resolver walks ARG BASE_IMAGE to build/pull the ancestors first.
+            $layer = if ($Claude) { 'claude' } else { $DefaultDockerfileStem }
             $Dockerfile = "$DockerfilesDir/$layer.Dockerfile"
         }
 
@@ -3091,8 +3094,10 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             }
         }
     }
-    elseif (-not $env:IS_TEAMCITY_AGENT)
+    elseif ($env:IS_POSTSHARP_OWNED -and -not $env:IS_TEAMCITY_AGENT)
     {
+        # Only a development machine of ours is expected to have run 'prepare' on the host. A build agent, or a clean
+        # machine that has only Docker, builds without the additional mounts.
         Write-Error "DockerMounts.g.ps1 not found at '$dockerMountsScript'. Run './Build.ps1 prepare' or './Build.ps1 dependencies update' to generate it."
         exit 1
     }

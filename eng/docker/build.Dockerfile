@@ -53,8 +53,8 @@ ENV PATH="C:\Program Files\dotnet;${PATH}"
 RUN & .\dotnet-install.ps1 -Version 10.0.403 -InstallDir 'C:\Program Files\dotnet'
 
 
-# Install .NET Sdk 11.0.100-rc.2.26504.105
-RUN $env:DOTNET_INSTALL_SKIP_TAR = '1'; & .\dotnet-install.ps1 -Version 11.0.100-rc.2.26504.105 -InstallDir 'C:\Program Files\dotnet'
+# Install .NET Sdk 11.0.100
+RUN $env:DOTNET_INSTALL_SKIP_TAR = '1'; & .\dotnet-install.ps1 -Version 11.0.100 -InstallDir 'C:\Program Files\dotnet'
 
 
 # .NET Dump Tool
