@@ -25,6 +25,7 @@ namespace Metalama.Framework.Code.Types;
 /// </remarks>
 /// <seealso cref="INamedType.IsDelegate"/>
 /// <seealso cref="INamedType.Facets"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 [InternalImplement]
 public interface IDelegateFacet : ITypeFacet

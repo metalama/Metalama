@@ -206,6 +206,7 @@ namespace Metalama.Framework.Code
         /// </para>
         /// </remarks>
         /// <seealso cref="ITypeFacetCollection"/>
+        /// <seealso href="@type-system#type-facets"/>
         ITypeFacetCollection Facets { get; }
 
         /// <summary>

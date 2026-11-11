@@ -25,6 +25,7 @@ namespace Metalama.Framework.Code.Collections;
 /// </remarks>
 /// <seealso cref="INamedType.Facets"/>
 /// <seealso cref="ITypeFacet"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 [InternalImplement]
 public interface ITypeFacetCollection : IReadOnlyCollection<ITypeFacet>

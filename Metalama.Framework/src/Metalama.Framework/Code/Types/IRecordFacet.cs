@@ -32,6 +32,7 @@ namespace Metalama.Framework.Code.Types;
 /// </remarks>
 /// <seealso cref="INamedType.IsRecord"/>
 /// <seealso cref="INamedType.Facets"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 [InternalImplement]
 public interface IRecordFacet : ITypeFacet

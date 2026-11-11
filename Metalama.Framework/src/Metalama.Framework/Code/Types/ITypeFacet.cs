@@ -19,6 +19,7 @@ namespace Metalama.Framework.Code.Types;
 /// </remarks>
 /// <seealso cref="INamedType.Facets"/>
 /// <seealso cref="ITypeFacetCollection"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 [InternalImplement]
 public interface ITypeFacet

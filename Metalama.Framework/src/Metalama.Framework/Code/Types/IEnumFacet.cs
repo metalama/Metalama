@@ -26,6 +26,7 @@ namespace Metalama.Framework.Code.Types;
 /// </remarks>
 /// <seealso cref="INamedType.IsEnum"/>
 /// <seealso cref="INamedType.Facets"/>
+/// <seealso href="@type-system#type-facets"/>
 [CompileTime]
 [InternalImplement]
 public interface IEnumFacet : ITypeFacet
