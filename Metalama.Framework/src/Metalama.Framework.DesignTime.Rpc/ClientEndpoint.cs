@@ -128,6 +128,10 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             this.TestSyncProvider?.SyncPoint( $"ClientEndpoint.BeforeRegisterAwaiter:{this.PipeName}", cancellationToken );
 #pragma warning restore VSTHRD103
 
+            // The awaiter is keyed by the requested type, which can be a base type of the client that the connection
+            // registers. ConnectCoreAsync signals every awaiter whose key the client is an instance of, which is the
+            // test that GetClient() makes.
+            //
             // RunContinuationsAsynchronously: the awaiter is completed by ConnectCoreAsync while it holds
             // _addClientLock (see the signaling loop there). Without this flag, SetResult would run this
             // method's continuation inline under that lock.
@@ -372,13 +376,24 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             // null has already registered its awaiter before we get the lock, or it gets the lock after us and
             // sees the published client via GetClient(). SetResult does not run continuations inline because the
             // awaiters are created with RunContinuationsAsynchronously.
+            //
+            // An awaiter is keyed by the type that the waiter requested, and that type can be a base type of the
+            // registered client: RpcServiceProviderClientEndpoint.GetApiAsync<TApi> requests RpcClient<TApi>, and
+            // the registered client is a class derived from it. The loop therefore signals every awaiter whose key
+            // the client is an instance of, which is the test that GetClient() makes. A lookup by the exact type of
+            // the client never signaled those awaiters, so a waiter that had observed no client waited forever
+            // (issue #2322). TrySetResult: an awaiter for a base type can already have been completed by another
+            // client that is an instance of that type.
             lock ( this._addClientLock )
             {
                 foreach ( var client in newClients )
                 {
-                    if ( this._clientAwaiters.TryGetValue( client.GetType(), out var awaiter ) )
+                    foreach ( var awaiter in this._clientAwaiters )
                     {
-                        awaiter.SetResult( client );
+                        if ( awaiter.Key.IsInstanceOfType( client ) )
+                        {
+                            awaiter.Value.TrySetResult( client );
+                        }
                     }
                 }
             }

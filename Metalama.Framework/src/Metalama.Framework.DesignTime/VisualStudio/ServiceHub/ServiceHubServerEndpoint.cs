@@ -33,8 +33,9 @@ public sealed class ServiceHubServerEndpoint : ServerEndpoint, IServiceHubRpcSer
 
     private void OnEventReceived( RpcEventData eventData )
     {
-        // TODO: Exception handling.
-        _ = this.EventHub.ForwardEventAsync( eventData, this._applicationExitingToken );
+        this.ObserveBackgroundTask(
+            this.EventHub.ForwardEventAsync( eventData, this._applicationExitingToken ),
+            $"Forwarding {eventData.GetType().Name}" );
 
         // In-process delivery for cross-version consumers (see IDesignTimeNotificationService and
         // Metalama.Framework/docs/cross-process-communication.md). Iterate the invocation list so a
@@ -52,7 +53,8 @@ public sealed class ServiceHubServerEndpoint : ServerEndpoint, IServiceHubRpcSer
                 }
                 catch ( Exception e )
                 {
-                    this.Logger.Error?.Log( $"In-process event subscriber threw on {eventData.GetType().Name}: {e}" );
+                    this.Logger.Error?.Log( $"In-process event subscriber threw on {eventData.GetType().Name}." );
+                    this.ReportException( e );
                 }
             }
         }

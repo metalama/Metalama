@@ -166,7 +166,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
         this.Logger.Trace?.Log(
             $"OnEventReceivedAsync: Republishing event {envelope.Data.GetType().Name} from {envelope.OriginatingApi} to {this.EventReceived?.GetInvocationList().Length ?? 0} handlers." );
 
-        this.EventReceived?.Invoke( envelope.Data );
+        RpcEventInvoker.InvokeEach( this.EventReceived, envelope.Data, this.Logger, this.ExceptionHandler );
     }
 
     private void OnServicesAdded( ServicesAddedEventData servicesAdded )

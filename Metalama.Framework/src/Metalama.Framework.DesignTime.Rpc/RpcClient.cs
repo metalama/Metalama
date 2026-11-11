@@ -23,10 +23,11 @@ public abstract class RpcClient
 
     protected ILogger Logger { get; }
 
+    private readonly IRpcExceptionHandler? _exceptionHandler;
+
     protected RpcClient( ClientEndpoint endpoint )
     {
-        // The endpoint is unused but pulling it back if removed is a lot of work, so we keep it flowing.
-        _ = endpoint;
+        this._exceptionHandler = endpoint.ExceptionHandler;
 
         this.Logger = endpoint.LoggerFactory.GetLogger( this.GetType().Name );
     }
@@ -54,7 +55,7 @@ public abstract class RpcClient
     protected internal virtual Task OnEventReceivedAsync( RpcEventData eventData, CancellationToken cancellationToken )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        this.EventReceived?.Invoke( eventData );
+        RpcEventInvoker.InvokeEach( this.EventReceived, eventData, this.Logger, this._exceptionHandler );
 
         return Task.CompletedTask;
     }

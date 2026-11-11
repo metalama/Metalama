@@ -27,7 +27,7 @@ public abstract class BaseEndpoint : IDisposable
 
     protected TaskCompletionSource<bool> InitializedTask { get; } = new();
 
-    protected IRpcExceptionHandler? ExceptionHandler { get; }
+    protected internal IRpcExceptionHandler? ExceptionHandler { get; }
 
     protected ILogger Logger { get; }
 
@@ -130,6 +130,40 @@ public abstract class BaseEndpoint : IDisposable
     }
 
     public override string ToString() => $"{this.GetType().Name}({this.PipeName})";
+
+    /// <summary>
+    /// Reports an exception caught at an RPC or thread boundary to the logger and the <see cref="IRpcExceptionHandler"/>.
+    /// Never throws.
+    /// </summary>
+    protected internal void ReportException( Exception e, ILogger? logger = null )
+        => RpcEventInvoker.Report( e, logger ?? this.Logger, this.ExceptionHandler, this.DisposeCancellationToken.IsCancellationRequested );
+
+    /// <summary>
+    /// Observes a task that has already been started and is not awaited, and reports its exception, if any, through
+    /// <see cref="ReportException"/>. Unlike <see cref="ExecuteBackgroundTask"/>, the task is not scheduled again, so the
+    /// order in which the caller started its tasks is preserved.
+    /// </summary>
+    protected internal void ObserveBackgroundTask( Task task, string description, ILogger? logger = null )
+    {
+        _ = ObserveAsync();
+
+        async Task ObserveAsync()
+        {
+            try
+            {
+                await task.ConfigureAwait( false );
+            }
+            catch ( OperationCanceledException ) when ( this.DisposeCancellationToken.IsCancellationRequested )
+            {
+                // The endpoint is being disposed.
+            }
+            catch ( Exception e )
+            {
+                (logger ?? this.Logger).Warning?.Log( $"Background task '{description}' failed." );
+                this.ReportException( e, logger );
+            }
+        }
+    }
 
     /// <summary>
     /// Executes a background type without awaiting for the result. Reports exceptions to the logger and the <see cref="IRpcExceptionHandler"/>.

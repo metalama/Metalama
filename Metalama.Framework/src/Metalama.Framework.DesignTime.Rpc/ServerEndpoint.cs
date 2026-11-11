@@ -306,14 +306,30 @@ public abstract class ServerEndpoint : BaseEndpoint
 
     private void OnRpcDisconnected( JsonRpc rpc )
     {
+        // This method handles an event of StreamJsonRpc. Every step is protected so that the failure of one does not
+        // prevent the others from releasing their resources. See #2317.
         foreach ( var i in this._services )
         {
-            i.OnRpcDisconnected( rpc );
+            try
+            {
+                i.OnRpcDisconnected( rpc );
+            }
+            catch ( Exception ex )
+            {
+                this.ReportException( ex );
+            }
         }
 
         if ( this._pipes.TryRemove( rpc, out var pipe ) )
         {
-            pipe.Dispose();
+            try
+            {
+                pipe.Dispose();
+            }
+            catch ( Exception ex )
+            {
+                this.ReportException( ex );
+            }
         }
 
         try

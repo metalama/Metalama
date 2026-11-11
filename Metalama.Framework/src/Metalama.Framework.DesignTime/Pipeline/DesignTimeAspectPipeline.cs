@@ -161,7 +161,10 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
         if ( watchedDirectory != null )
         {
-            this._fileSystemWatcher = new RecursiveFileSystemWatcher( watchedDirectory, watchedFilter );
+            this._fileSystemWatcher = new RecursiveFileSystemWatcher(
+                watchedDirectory,
+                watchedFilter,
+                e => this._exceptionHandler.ReportException( e, this.ProjectOptions, this.Logger ) );
 
             this._fileSystemWatcher.Changed += this.OnTouchFileChanged;
             this._fileSystemWatcher.EnableRaisingEvents = true;
@@ -1221,9 +1224,26 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
             {
                 this._jobQueue.Enqueue( action );
 
-                // Enqueue a task to process the action when the lock will be available.
-                _ = this.ProcessJobQueueWhenLockAvailableAsync();
+                // Enqueue a task to process the action when the lock will be available. The task is not awaited, so
+                // its exception is reported here or it would be lost. See #2317.
+                _ = this.ProcessJobQueueWhenLockAvailableAndReportAsync();
             }
+        }
+    }
+
+    private async Task ProcessJobQueueWhenLockAvailableAndReportAsync()
+    {
+        try
+        {
+            await this.ProcessJobQueueWhenLockAvailableAsync();
+        }
+        catch ( OperationCanceledException ) when ( this._applicationExitingToken.IsCancellationRequested || this._disposeCancellationToken.IsCancellationRequested )
+        {
+            // The application is exiting or the pipeline is disposed.
+        }
+        catch ( Exception e )
+        {
+            this._exceptionHandler.ReportException( e, this.ProjectOptions );
         }
     }
 

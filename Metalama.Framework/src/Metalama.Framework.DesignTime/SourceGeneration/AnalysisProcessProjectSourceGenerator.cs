@@ -35,6 +35,15 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
     private readonly AnalysisProcessEventHub _eventHub;
     private readonly QuietPeriodTimer _dirtyProjectQuietPeriodTimer;
     private readonly ITaskRunner _taskRunner;
+    private readonly DesignTimeExceptionHandler _exceptionHandler;
+
+    /// <summary>
+    /// The number of consecutive attempts to write the touch file that may fail before the failure is reported. Each
+    /// failure reschedules the write after a quiet period.
+    /// </summary>
+    private const int _maxConsecutiveTouchFileFailures = 10;
+
+    private int _consecutiveTouchFileFailures;
 
     private volatile bool _disposed;
     private volatile TestableCancellationTokenSource? _currentCancellationSource;
@@ -48,7 +57,13 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         var options = serviceProvider.GetRequiredService<IGlobalOptions>();
 
         this._taskRunner = serviceProvider.GetRequiredService<ITaskRunner>();
-        this._dirtyProjectQuietPeriodTimer = new QuietPeriodTimer( options.QuietPeriodTimerDelay, this.Logger );
+        this._exceptionHandler = serviceProvider.GetRequiredService<DesignTimeExceptionHandler>();
+
+        this._dirtyProjectQuietPeriodTimer = new QuietPeriodTimer(
+            options.QuietPeriodTimerDelay,
+            this.Logger,
+            e => this._exceptionHandler.ReportException( e, this.ProjectOptions, this.Logger ) );
+
         this._dirtyProjectQuietPeriodTimer.Tick += this.OnDirtyProjectDelayed;
         this._pipelineFactory = this.ServiceProvider.GetRequiredService<DesignTimeAspectPipelineFactory>();
 
@@ -273,47 +288,61 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         var content = TouchFileRenderer.Render( newGuid );
 
         // Write atomically so Rider/Roslyn, which parse this <Compile> file on every change, never observe a
-        // truncated half-written buffer: write to a sibling temp file, then File.Replace/Move into place
-        // (atomic on NTFS). The cross-process named lock still orders concurrent writers from racing on the
-        // same path. This is the same pattern as IFileSystem.WriteAllTextAtomically, written out here because the
-        // touch file is read back through System.IO by Roslyn and by the file system watcher of
-        // DesignTimeAspectPipeline, so writing it through the file system abstraction would send it to the
-        // in-memory substitute in a test while those readers went on looking at the disk.
+        // truncated half-written buffer: write to a sibling temp file, then substitute it for the destination. The
+        // cross-process named lock still orders concurrent writers from racing on the same path. The file is written
+        // through System.IO and not through IFileSystem because it is read back through System.IO by Roslyn and by the
+        // file system watcher of DesignTimeAspectPipeline, so writing it through the file system abstraction would
+        // send it to the in-memory substitute in a test while those readers went on looking at the disk.
+        //
+        // The file is opened by the IDE, by file system watchers and by endpoint security right after every change,
+        // and the substitution fails while any of them holds it without sharing deletion. Every fallback is acceptable
+        // here: the file is a generated file under obj/ with no access control list of its own, and Roslyn re-reads it on
+        // the next change if it ever observes it partially written. When even that fails, the write is
+        // rescheduled instead of throwing: this method runs on timer and RPC threads, where an exception would
+        // terminate the process. See #2317.
+        bool succeeded;
+        Exception? exception;
+
         using ( this.ServiceProvider.GetRequiredBackstageService<INamedLockService>().WithGlobalLock( touchFile ) )
         {
-            RetryHelper.Retry(
-                () =>
-                {
-                    var tempFile = Path.Combine(
-                        Path.GetDirectoryName( touchFile )!,
-                        $".{Path.GetFileName( touchFile )}.{Guid.NewGuid():N}.tmp" );
-
-                    try
-                    {
-                        File.WriteAllText( tempFile, content );
-
-                        if ( File.Exists( touchFile ) )
-                        {
-                            File.Replace( tempFile, touchFile, destinationBackupFileName: null );
-                        }
-                        else
-                        {
-                            File.Move( tempFile, touchFile );
-                        }
-                    }
-                    finally
-                    {
-                        if ( File.Exists( tempFile ) )
-                        {
-                            File.Delete( tempFile );
-                        }
-                    }
-                } );
+            succeeded = AtomicFileWriter.TryWriteAllText( touchFile, content, AtomicFileWriterFallbacks.All, this.Logger, out exception );
         }
+
+        if ( !succeeded )
+        {
+            this.OnTouchFileWriteFailed( exception! );
+
+            return;
+        }
+
+        this._consecutiveTouchFileFailures = 0;
 
         this.LastTouchId = newGuid;
 
         this._observer?.OnTouchFileWritten( this.ProjectKey, newGuid );
+    }
+
+    private void OnTouchFileWriteFailed( Exception exception )
+    {
+        var failures = Interlocked.Increment( ref this._consecutiveTouchFileFailures );
+
+        if ( this._disposed )
+        {
+            return;
+        }
+
+        if ( failures < _maxConsecutiveTouchFileFailures )
+        {
+            this.Logger.Warning?.Log( $"Cannot update the touch file (attempt {failures}). Retrying after the quiet period." );
+
+            this._dirtyProjectQuietPeriodTimer.Restart();
+        }
+        else
+        {
+            // Give up until the next change of the project, and report the condition once.
+            this._consecutiveTouchFileFailures = 0;
+            this._exceptionHandler.ReportException( exception, this.ProjectOptions, this.Logger );
+        }
     }
 
     private bool TryGetTouchFilePath( [NotNullWhen( true )] out string? path )
@@ -351,5 +380,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         base.Dispose( disposing );
         this._currentCancellationSource?.Dispose();
         this._eventHub.DirtyProject -= this.OnDirtyProject;
+        this._dirtyProjectQuietPeriodTimer.Tick -= this.OnDirtyProjectDelayed;
+        this._dirtyProjectQuietPeriodTimer.Dispose();
     }
 }
