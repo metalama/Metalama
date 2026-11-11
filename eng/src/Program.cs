@@ -17,13 +17,9 @@ using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2027_0;
 
 // The .NET 11 SDK, which global.json names as the main SDK of the product and which the build container installs.
-// The version is a literal instead of a member of the product family, because the .NET 11 SDK is a prerelease
-// and PostSharp.Engineering names only released feature bands. Move it to
-// MetalamaDependencies.Family.PreferredVersions.DotNetSdk once the .NET 11 SDK is released.
-//
-// The product is therefore built with an SDK that no supported Visual Studio installs. The desktop MSBuild of the
-// container still builds with the SDK that Visual Studio ships, which is the .NET 10 one below.
-const string dotNet11SdkVersion = "11.0.100-rc.2.26504.105";
+// No supported Visual Studio installs it, so the desktop MSBuild of the container still builds with the SDK that
+// Visual Studio ships, which is the .NET 10 one below.
+var dotNet11SdkVersion = MetalamaDependencies.Family.PreferredVersions.DotNetSdk.V_11_0;
 
 // The .NET 10 SDK, which stays installed beside the .NET 11 one. Every project of this repository targets net10.0,
 // and the .NET 11 SDK carries no .NET 10 runtime, so the tests and this project would have no runtime to execute
@@ -74,7 +70,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( dotNet11SdkVersion ) { AllowPrerelease = true },
+    DotNetSdkVersion = new DotNetSdkVersion( dotNet11SdkVersion ),
     GenerateNuGetConfig = true,
     MSBuildVersion = new Version( 18, 11 ),
     Solutions =
