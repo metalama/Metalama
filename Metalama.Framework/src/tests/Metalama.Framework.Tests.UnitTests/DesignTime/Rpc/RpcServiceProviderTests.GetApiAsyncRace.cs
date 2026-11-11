@@ -33,7 +33,7 @@ public sealed partial class RpcServiceProviderTests
     public async Task GetApiAsync_CalledWhileExtensionClientIsConnecting_Completes()
     {
         // A short timeout bounds the wait when the awaiter is not signaled.
-        using var testContext = this.CreateRpcTestContext( new TestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
+        using var testContext = this.CreateRpcTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
         var ct = testContext.CancellationToken;
 
         // ReSharper disable once UseAwaitUsing

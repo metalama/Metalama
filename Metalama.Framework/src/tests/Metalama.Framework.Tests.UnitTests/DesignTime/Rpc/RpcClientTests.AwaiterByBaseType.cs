@@ -25,7 +25,7 @@ public sealed partial class RpcClientTests
     public async Task GetOrWaitForClient_RequestedByBaseType_SignaledWhenDerivedClientConnects()
     {
         // A short timeout bounds the wait when the awaiter is not signaled.
-        using var testContext = this.CreateRpcTestContext( new TestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
+        using var testContext = this.CreateRpcTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
         var ct = testContext.CancellationToken;
 
         var pipeName = $"{nameof(RpcClientTests)}_{Guid.NewGuid()}";
