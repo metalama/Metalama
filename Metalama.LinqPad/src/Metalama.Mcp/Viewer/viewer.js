@@ -65,7 +65,7 @@
       var placeholder = el( 'span', 'muted', 'Loading…' );
       button.replaceWith( placeholder );
       openLink( node.href, null ).then(
-        function ( result ) { placeholder.replaceWith( render( result ) ); },
+        function ( result ) { placeholder.replaceWith( render( result, true ) ); },
         function ( error ) { placeholder.replaceWith( el( 'span', 'error', String( error ) ) ); } );
     } );
     return button;
@@ -87,6 +87,35 @@
       return wrapper;
     }
     return result;
+  }
+
+  function isExpandable( node ) {
+    return !!node && ( ( node.kind === 'object' && node.properties ) || ( node.kind === 'collection' && node.items ) );
+  }
+
+  // As in LINQPad, a value nested in a table is shown collapsed, and expands in place from the data already in the page.
+  function renderNested( node ) {
+    if ( !isExpandable( node ) ) { return render( node ); }
+    var wrapper = el( 'span', 'nested' );
+    var toggle = el( 'button', 'toggle', '▸' );
+    toggle.type = 'button';
+    toggle.title = 'Expand';
+    toggle.setAttribute( 'aria-expanded', 'false' );
+    var collapsed = summary( node );
+    var expanded = null;
+    toggle.addEventListener( 'click', function () {
+      var open = toggle.getAttribute( 'aria-expanded' ) !== 'true';
+      if ( open && !expanded ) { expanded = render( node, true ); wrapper.appendChild( expanded ); }
+      toggle.setAttribute( 'aria-expanded', String( open ) );
+      toggle.textContent = open ? '▾' : '▸';
+      toggle.title = open ? 'Collapse' : 'Expand';
+      collapsed.hidden = open;
+      if ( expanded ) { expanded.hidden = !open; }
+      notifySize();
+    } );
+    wrapper.appendChild( toggle );
+    wrapper.appendChild( collapsed );
+    return wrapper;
   }
 
   function sortKey( node ) {
@@ -120,8 +149,9 @@
     return element;
   }
 
-  function propertyTable( node ) {
-    var table = el( 'table', 'node properties' );
+  // A property table starts collapsed to its header, which summarizes the object; a click expands it.
+  function propertyTable( node, open ) {
+    var table = el( 'table', open ? 'node properties' : 'node properties collapsed' );
     var title = node.display && node.display !== node.type ? node.type + '  ' + node.display : node.type;
     var cap = caption( title, node, null );
     table.appendChild( cap );
@@ -131,7 +161,7 @@
       var row = el( 'tr' );
       row.appendChild( el( 'th', null, property.name ) );
       var cell = el( 'td' );
-      cell.appendChild( render( property.value ) );
+      cell.appendChild( renderNested( property.value ) );
       row.appendChild( cell );
       body.appendChild( row );
     } );
@@ -170,13 +200,13 @@
           var value = property ? property.value : null;
           values.push( value );
           var cell = el( 'td' );
-          if ( value ) { cell.appendChild( render( value ) ); }
+          if ( value ) { cell.appendChild( renderNested( value ) ); }
           row.appendChild( cell );
         } );
       } else {
         values.push( item );
         var cell = el( 'td' );
-        cell.appendChild( render( item ) );
+        cell.appendChild( renderNested( item ) );
         row.appendChild( cell );
       }
       row.dataset.filter = values.map( filterText ).join( ' ' ).toLowerCase();
@@ -264,14 +294,14 @@
     return table;
   }
 
-  function render( node ) {
+  function render( node, open ) {
     if ( !node ) { return el( 'span', 'null', 'null' ); }
     switch ( node.kind ) {
       case 'scalar':
         if ( node.type === 'null' ) { return el( 'span', 'null', 'null' ); }
         return el( 'span', node.type, node.value === '' ? '""' : node.value );
       case 'object':
-        return node.properties ? propertyTable( node ) : summary( node );
+        return node.properties ? propertyTable( node, open ) : summary( node );
       case 'collection':
         return node.items ? collectionTable( node ) : summary( node );
       case 'grouping':

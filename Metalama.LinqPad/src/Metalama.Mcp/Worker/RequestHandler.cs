@@ -206,7 +206,7 @@ internal sealed class RequestHandler
             (rendered, _) = await QueryRunner.RunAsync(
                 compiled.Assembly,
                 queryContext,
-                value => this.RenderResult( value, null, entry, linkContext, linkBase, renderOptions, "query" ) );
+                value => this.RenderResult( value, null, entry, linkContext, linkBase, renderOptions, code.Trim() ) );
         }
         catch ( OperationCanceledException ) when ( cancellationToken.IsCancellationRequested )
         {

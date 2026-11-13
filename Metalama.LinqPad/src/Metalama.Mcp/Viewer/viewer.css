@@ -23,6 +23,8 @@
   }
 }
 * { box-sizing: border-box; }
+/* Collapsing hides elements with the hidden attribute, which must win over the display of tables. */
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 var(--sans); }
 #toolbar { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; padding: 8px 16px; border-bottom: 1px solid var(--rule); }
 #title { font-weight: 600; font-family: var(--mono); overflow-wrap: anywhere; }
@@ -39,6 +41,10 @@ table.node > caption { caption-side: top; text-align: left; background: var(--he
 table.node > caption .count { font-weight: 400; opacity: .85; margin-left: 8px; }
 table.node > caption .tools { float: right; margin-left: 12px; }
 table.node.collapsed > :not(caption) { display: none; }
+table.node > caption { white-space: nowrap; }
+table.node > caption .tools { float: none; }
+table.node > caption::before { content: "▾ "; font-size: 10px; }
+table.node.collapsed > caption::before { content: "▸ "; }
 table.node th { text-align: left; background: var(--cell); border: 1px solid var(--rule); padding: 3px 8px; font-weight: 600; white-space: nowrap; }
 table.node th.sortable { cursor: pointer; }
 table.node th.sorted-asc::after { content: " ▲"; font-size: 10px; }
@@ -52,3 +58,8 @@ table.properties > tbody > tr > th { width: 1%; }
 button.tool { font: 11px var(--sans); background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 3px; padding: 0 5px; margin-left: 4px; cursor: pointer; opacity: .85; }
 button.tool:focus-visible, .link:focus-visible, th.sortable:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .footer { color: var(--muted); font-style: italic; }
+.nested { display: inline-block; vertical-align: top; white-space: nowrap; }
+.nested > table.node { white-space: normal; }
+button.toggle { font: 11px var(--sans); background: transparent; color: var(--link); border: 0; padding: 0 4px 0 0; cursor: pointer; }
+button.toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.nested > table.node { display: table; margin-top: 2px; }
