@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Utilities;
@@ -659,6 +660,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                     if ( propertyIsWriteable )
                     {
                         var comparisonKind = fieldOrProperty.Type is INamedType nt && nt.SpecialType != SpecialType.ValueTask_T
+                                                                                    && HasEqualityOperator( nt )
                             ? EqualityComparisonKind.EqualityOperator
                             : EqualityComparisonKind.DefaultEqualityComparer;
 
@@ -673,6 +675,51 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Determines whether the <c>!=</c> operator can be applied to two operands of a given value type.
+    /// </summary>
+    /// <remarks>
+    /// The operator is available for the types for which the language defines it (primitive types and enums), for the types
+    /// that declare an <c>operator ==</c> whose two parameters are of the type, and for the nullable form of any of these types.
+    /// For any other value type, the comparison must use <see cref="EqualityComparisonKind.DefaultEqualityComparer"/>.
+    /// </remarks>
+    private static bool HasEqualityOperator( INamedType type )
+    {
+        if ( type.IsNullable == true )
+        {
+            return type.ToNonNullable() is INamedType underlyingType && HasEqualityOperator( underlyingType );
+        }
+
+        if ( type.TypeKind == TypeKind.Enum )
+        {
+            return true;
+        }
+
+        switch ( type.SpecialType )
+        {
+            case SpecialType.Boolean:
+            case SpecialType.Char:
+            case SpecialType.Byte:
+            case SpecialType.SByte:
+            case SpecialType.Int16:
+            case SpecialType.UInt16:
+            case SpecialType.Int32:
+            case SpecialType.UInt32:
+            case SpecialType.Int64:
+            case SpecialType.UInt64:
+            case SpecialType.Single:
+            case SpecialType.Double:
+            case SpecialType.Decimal:
+                return true;
+        }
+
+        return type.AllMethods.OfKind( OperatorKind.Equality )
+            .Any(
+                m => m.Parameters.Count == 2
+                     && m.Parameters[0].Type.Equals( type, TypeComparison.Default )
+                     && m.Parameters[1].Type.Equals( type, TypeComparison.Default ) );
     }
 
     private HashSet<string>? _inheritedOnChildPropertyChangedPropertyPaths;
