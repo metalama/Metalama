@@ -36,5 +36,17 @@ internal sealed class FacadeTypeFactory
             .ToImmutableHashSet();
     }
 
-    public FacadeType GetFacadeType( Type type ) => this._types.GetOrAdd( type, t => new FacadeType( this, t ) );
+    public FacadeType GetFacadeType( Type type )
+        => IsCollectible( type )
+            ? new FacadeType( this, type )
+            : this._types.GetOrAdd( type, t => new FacadeType( this, t ) );
+
+    /// <summary>
+    /// Gets a value indicating whether a type, or one of its generic arguments, comes from a collectible assembly, such as a
+    /// compiled query. Such types are not cached, because the cache would keep their load context from unloading.
+    /// </summary>
+    internal static bool IsCollectible( Type type )
+        => type.Assembly.IsCollectible
+           || (type.IsGenericType && type.GetGenericArguments().Any( IsCollectible ))
+           || (type.HasElementType && IsCollectible( type.GetElementType()! ));
 }

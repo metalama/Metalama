@@ -337,7 +337,7 @@ internal sealed class ResultTreeBuilder
     /// </summary>
     internal static string FormatTypeName( Type type )
     {
-        if ( type.IsDefined( typeof(CompilerGeneratedAttribute), false ) && type.Name.Contains( "AnonymousType", StringComparison.Ordinal ) )
+        if ( FacadeType.IsAnonymousType( type ) )
         {
             return "{ " + string.Join( ", ", type.GetProperties().Select( p => p.Name ) ) + " }";
         }

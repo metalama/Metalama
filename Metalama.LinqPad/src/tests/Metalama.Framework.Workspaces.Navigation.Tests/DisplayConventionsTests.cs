@@ -33,9 +33,28 @@ public sealed class DisplayConventionsTests : UnitTestClass
     [Fact]
     public void PropertiesAreOrderedByPriority()
     {
-        var type = FacadeTypeFactory.Default.GetFacadeType( new { Zeta = 1, Name = "n", Id = 2, Items = new[] { 1 } }.GetType() );
+        var type = FacadeTypeFactory.Default.GetFacadeType( typeof(Ordered) );
 
         Assert.Equal( ["Id", "Name", "Zeta", "Items"], type.PropertyNames.ToArray() );
+    }
+
+    [Fact]
+    public void AnonymousTypeKeepsDeclarationOrder()
+    {
+        var type = FacadeTypeFactory.Default.GetFacadeType( new { Zeta = 1, Name = "n", Id = 2 }.GetType() );
+
+        Assert.Equal( ["Zeta", "Name", "Id"], type.PropertyNames.ToArray() );
+    }
+
+    public sealed class Ordered
+    {
+        public int Zeta { get; } = 1;
+
+        public string Name { get; } = "n";
+
+        public int Id { get; } = 2;
+
+        public int[] Items { get; } = [1];
     }
 
     [Fact]

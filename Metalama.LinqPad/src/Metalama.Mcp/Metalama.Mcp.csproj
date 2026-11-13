@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../../eng/RoslynVersions/Latest.props"/>
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>Metalama.Mcp</RootNamespace>
+        <AssemblyName>metalama-mcp</AssemblyName>
+        <PackageId>Metalama.Mcp</PackageId>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>metalama-mcp</ToolCommandName>
+        <RollForward>Major</RollForward>
+        <InvariantGlobalization>True</InvariantGlobalization>
+        <!-- A tool package that contains PDBs gets its symbol package rejected, as for Metalama.Tool. -->
+        <IncludeSymbols>false</IncludeSymbols>
+        <DebugType>Portable</DebugType>
+        <PackageDescription>A local Model Context Protocol server that lets coding agents load C# projects and run C# queries over the Metalama code model and introspection API. It communicates only over stdio and never opens a listening socket, because it runs arbitrary code by design.</PackageDescription>
+
+        <!-- Uses Metalama internals, as Metalama.LinqPad does. -->
+        <NoWarn>$(NoWarn);LAMA0820</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ModelContextProtocol.Core" />
+        <PackageReference Include="Metalama.Framework.Workspaces" />
+        <PackageReference Include="Metalama.Extensions.Metrics" />
+        <PackageReference Include="Metalama.Framework.Sdk" ExcludeAssets="build;buildTransitive" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+        <ProjectReference Include="..\Metalama.Framework.Workspaces.Navigation\Metalama.Framework.Workspaces.Navigation.csproj" />
+
+        <!-- Queries are compiled with the Roslyn version that the workspace loads. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynMaxVersion)" />
+
+        <!-- Must be included explicitly because the package has content (the MSBuild build hosts). The MSBuild assemblies
+             must not be copied to the output directory, for the reason given in Metalama.Framework.Workspaces.csproj. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
+
+        <!-- Bans the APIs that open a listening endpoint. See BannedSymbols.txt. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+        <AdditionalFiles Include="BannedSymbols.txt" />
+
+        <InternalsVisibleTo Include="Metalama.Mcp.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Primer.md" LogicalName="Metalama.Mcp.Primer.md" />
+        <EmbeddedResource Include="Viewer\viewer.html" LogicalName="Metalama.Mcp.Viewer.viewer.html" />
+        <EmbeddedResource Include="Viewer\viewer.css" LogicalName="Metalama.Mcp.Viewer.viewer.css" />
+        <EmbeddedResource Include="Viewer\viewer.js" LogicalName="Metalama.Mcp.Viewer.viewer.js" />
+        <None Include="Rendering\result.schema.json" Pack="true" PackagePath="\" />
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <!-- Exclude the PDBs and XML documentation from the tool package, as Metalama.Tool does. -->
+    <Target Name="_ExcludePackageFiles" AfterTargets="Build" BeforeTargets="GenerateNuspec">
+        <ItemGroup>
+            <_PackageFiles Remove="@(_PackageFiles)" Condition="'%(Extension)' == '.pdb' OR '%(Extension)' == '.xml'" />
+        </ItemGroup>
+    </Target>
+
+</Project>

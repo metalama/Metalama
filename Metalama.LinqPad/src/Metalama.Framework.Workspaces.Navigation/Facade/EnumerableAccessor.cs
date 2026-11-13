@@ -17,7 +17,8 @@ namespace Metalama.Framework.Workspaces.Navigation.Facade
         private readonly MethodInfo? _getter;
         private static readonly ConcurrentDictionary<Type, EnumerableAccessor> _instances = new();
 
-        public static EnumerableAccessor Get( Type type ) => _instances.GetOrAdd( type, t => new EnumerableAccessor( t ) );
+        public static EnumerableAccessor Get( Type type )
+            => FacadeTypeFactory.IsCollectible( type ) ? new EnumerableAccessor( type ) : _instances.GetOrAdd( type, t => new EnumerableAccessor( t ) );
 
         private EnumerableAccessor( Type type )
         {

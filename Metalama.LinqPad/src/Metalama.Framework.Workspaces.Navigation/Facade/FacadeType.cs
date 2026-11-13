@@ -9,6 +9,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Metalama.Framework.Workspaces.Navigation.Facade;
 
@@ -125,8 +126,10 @@ internal sealed class FacadeType
             }
         }
 
-        var facadeProperties = properties.Values
-            .ToOrderedList( p => (p.Name, p.Type), PropertyComparer.Instance );
+        // A projection to an anonymous type keeps the order in which the query wrote its members.
+        var facadeProperties = IsAnonymousType( type )
+            ? properties.Values.ToList()
+            : properties.Values.ToOrderedList( p => (p.Name, p.Type), PropertyComparer.Instance );
 
         this.Properties = facadeProperties.ToImmutableArray();
         this._propertiesByName = this.Properties.ToImmutableDictionary( p => p.Name, StringComparer.Ordinal );
@@ -151,6 +154,9 @@ internal sealed class FacadeType
 
         return false;
     }
+
+    internal static bool IsAnonymousType( Type type )
+        => type.IsDefined( typeof(CompilerGeneratedAttribute), false ) && type.Name.Contains( "AnonymousType", StringComparison.Ordinal );
 
     private static bool IsHiddenProperty( PropertyInfo property )
         => property.IsDefined( typeof(HiddenAttribute) ) || property.IsDefined( typeof(ObsoleteAttribute) );
