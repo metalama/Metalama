@@ -179,6 +179,50 @@ namespace Metalama.Framework.Engine.CodeModel
 
         private readonly string? _debugLabel;
 
+        /// <summary>
+        /// Translates the keys of the annotations of a previous compilation to the declarations of the current compilation.
+        /// </summary>
+        /// <remarks>
+        /// The linker and the low-level aspect weavers create a new Roslyn compilation. The annotations that the aspects of the
+        /// previous stages added are keyed by references to the declarations of the previous compilation, and <see cref="GetAnnotations{T}"/>
+        /// compares references by symbol identity. A key whose declaration does not exist in the current compilation is dropped.
+        /// </remarks>
+        private ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> TranslateAnnotations(
+            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> annotations )
+        {
+            if ( annotations.All( g => g.Key is IFullRef fullRef && fullRef.RefFactory.CompilationContext == this.CompilationContext ) )
+            {
+                return annotations;
+            }
+
+            var builder = ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.CreateBuilder( RefEqualityComparer<IDeclaration>.Default );
+
+            foreach ( var group in annotations )
+            {
+                if ( group.Key is IFullRef fullRef && fullRef.RefFactory.CompilationContext == this.CompilationContext )
+                {
+                    builder.Add( group.Key, group );
+
+                    continue;
+                }
+
+                var symbol = group.Key.ToSerializableId().ResolveToSymbolOrNull( this.CompilationContext, out var isReturnParameter );
+
+                if ( symbol == null )
+                {
+                    continue;
+                }
+
+                IRef<IDeclaration> translatedKey = isReturnParameter
+                    ? this.RefFactory.FromReturnParameter( (IMethodSymbol) symbol )
+                    : this.RefFactory.FromDeclarationSymbol( symbol );
+
+                builder.Add( translatedKey, group );
+            }
+
+            return builder.ToImmutable();
+        }
+
         private CompilationModel(
             ProjectModel project,
             PartialCompilation partialCompilation,
@@ -201,9 +245,10 @@ namespace Metalama.Framework.Engine.CodeModel
 
             this._finalizers = ImmutableDictionary<IFullRef<INamedType>, MethodBuilderData>.Empty.WithComparers( RefEqualityComparer<INamedType>.Default );
 
-            this.Annotations = annotations
-                               ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty.WithKeyComparer(
-                                   RefEqualityComparer<IDeclaration>.Default );
+            this.Annotations = annotations != null
+                ? this.TranslateAnnotations( annotations )
+                : ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty.WithKeyComparer(
+                    RefEqualityComparer<IDeclaration>.Default );
 
             this.AspectRepository = aspectRepository ?? new IncrementalAspectRepository( this );
             this.HierarchicalOptionsManager = hierarchicalOptionsManager;
