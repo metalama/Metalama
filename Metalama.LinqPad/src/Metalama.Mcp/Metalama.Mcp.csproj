@@ -34,9 +34,10 @@
         <!-- Queries are compiled with the Roslyn version that the workspace loads. -->
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynMaxVersion)" />
 
-        <!-- Must be included explicitly because the package has content (the MSBuild build hosts). The MSBuild assemblies
-             must not be copied to the output directory, for the reason given in Metalama.Framework.Workspaces.csproj. -->
-        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
+        <!-- The MSBuild build hosts come from the content files of Metalama.Framework.Workspaces. Referencing
+             Microsoft.CodeAnalysis.Workspaces.MSBuild here as well would add them twice, which breaks packing the tool
+             with NETSDK1152. The MSBuild assemblies must not be copied to the output directory, for the reason given in
+             Metalama.Framework.Workspaces.csproj. -->
         <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
 
@@ -59,7 +60,9 @@
     <!-- Exclude the PDBs and XML documentation from the tool package, as Metalama.Tool does. -->
     <Target Name="_ExcludePackageFiles" AfterTargets="Build" BeforeTargets="GenerateNuspec">
         <ItemGroup>
-            <_PackageFiles Remove="@(_PackageFiles)" Condition="'%(Extension)' == '.pdb' OR '%(Extension)' == '.xml'" />
+            <!-- Only files of the output directory: DotnetToolSettings.xml is generated under obj and must stay. -->
+            <_PackageFilesToExclude Include="bin/$(Configuration)/**/*.pdb" />
+            <_PackageFilesToExclude Include="bin/$(Configuration)/**/*.xml" />
         </ItemGroup>
     </Target>
 

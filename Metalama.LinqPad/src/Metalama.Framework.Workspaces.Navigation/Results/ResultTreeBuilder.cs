@@ -123,11 +123,14 @@ internal sealed class ResultTreeBuilder
             properties = builder.MoveToImmutable();
         }
 
-        return new ObjectNode( FormatTypeName( value.GetType() ), this.GetDisplay( value ) )
+        // Code model objects are internal classes, so they are named by their public interface, such as INamedType.
+        var interfaceName = GetInterfaceName( value );
+
+        return new ObjectNode( interfaceName ?? FormatTypeName( value.GetType() ), this.GetDisplay( value ) )
         {
             Link = link,
             Location = declaration != null ? this.GetLocation( declaration ) : null,
-            InterfaceName = GetInterfaceName( value ),
+            InterfaceName = interfaceName,
             IsDeclaration = declaration != null,
             IsTransformed = link?.IsTransformed ?? false,
             Properties = properties

@@ -2,8 +2,9 @@
 
 This document proposes a local MCP server that lets coding agents explore C# code with LINQ queries against the
 Metalama code model, the way the `Metalama.LinqPad` driver does for people. The server runs arbitrary C# on purpose,
-so it talks only over stdio and never opens a listening socket. It is a design proposal. Nothing described here is
-implemented.
+so it talks only over stdio and never opens a listening socket. It is a design proposal. A first implementation of v1
+and of the MCP App exists in `Metalama.LinqPad/src/Metalama.Mcp`; section 14 records where it settled or changed this
+design.
 
 ## 1. Goals and non-goals
 
@@ -196,7 +197,7 @@ The examples in this section are illustrative; property names and values come fr
 ### 7.1. A list of declarations
 
 ```text
-base: metalama://FrogHattery.sln/FrogHattery@net8.0/source/
+base: metalama://FrogHattery.csproj/FrogHattery@net10.0/source/
 IEnumerable<IMethod> — 3 items
 M:FrogHattery.BullFrog.Croak                    BullFrog.cs:20
 M:FrogHattery.BullFrog.Jump(System.Int32)        BullFrog.cs:31
@@ -315,11 +316,11 @@ metalama://<workspace>/query/<base64url>[/<step>]*?v=<fingerprint>
 ```
 
 ```text
-metalama://FrogHattery.sln/FrogHattery@net8.0/source/T:FrogHattery.BullFrog
-metalama://FrogHattery.sln/FrogHattery@net8.0/source/T:FrogHattery.BullFrog/Methods
-metalama://FrogHattery.sln/FrogHattery@net8.0/source/M:FrogHattery.BullFrog.Croak/aspects/FrogHattery.LogAttribute/Advice/0?v=3f9a…
-metalama://FrogHattery.sln/~/source/diagnostics/LAMA0041/0?v=3f9a…
-metalama://FrogHattery.sln/query/d29ya3NwYWNlLlNvdXJjZUNvZGU…/12/DeclaringType?v=3f9a…
+metalama://FrogHattery.csproj/FrogHattery@net10.0/source/T:FrogHattery.BullFrog
+metalama://FrogHattery.csproj/FrogHattery@net10.0/source/T:FrogHattery.BullFrog/Methods
+metalama://FrogHattery.csproj/FrogHattery@net10.0/source/M:FrogHattery.BullFrog.Croak/aspects/FrogHattery.LogAttribute/Advice/0?v=3f9a…
+metalama://FrogHattery.csproj/~/source/diagnostics/LAMA0041/0?v=3f9a…
+metalama://FrogHattery.csproj/query/d29ya3NwYWNlLlNvdXJjZUNvZGU…/12/DeclaringType?v=3f9a…
 ```
 
 MSBuild properties used to load the workspace, such as `Configuration`, go in the query string.
@@ -349,8 +350,11 @@ declaration collapses to its own ID. The renderer never prints `…/T:FrogHatter
 
 - **Stable links** (a declaration, type or assembly anchor followed by property and key steps only) carry no version.
   They stay valid across edits until the declaration disappears, and then resolve to "not found".
-- **Fragile links** (any index step, or a query anchor) carry `?v=`, a fingerprint of the workspace's compilation
-  inputs: source text checksums, reference identities and compilation options.
+- **Fragile links** (any index step, or a query anchor) carry `?v=`, a fingerprint of the loaded workspace: its
+  compilation inputs (source text checksums, reference identities, compilation options) and an identifier of the load.
+  The inputs alone are not enough. Collections such as `ICompilationSet.Types` and `ICompilationSet.Methods` are not
+  enumerated in source order, and their order differs between two loads of identical sources. A fragile link is
+  therefore valid only for the load that produced it, and every reload makes it stale.
 - When a fragile link's fingerprint no longer matches, the server answers
   `stale: the workspace changed since this link was produced; re-run the query`. It never returns a different object
   silently.
@@ -461,8 +465,9 @@ transport rules of section 4.
   lacks `"app"`, so `query` and `open` declare `["model", "app"]`.
 - The resource declares no `csp` domains, so the host applies the extension's restrictive default and the view has
   no network access.
-- The server registers the view only when the client advertises the `io.modelcontextprotocol/ui` capability. Other
-  clients see text and JSON only.
+- The view resource and the `_meta.ui` of the tools are always present, because hosts without the extension ignore
+  them. The JSON is added to results as `structuredContent` only when the client advertises the
+  `io.modelcontextprotocol/ui` capability, so that other hosts do not receive every result twice.
 - Following a query-anchored link runs code (section 4.3), so a host that asks permission for tool calls asks for
   calls made from the view too.
 
@@ -598,14 +603,15 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
 - `load_workspace`, `reload_workspace`, `unload_workspace`, `query`, `open`.
 - Text renderer, declaration anchors, property and index steps, fingerprints.
 - JSON format and its schema, because the viewer depends on them.
-- Static HTML viewer (section 9.3).
-- Extraction of the shared project; LINQPad moves to the general link builder.
+- Static HTML viewer (section 9.3) and its MCP App delivery (section 9.4).
+- Extraction of the shared project.
 
 **v2**
 
 - Query anchors and the result cache.
 - Key steps: `aspects`, `diagnostics`, references, derived types.
-- MCP App delivery of the viewer (section 9.4), resource template, `resource_link` items.
+- The `metalama://` resource template and `resource_link` items.
+- LINQPad moves to the general link builder and gets `Open(link)`.
 - Exploring compiled assemblies (section 13).
 
 ## 13. Open questions
@@ -615,15 +621,40 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
    referenced assemblies. Is this needed in v1?
 2. **Query anchor encoding.** Base64url is compact but unreadable; percent-encoded C# is readable but noisy. This
    draft uses base64url, because agents follow these links rather than read them.
-3. **Collection order.** Most code-model collections follow source order. Any backed by a hash set would need sorting
-   in the renderer and resolver, or index steps could change between two identical loads. The determinism test will
-   tell.
+3. **Collection order.** Settled: the determinism test showed that `ICompilationSet.Methods` changes order between two
+   loads of identical sources. Sorting would change what queries return, so the fingerprint identifies the load instead
+   (section 8.7). Whether the code model should enumerate in source order is a question for `Metalama.Framework`.
 4. **Roslyn version.** Queries are compiled with the Roslyn version that the Metalama engine uses
    (`eng/RoslynVersions`). The worker must load that version, not the one shipped with the SDK.
 5. **Headless Backstage.** Confirm that no welcome page, toast or browser launch can happen in the worker.
 6. **Names.** `Metalama.Mcp` for the tool and `Metalama.Framework.Workspaces.Navigation` for the shared project are
    placeholders.
-7. **Viewer toolchain.** Hand-written JavaScript keeps the build free of Node.js. Sortable, filterable nested grids
-   may justify TypeScript and a bundler instead.
-8. **MCP App in v1.** The static file works everywhere. The MCP App gives live drill-down but depends on host
-   support. Should it move to v1?
+7. **Viewer toolchain.** Settled for now: the viewer is about 400 lines of hand-written JavaScript, with sorting and
+   filtering, and needs no Node.js build.
+8. **MCP App in v1.** Settled: it moved to v1.
+
+## 14. Implementation notes
+
+The first implementation follows this design, with these differences.
+
+- **Packages.** The server references `ModelContextProtocol.Core` 2.3.0 only. The main `ModelContextProtocol` package
+  adds hosting and dependency injection, and the `ModelContextProtocol.Extensions.Apps` helpers are experimental; the
+  `_meta.ui` metadata is written directly instead. 2.4.0 was skipped because it was released six days earlier.
+- **One executable.** The supervisor and the worker are the same `metalama-mcp` assembly, started with or without
+  `--worker`. The supervisor's code path touches no type of the code model, Roslyn or MSBuild, and a test checks the
+  assemblies it loads.
+- **Collection anchors.** Besides `projects` and `diagnostics`, the anchors `project` and `workspace` name a project
+  and the workspace themselves, and `aspect-classes`, `aspect-instances`, `aspect-layers`, `advice` and `transformations`
+  name the collections of the same names.
+- **Projections keep their order.** The members of an anonymous type are shown in the order the query wrote them, not
+  in `PropertyComparer` order.
+- **A void expression is a statement.** `Console.WriteLine( 1 )` parses as an expression; when it does not compile as
+  one, it is compiled as a statement.
+- **LINQPad keeps `Permalink`.** It still shows the `workspace.GetDeclaration(…)` hyperlink. Moving it to the general
+  link builder, with `Open(link)` in LINQPad queries, is left for v2.
+- **Schema validation.** Tests check the structure of JSON results against the documented kinds instead of running a
+  JSON Schema validator, to avoid a test-only dependency.
+- **Injection test.** It renders values that contain `</script>`, tags and placeholders in memory instead of loading a
+  separate sample project.
+- **Not covered by tests.** The tests check the MCP App metadata, the resource and `structuredContent`, but not the view
+  running inside a real host, which needs a manual check.
