@@ -4,6 +4,7 @@
 
 using SharpCrafters.Aspects.Introspection.Query;
 using SharpCrafters.Aspects.Introspection.Query.Projects;
+using SharpCrafters.Aspects.Introspection.Query.V2;
 using System;
 using System.Collections.Generic;
 using System.IO;

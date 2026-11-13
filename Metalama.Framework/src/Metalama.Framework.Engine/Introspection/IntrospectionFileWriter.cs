@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Introspection;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Aspects.Introspection;
+using SharpCrafters.Aspects.Introspection.V2;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;

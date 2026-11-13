@@ -4,7 +4,7 @@
 
 using Metalama.Framework.Tests.UnitTests.Aspects;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Aspects.Introspection;
+using SharpCrafters.Aspects.Introspection.V2;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
