@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
 
     <!--
         Define a METALAMA_PROJECT_<hash> compilation symbol that identifies this project. Metalama identifies a project
@@ -54,6 +54,13 @@
 
         <!-- Auxiliary files used at design time. -->
         <MetalamaAdditionalCompilationOutputDirectory Condition="'$(MetalamaDesignTimeEnabled)'=='False'">$(MSBuildProjectDirectory)/$(IntermediateOutputPath)/metalama-aux/</MetalamaAdditionalCompilationOutputDirectory>
+
+        <!-- The introspection file (.mlsym), which the compile-time pipeline writes when MetalamaWriteIntrospectionFile is True,
+             and which the `dotnet metalama introspect` commands read. It is next to the output assembly by default. The commands
+             read this property by evaluating the project, so it is defined during the evaluation when OutDir is known, and
+             again in ExportMetalamaFrameworkProperties otherwise. -->
+        <MetalamaWriteIntrospectionFile Condition="'$(MetalamaWriteIntrospectionFile)'==''">False</MetalamaWriteIntrospectionFile>
+        <MetalamaIntrospectionFile Condition="'$(MetalamaIntrospectionFile)'=='' AND '$(OutDir)'!='' AND '$(TargetName)'!=''">$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(OutDir),'$(TargetName).mlsym'))</MetalamaIntrospectionFile>
 
         <!-- Design time fallback dependency that forces rerun of analyzers/source generators when changed. -->
         <MetalamaDesignTimeFallbackTouchFile Condition="'$(MetalamaDesignTimeEnabled)'=='False'">$(MetalamaAdditionalCompilationOutputDirectory)MetalamaDesignTimeTouch.touch</MetalamaDesignTimeFallbackTouchFile>
@@ -155,7 +162,15 @@
         <PropertyGroup>
             <MetalamaBuildTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaBuild.touch'))</MetalamaBuildTouchFile>
             <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaSourceGenerator.g.cs'))</MetalamaSourceGeneratorTouchFile>
+            <MetalamaIntrospectionFile Condition="'$(MetalamaIntrospectionFile)'=='' AND '$(OutDir)'!=''">$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(OutDir),'$(TargetName).mlsym'))</MetalamaIntrospectionFile>
         </PropertyGroup>
+    </Target>
+
+    <!-- The introspection file is an output of the build, so that a clean deletes it. -->
+    <Target Name="MetalamaAddIntrospectionFileToFileWrites" BeforeTargets="CoreCompile" Condition="'$(MetalamaWriteIntrospectionFile)'=='True' AND '$(MetalamaIntrospectionFile)'!=''">
+        <ItemGroup>
+            <FileWrites Include="$(MetalamaIntrospectionFile)" />
+        </ItemGroup>
     </Target>
 
     <!-- MetalamaSkipTouchFiles is set by `metalama preview`, which runs the Compile target only to read the command line of the

@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
@@ -232,6 +233,20 @@ public class CompileTimeAspectPipeline : AspectPipeline
     {
         try
         {
+            // The introspection file needs the introspection model, which the listener builds while the pipeline runs. It is
+            // registered only when the file is requested, so that a normal build does not pay for it.
+            IntrospectionFactory? introspectionFactory = null;
+            CompilationModel? introspectionCompilation = null;
+
+            if ( this.ProjectOptions.WriteIntrospectionFile && preview == null )
+            {
+                introspectionCompilation = CompilationModel.CreateInitialInstance( configuration.ProjectModel, compilation );
+                introspectionFactory = new IntrospectionFactory( introspectionCompilation );
+                var introspectionServiceProvider = configuration.ServiceProvider.Underlying.WithService( introspectionFactory );
+                introspectionServiceProvider = introspectionServiceProvider.WithService( new IntrospectionPipelineListener( introspectionServiceProvider ) );
+                configuration = configuration.WithServiceProvider( introspectionServiceProvider );
+            }
+
             // Execute the pipeline.
             var result = await this.ExecuteAsync( compilation, diagnosticAdder, configuration, cancellationToken );
 
@@ -314,6 +329,18 @@ public class CompileTimeAspectPipeline : AspectPipeline
                         ( d, _ ) => suppressions.Any( s => s.Suppression.Definition.SuppressedDiagnosticId == d.Id ),
                         cancellationToken );
                 }
+            }
+
+            // Write the introspection file, which the `dotnet metalama introspect` commands read.
+            if ( introspectionFactory != null )
+            {
+                IntrospectionFileWriter.Write(
+                    this.ProjectOptions,
+                    introspectionCompilation.AssertNotNull(),
+                    result.Value,
+                    introspectionFactory,
+                    diagnosticAdder,
+                    cancellationToken );
             }
 
             // Add managed resources.
