@@ -916,6 +916,18 @@ namespace Metalama.Framework.Engine.Templating
                             declaredSymbol ) );
                 }
 
+                // Report an error for an aspect type that is file-local or nested in a file-local type. The compile-time project identifies
+                // an aspect type by its metadata name, and that name cannot be resolved back to the type in this case. See issue #2058.
+                if ( declaredSymbol.Kind == SymbolKind.NamedType && declaredSymbol is INamedTypeSymbol namedTypeSymbol
+                                                                 && IsFileLocalOrNestedInFileLocal( namedTypeSymbol )
+                                                                 && IsAspect( namedTypeSymbol ) )
+                {
+                    this.Report(
+                        TemplatingDiagnosticDescriptors.AspectCannotBeFileLocal.CreateRoslynDiagnostic(
+                            declaredSymbol.GetDiagnosticLocation(),
+                            declaredSymbol ) );
+                }
+
                 // Get the type scope.
                 var typeScope = declaredSymbol.Kind == SymbolKind.NamedType ? scope : this._currentTypeScope;
 
@@ -1080,6 +1092,20 @@ namespace Metalama.Framework.Engine.Templating
                 bool IsAspect( INamedTypeSymbol symbol )
                 {
                     return compilation.HasImplicitConversion( symbol, reflectionMapper.GetTypeSymbol( typeof(IAspect) ) );
+                }
+
+                // Roslyn sets IsFileLocal only on the top-level type, so the containing types must be checked as well.
+                static bool IsFileLocalOrNestedInFileLocal( INamedTypeSymbol symbol )
+                {
+                    for ( var type = symbol; type != null; type = type.ContainingType )
+                    {
+                        if ( type.IsFileLocal )
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 }
             }
 

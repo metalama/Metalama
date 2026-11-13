@@ -737,5 +737,14 @@ namespace Metalama.Framework.Engine.Templating
                 + "references of the compilation contain a type that is part of the signature of the declaration.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<ISymbol> AspectCannotBeFileLocal
+            = new(
+                "LAMA0296",
+                "An aspect type cannot be file-local.",
+                "The type '{0}' is not a valid aspect type because it is declared with the 'file' modifier or is nested in a type declared "
+                + "with the 'file' modifier. Remove the 'file' modifier.",
+                _category,
+                Error );
     }
 }
