@@ -638,7 +638,9 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                     Invariant.Assert( templatePropertyDeclaration != null );
 
                                     var getMethodMissingFromTemplate = interfaceProperty.GetMethod != null && templatePropertyDeclaration.GetMethod == null;
-                                    var setMethodMissingFromTemplate = interfaceProperty.SetMethod != null && templatePropertyDeclaration.SetMethod == null;
+                                    // The pseudo-setter of a get-only automatic property is implicitly declared, so it does not count as a 'set' accessor.
+                                    var setMethodMissingFromTemplate = interfaceProperty.SetMethod != null
+                                                                       && templatePropertyDeclaration.SetMethod is null or { IsImplicitlyDeclared: true };
                                     var getMethodUnexpectedInTemplate = interfaceProperty.GetMethod == null && templatePropertyDeclaration.GetMethod != null;
                                     var setMethodUnexpectedInTemplate = interfaceProperty.SetMethod == null && templatePropertyDeclaration.SetMethod != null;
                                     var setInitOnlyInTemplate = templatePropertyDeclaration.Writeability is Writeability.InitOnly;
