@@ -17,6 +17,8 @@ implemented.
 - Run on Windows and Linux, including the Linux containers used for unattended agent work. The LINQPad driver is
   Windows-only because of WPF.
 - Share the object walker and the link builder with `Metalama.LinqPad`, so both show the same properties and links.
+- Let a person look at any result in a browser, laid out as LINQPad lays it out, with property tables and grids that
+  can be expanded, sorted and filtered.
 
 ### 1.2. Non-goals
 
@@ -131,6 +133,9 @@ The guarantee covers the server's own code. A query can open a socket, as any pr
   more than the text.
 - **Primer.** The server's `instructions` field carries a short primer: the README examples, `SourceCode` versus
   `TransformedCode`, introspection collections, metrics, and how links work.
+- **Formats.** `format` is `text` (the default, section 7), `json` (section 7.6) or `html` (section 9.3). With `html`,
+  the result is written to a file and the tool returns its path and a short text summary, so the page never enters
+  the agent's context.
 - **No `reset` tool.** Queries are stateless (section 6.3), so there is nothing to reset.
 
 ## 6. Query execution
@@ -260,6 +265,9 @@ With `format: "json"`, the same tree is returned as JSON for agents that post-pr
     "Methods":  { "link": "T:FrogHattery.BullFrog/Methods", "count": 3 } } }
 ```
 
+The JSON form is also the only input of the HTML viewer (section 9). It is therefore a documented, versioned schema
+(`"schema": 1` at the root), not an implementation detail of the renderer.
+
 ## 8. Links
 
 A link names a stable anchor and a path of steps from it. The server resolves it again from nothing, so it keeps no
@@ -378,7 +386,106 @@ Open<IIntrospectionAspectInstance>( "M:FrogHattery.BullFrog.Croak/aspects/FrogHa
 An LRU cache of query results, keyed by the query anchor and the fingerprint, saves re-running an expensive query on
 every drill-down. It is an optimization only. With the cache empty, every link still resolves.
 
-## 9. Code shared with LINQPad
+## 9. HTML viewer
+
+The text format is for the agent. The viewer is for the person working with it: it shows a result the way LINQPad
+does, so that a query the agent ran can be checked, browsed and shared.
+
+### 9.1. One viewer, two ways to deliver it
+
+The viewer is a single JavaScript page that renders the JSON format of section 7.6. The server never builds HTML
+markup itself. The same page is delivered in two ways:
+
+| | Static file (section 9.3) | MCP App (section 9.4) |
+|---|---|---|
+| Where it opens | Any browser, from `file://` | Inside the agent's host, next to the conversation |
+| Data | A snapshot embedded in the file | The tool result, then more through `tools/call` |
+| Drill-down beyond the data | Copy the link or the C# expression | Live, through the server |
+| Needs | Nothing | A host that supports MCP Apps |
+
+Neither way opens a socket. A local HTTP server and a custom `metalama:` protocol handler were both rejected: each
+would need a listening endpoint that reaches the worker, which section 4 rules out.
+
+### 9.2. Layouts
+
+The layouts follow LINQPad's conventions.
+
+| Value | Layout |
+|---|---|
+| Single object | **Property table**: a header bar with the type name and the link, then one row per property, name and value. |
+| Collection of objects | **Grid**: a header bar with the item type and the count, one column per property of the item type, one row per item. |
+| Projection (anonymous types, records) | Grid whose columns are the projection's members. |
+| Collection of scalars | Single-column list. |
+| Grouping | One collapsible section per key, with a grid inside. |
+| Declaration in a cell | Its display string as a link, with `file:line` in muted text. |
+| Nested object or collection in a cell | Collapsed to its summary (`[3]`, display string); a click expands it in place as a nested table. |
+| Null, error | Grey `null`; red error text. |
+| Truncated collection | A footer row: `50 of 120 shown`. |
+
+Interactions:
+
+- Expand and collapse any table by its header bar.
+- Sort a grid by a column, filter it by text, and hide columns.
+- On every row with a link, copy the link (to paste to the agent) or the C# expression (to paste into a query, or
+  into LINQPad, whose `Open(…)` uses the same resolver).
+- Light and dark themes follow the browser setting.
+
+### 9.3. Static file
+
+- `query` or `open` with `format: "html"` writes one self-contained HTML file and returns its path as a `file://`
+  URI, together with the usual text summary.
+- The file contains the viewer's script and styles inline and the result as JSON in a
+  `<script type="application/json">` element. It loads nothing from the network.
+- There is no round trip to the server, so the snapshot is rendered deeper than text output: by default `maxDepth` 3
+  and `maxItems` 500, with a size cap of 10 MB.
+- Links that point into the snapshot jump to the anchor in the page. Other links offer the two copy actions of
+  section 9.2.
+- Files go to the directory given by the `--output-dir` option, or by default to
+  `<temp>/metalama-mcp/<workspace key>/`, with a name built from the time and a hash of the query.
+- The server does not start a browser. The agent or the person opens the file.
+
+### 9.4. MCP App
+
+The MCP Apps extension (SEP-1865, stable since 2026-01-26) lets a server provide an HTML view that the host renders in
+a sandboxed frame. The view and the server talk through the host with JSON-RPC over `postMessage`, so it fits the
+transport rules of section 4.
+
+- The server declares the resource `ui://metalama/viewer`, with MIME type `text/html;profile=mcp-app`. It is the same
+  page as the static file, without embedded data.
+- `query` and `open` declare `_meta.ui.resourceUri: "ui://metalama/viewer"`. Their results carry the JSON in
+  `structuredContent` for the view and the text format in `content` for the model.
+- The host passes the result to the view with `ui/notifications/tool-result`.
+- **Live drill-down.** A click on a link sends `tools/call` for `open` through the host. "Show more" on a truncated
+  grid sends `open` again with a larger `maxItems`. Hosts reject calls from the view to tools whose `visibility`
+  lacks `"app"`, so `query` and `open` declare `["model", "app"]`.
+- The resource declares no `csp` domains, so the host applies the extension's restrictive default and the view has
+  no network access.
+- The server registers the view only when the client advertises the `io.modelcontextprotocol/ui` capability. Other
+  clients see text and JSON only.
+- Following a query-anchored link runs code (section 4.3), so a host that asks permission for tool calls asks for
+  calls made from the view too.
+
+### 9.5. Untrusted content
+
+Values come from the analysed code: string constants, attribute arguments, diagnostic messages. A crafted value must
+not be able to run script in the viewer or send data anywhere.
+
+- The viewer builds its DOM with `textContent` and attribute setters only, never `innerHTML`, and runs no `eval`.
+- Links are rendered as in-page anchors or copy buttons, never as `href` values built from data.
+- In the static file, the embedded JSON escapes `<` as `<`, so a value containing `</script>` cannot close the
+  element.
+- The static file sets a content security policy in a `<meta>` element: `default-src 'none'`, the viewer's script
+  allowed by its hash, inline styles, and `data:` images.
+
+### 9.6. Building the viewer
+
+- The viewer is plain JavaScript with no framework, embedded as a resource in `Metalama.Mcp`, with a size target under
+  100 KB.
+- Writing it by hand avoids adding a Node.js build step to the repository. Section 13 asks whether that holds once
+  the grid interactions are written.
+- Its styling echoes LINQPad's: blue header bars, nested tables, muted nulls.
+
+## 10. Code shared with LINQPad
 
 - A new project, tentatively `Metalama.Framework.Workspaces.Navigation`, receives the facade walker
   (`FacadeObjectFactory`, `FacadeType`), the value classifier from `FacadePropertyFormatter`, and the link builder and
@@ -388,7 +495,7 @@ every drill-down. It is an optimization only. With the cache empty, every link s
 - `Metalama.Mcp` adds the text and JSON renderers, the tools and the process split.
 - Both front ends then show the same properties, in the same order, with the same links.
 
-## 10. Testing
+## 11. Testing
 
 Tests use the existing `FrogHattery` sample from the LINQPad tests.
 
@@ -405,24 +512,31 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
 - **Truncation:** the size and item limits apply and are reported.
 - **No listeners:** the banned-API analyzer, the dependency-closure check, and the socket check on the running
   process tree.
+- **JSON schema:** every JSON result validates against the published schema.
+- **Viewer injection:** a sample whose string constants and attribute arguments contain `</script>`, HTML tags and
+  event-handler attributes renders as plain text in the static file, and the page makes no network request.
+- **Viewer smoke test:** a headless browser opens a static file of the sample, expands a nested table, sorts a grid,
+  and reports no script error.
 
-## 11. Phasing
+## 12. Phasing
 
 **v1**
 
 - Supervisor and worker, stdio only, with the enforcement checks.
 - `load_workspace`, `reload_workspace`, `unload_workspace`, `query`, `open`.
 - Text renderer, declaration anchors, property and index steps, fingerprints.
+- JSON format and its schema, because the viewer depends on them.
+- Static HTML viewer (section 9.3).
 - Extraction of the shared project; LINQPad moves to the general link builder.
 
 **v2**
 
 - Query anchors and the result cache.
 - Key steps: `aspects`, `diagnostics`, references, derived types.
-- JSON format, resource template, `resource_link` items.
-- Exploring compiled assemblies (section 12).
+- MCP App delivery of the viewer (section 9.4), resource template, `resource_link` items.
+- Exploring compiled assemblies (section 13).
 
-## 12. Open questions
+## 13. Open questions
 
 1. **Compiled assemblies.** Workspaces load source projects. To explore a DLL or a NuGet package, `load_assembly`
    could generate a scratch project that references it and load that as a workspace. ID resolution already reaches
@@ -437,3 +551,7 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
 5. **Headless Backstage.** Confirm that no welcome page, toast or browser launch can happen in the worker.
 6. **Names.** `Metalama.Mcp` for the tool and `Metalama.Framework.Workspaces.Navigation` for the shared project are
    placeholders.
+7. **Viewer toolchain.** Hand-written JavaScript keeps the build free of Node.js. Sortable, filterable nested grids
+   may justify TypeScript and a bundler instead.
+8. **MCP App in v1.** The static file works everywhere. The MCP App gives live drill-down but depends on host
+   support. Should it move to v1?
