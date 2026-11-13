@@ -64,6 +64,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     /// </summary>
     internal IQueryOwner? Owner => this._ownerOverride ?? this._state.Owner;
 
+    /// <summary>
+    /// Gets the predecessor of the child aspects and aspect requirements added through this factory.
+    /// </summary>
+    /// <remarks>
+    /// The predecessor is the one of the <see cref="Owner"/>. For a type fabric, the owner is the amender, whose predecessor is the fabric instance
+    /// and not the aggregate aspect that executes the fabric. When there is no owner, the predecessor is the aspect instance.
+    /// </remarks>
+    [Memo]
+    private AspectPredecessor ChildAspectPredecessor
+        => this.Owner?.AspectPredecessor ?? new AspectPredecessor( AspectPredecessorKind.ChildAspect, this._state.AspectInstance );
+
     public AdviceFactory(
         T target,
         AdviceFactoryState state,
@@ -2278,8 +2289,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new ArgumentOutOfRangeException( nameof(aspect), $"'{aspect.GetType().Name}' is not a valid aspect type." );
             }
 
-            var predecessor = new AspectPredecessor( AspectPredecessorKind.ChildAspect, this._state.AspectInstance );
-            var aspectInstance = new AspectInstance( aspect, declaration, (AspectClass) aspectClass, predecessor );
+            var aspectInstance = new AspectInstance( aspect, declaration, (AspectClass) aspectClass, this.ChildAspectPredecessor );
 
             if ( aspectInstance.ComputeEligibility( declaration ) == EligibleScenarios.None )
             {
@@ -2327,7 +2337,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new ArgumentOutOfRangeException( nameof(aspectType), $"'{aspectType.Name}' is not a valid aspect type." );
             }
 
-            var aspectRequirement = new AspectRequirement( declaration.ToRef(), this._state.AspectInstance );
+            var aspectRequirement = new AspectRequirement( declaration.ToRef(), this.ChildAspectPredecessor.Instance );
 
             // TODO: Eligibility?
 
