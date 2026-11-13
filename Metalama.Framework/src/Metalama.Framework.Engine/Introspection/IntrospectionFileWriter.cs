@@ -98,7 +98,7 @@ internal static class IntrospectionFileWriter
                 WriteContent( jsonWriter, result, compilation, projectOptions, pipelineResult, cancellationToken );
             }
 
-            File.Copy( temporaryPath, path, true );
+            Publish( temporaryPath, path );
         }
         catch ( Exception e ) when ( e is not OperationCanceledException )
         {
@@ -113,6 +113,30 @@ internal static class IntrospectionFileWriter
             catch ( Exception e ) when ( e is IOException or UnauthorizedAccessException )
             {
                 // A temporary file that cannot be deleted is left behind. It does not affect the readers.
+            }
+        }
+    }
+
+    /// <summary>
+    /// Replaces the file with the temporary file in one operation of the file system, so that a reader sees either the previous
+    /// file or the new one, and a failure leaves the previous file complete.
+    /// </summary>
+    private static void Publish( string temporaryPath, string path )
+    {
+        if ( File.Exists( path ) )
+        {
+            File.Replace( temporaryPath, path, null, true );
+        }
+        else
+        {
+            try
+            {
+                File.Move( temporaryPath, path );
+            }
+            catch ( IOException ) when ( File.Exists( path ) )
+            {
+                // Another build wrote the file in the meantime.
+                File.Replace( temporaryPath, path, null, true );
             }
         }
     }
@@ -142,9 +166,13 @@ internal static class IntrospectionFileWriter
         // The identifiers of the aspect instances in the file, which the predecessors of the child aspects refer to.
         var aspectInstanceIds = new Dictionary<IIntrospectionAspectInstance, int>();
 
+        // The results of an aspect can list an aspect instance once per aspect layer, so the instances are taken once.
         foreach ( var aspectInstance in aspectClasses.SelectMany( c => c.Instances ) )
         {
-            aspectInstanceIds.Add( aspectInstance, aspectInstanceIds.Count + 1 );
+            if ( !aspectInstanceIds.ContainsKey( aspectInstance ) )
+            {
+                aspectInstanceIds.Add( aspectInstance, aspectInstanceIds.Count + 1 );
+            }
         }
 
         var layers = result.AspectLayers.ToLookup( l => l.AspectClass.FullName, StringComparer.Ordinal );
@@ -164,7 +192,7 @@ internal static class IntrospectionFileWriter
                 writer.WriteAspectLayer( new V2AspectLayerData { Name = layer.LayerName, Order = layer.Order ?? 0 } );
             }
 
-            foreach ( var aspectInstance in aspectClass.Instances )
+            foreach ( var aspectInstance in aspectClass.Instances.Distinct() )
             {
                 WriteAspectInstance( writer, identifiers, aspectInstance, aspectInstanceIds );
             }
@@ -192,7 +220,7 @@ internal static class IntrospectionFileWriter
             {
                 Id = aspectInstanceIds[aspectInstance],
                 TargetDeclaration = targetDeclaration,
-                Location = GetLocation( aspectInstance.TargetDeclaration ),
+                Location = GetLocationWithEndLine( aspectInstance.TargetDeclaration ),
                 IsSkipped = aspectInstance.IsSkipped
             } );
 
@@ -311,19 +339,50 @@ internal static class IntrospectionFileWriter
                 };
 
             case IIntrospectionFabric fabric:
-                return new V2PredecessorData { Kind = kind, Degree = degree, Declaration = identifiers.GetFabric( fabric.FullName ) };
+                return new V2PredecessorData
+                {
+                    Kind = kind,
+                    Degree = degree,
+                    Declaration = identifiers.GetFabric( fabric.FullName, (fabric as IntrospectionFabric)?.AssemblyName )
+                };
 
-            case IIntrospectionAspectInstance other when aspectInstanceIds.TryGetValue( other, out var otherId ):
+            case IIntrospectionAspectInstance other when kind is V2PredecessorKind.ChildAspect or V2PredecessorKind.RequiredAspect
+                                                         && aspectInstanceIds.TryGetValue( other, out var otherId ):
                 return new V2PredecessorData { Kind = kind, Degree = degree, AspectInstance = otherId };
 
             default:
-                // An aspect instance that is not in the file, such as the aspect instance of a base declaration of another
-                // assembly, from which this one is inherited: its target declaration identifies it.
+                // An inherited aspect instance is identified by its base declaration, whether the aspect instance of that declaration
+                // is in the file or in another assembly. So is a parent aspect instance that is not in the file.
                 return new V2PredecessorData { Kind = kind, Degree = degree, Declaration = identifiers.Get( relationship.Instance.TargetDeclaration ) };
         }
     }
 
     private static V2SourceLocation? GetLocation( IDeclaration declaration ) => GetLocation( declaration.GetDiagnosticLocation() );
+
+    /// <summary>
+    /// Gets the location of a declaration with the last line of its declaration syntax in the same file.
+    /// </summary>
+    private static V2SourceLocation? GetLocationWithEndLine( IDeclaration declaration )
+    {
+        var location = declaration.GetDiagnosticLocation();
+
+        if ( GetLocation( location ) is not { } result )
+        {
+            return null;
+        }
+
+        var syntax = declaration.GetSymbol()
+            ?.DeclaringSyntaxReferences.FirstOrDefault( r => r.SyntaxTree == location!.SourceTree && r.Span.Contains( location.SourceSpan ) );
+
+        if ( syntax == null )
+        {
+            return result;
+        }
+
+        var endLine = syntax.SyntaxTree.GetLineSpan( syntax.Span ).EndLinePosition.Line + 1;
+
+        return new V2SourceLocation { File = result.File, Line = result.Line, Column = result.Column, EndLine = endLine };
+    }
 
     private static V2SourceLocation? GetLocation( Location? location )
     {
@@ -409,9 +468,11 @@ internal static class IntrospectionFileWriter
         }
 
         /// <summary>
-        /// Gets the handle of the type of a fabric, from its full name. A fabric is declared in the project.
+        /// Gets the handle of the type of a fabric, from its full name and the name of the assembly that declares it, which is the
+        /// project or, for a transitive fabric, a referenced project.
         /// </summary>
-        public DeclarationHandle GetFabric( string fullName ) => this.GetHandle( "T:" + fullName.Replace( '+', '.' ), this._assemblyName );
+        public DeclarationHandle GetFabric( string fullName, string? assemblyName )
+            => this.GetHandle( "T:" + fullName.Replace( '+', '.' ), assemblyName ?? this._assemblyName );
 
         private DeclarationHandle GetHandle( string identifier, string? assemblyName )
         {

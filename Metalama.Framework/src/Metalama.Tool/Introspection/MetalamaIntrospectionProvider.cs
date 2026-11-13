@@ -65,10 +65,12 @@ internal sealed class MetalamaIntrospectionProvider : IntrospectionProvider
     /// starts.
     /// </summary>
     /// <remarks>
-    /// The file records where a declaration starts, not where it ends. A line is therefore attributed to the declaration of the same
-    /// file that starts on the nearest line at or before it, which is the innermost declaration when the line is in its header or
-    /// body, and can be a preceding declaration when the line is between two declarations. The file is read again when the
-    /// locations are first needed, because the model of the query can come from the cache of the commands.
+    /// The file records where a target declaration starts and the last line of its declaration syntax. A line is attributed to the
+    /// recorded declarations whose span contains it, the innermost first. A declaration without an end line, written by an earlier
+    /// version, matches only its first line. A line in a declaration that the file does not record, such as a method to which no
+    /// aspect applies, matches the recorded declarations that contain it, such as its type, and never a sibling declaration. The
+    /// file is read again when the locations are first needed, because the model of the query can come from the cache of the
+    /// commands.
     /// </remarks>
     private sealed class SourceLocations : IIntrospectionSourceLocations
     {
@@ -87,18 +89,16 @@ internal sealed class MetalamaIntrospectionProvider : IntrospectionProvider
         {
             var fullPath = Path.GetFullPath( file );
 
-            var candidates = this.GetLocations()
-                .Where( l => l.Value.Line <= line && string.Equals( Path.GetFullPath( l.Value.File ), fullPath, StringComparison.OrdinalIgnoreCase ) )
-                .Select( l => (Id: l.Key.Substring( l.Key.IndexOf( ']', StringComparison.Ordinal ) + 1 ), l.Value.Line) )
+            // The declarations whose span contains the line. The innermost one starts last.
+            return this.GetLocations()
+                .Where(
+                    l => l.Value.Line <= line && line <= (l.Value.EndLine ?? l.Value.Line)
+                                              && string.Equals( Path.GetFullPath( l.Value.File ), fullPath, StringComparison.OrdinalIgnoreCase ) )
+                .OrderByDescending( l => l.Value.Line )
+                .ThenByDescending( l => l.Value.Column )
+                .Select( l => l.Key.Substring( l.Key.IndexOf( ']', StringComparison.Ordinal ) + 1 ) )
+                .Distinct( StringComparer.Ordinal )
                 .ToList();
-
-            if ( candidates.Count == 0 )
-            {
-                return [];
-            }
-
-            // The declarations that start on the nearest line, then the earlier ones, which may contain them.
-            return candidates.OrderByDescending( c => c.Line ).Select( c => c.Id ).Distinct( StringComparer.Ordinal ).ToList();
         }
 
         private Dictionary<string, IntrospectionSourceLocation> GetLocations()

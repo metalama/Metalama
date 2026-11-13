@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../../../eng/RoslynVersions/Latest.props" />
 
@@ -40,6 +40,7 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
 
         <PackageReference Include="Metalama.Backstage" />
         <PackageReference Include="Metalama.Backstage.Tools" />
+        <PackageReference Include="SharpCrafters.Aspects.Introspection" />
         <PackageReference Include="Metalama.Compiler.Sdk" />
 
         <PackageReference Include="DiffPlex" />

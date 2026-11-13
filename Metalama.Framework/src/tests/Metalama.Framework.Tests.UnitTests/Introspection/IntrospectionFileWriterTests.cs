@@ -106,6 +106,9 @@ public sealed class IntrospectionFileWriterTests : AspectTestBase
             Assert.True( add.TryGetProperty( "location", out var location ) );
             Assert.True( location.GetProperty( "line" ).GetInt32() > 0 );
 
+            // The method is declared on one line.
+            Assert.Equal( location.GetProperty( "line" ).GetInt32(), location.GetProperty( "endLine" ).GetInt32() );
+
             var transformations = add.GetProperty( "transformations" ).EnumerateArray().ToList();
             Assert.Contains( transformations, t => t.GetProperty( "kind" ).GetString() == "OverrideMember" && t.GetProperty( "adviceKind" ).GetString() == "OverrideMethod" );
 
@@ -126,6 +129,53 @@ public sealed class IntrospectionFileWriterTests : AspectTestBase
 
             // The shared reader reads the whole file.
             AssertReadable( path );
+        }
+        finally
+        {
+            if ( Directory.Exists( directory ) )
+            {
+                Directory.Delete( directory, true );
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AnInheritedAspectInstanceRefersToItsBaseDeclaration()
+    {
+        const string code = """
+                            using Metalama.Framework.Aspects;
+
+                            namespace App;
+
+                            [Inheritable]
+                            public class TrackAttribute : TypeAspect { }
+
+                            [Track]
+                            public class Base { }
+
+                            public class Derived : Base { }
+                            """;
+
+        var directory = Path.Combine( Path.GetTempPath(), "Metalama", "IntrospectionFileWriterTests", Guid.NewGuid().ToString( "N" ) );
+        var path = Path.Combine( directory, "App.mlsym" );
+
+        try
+        {
+            using var testContext = this.CreateTestContext( CreateOptions( path ) );
+
+            await CompileAsync( testContext, code );
+
+            using var document = JsonDocument.Parse( File.ReadAllText( path ) );
+            var track = Assert.Single(
+                document.RootElement.GetProperty( "aspectClasses" ).EnumerateArray(),
+                c => c.GetProperty( "id" ).GetString() == "T:App.TrackAttribute" );
+            var derived = Assert.Single( track.GetProperty( "aspectInstances" ).EnumerateArray(), i => i.GetProperty( "targetDeclaration" ).GetString() == "T:App.Derived" );
+            var inherited = Assert.Single( derived.GetProperty( "predecessors" ).EnumerateArray() );
+
+            // The loader identifies an inherited predecessor by its base declaration, not by the identifier of an aspect instance.
+            Assert.Equal( "Inherited", inherited.GetProperty( "kind" ).GetString() );
+            Assert.Equal( "T:App.Base", inherited.GetProperty( "declaration" ).GetString() );
+            Assert.False( inherited.TryGetProperty( "aspectInstance", out _ ) );
         }
         finally
         {
