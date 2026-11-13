@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Introspection;
 
-internal sealed class IntrospectionAttributeAsPredecessor : IIntrospectionAspectPredecessorInternal
+internal sealed class IntrospectionAttributeAsPredecessor : IIntrospectionAttributeAsPredecessor, IIntrospectionAspectPredecessorInternal
 {
     private readonly IntrospectionFactory _factory;
     private readonly IAttribute _attribute;
@@ -23,6 +23,8 @@ internal sealed class IntrospectionAttributeAsPredecessor : IIntrospectionAspect
         this._factory = factory;
         this._attribute = attribute;
     }
+
+    public IAttribute Attribute => this._attribute;
 
     public int PredecessorDegree => 0;
 

@@ -160,6 +160,12 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
             ? value.Split( ',' ).Select( n => n.Trim() ).Where( n => n.Length > 0 ).ToImmutableArray()
             : ImmutableArray<string>.Empty;
 
+    public override bool WriteIntrospectionFile
+        => this.TestContextOptions.Properties.TryGetValue( "MetalamaWriteIntrospectionFile", out var value ) && bool.TryParse( value, out var enabled )
+                                                                                                             && enabled;
+
+    public override string? IntrospectionFilePath => this.TestContextOptions.Properties.GetValueOrDefault( "MetalamaIntrospectionFile" );
+
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
         => this.TestContextOptions.Properties.TryGetValue( name, out value );
 

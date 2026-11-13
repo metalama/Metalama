@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 
     <PropertyGroup>
@@ -74,6 +74,8 @@
              SpanBasedStringBuilder.Equals. -->
         <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator"/>
+        <!-- The choice of the .NET SDK, shared with the introspect commands of the tools (DotNetSdkLocator). -->
+        <PackageReference Include="SharpCrafters.Aspects.Introspection.Query"/>
         <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence"/>
 
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" GeneratePathProperty="True" PrivateAssets="all"/>

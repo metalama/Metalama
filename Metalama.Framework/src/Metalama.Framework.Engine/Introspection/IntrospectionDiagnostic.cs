@@ -26,6 +26,11 @@ namespace Metalama.Framework.Engine.Introspection
             this.Source = source;
         }
 
+        /// <summary>
+        /// Gets the Roslyn diagnostic, whose location gives the column, which <see cref="IIntrospectionDiagnostic"/> does not expose.
+        /// </summary>
+        internal Diagnostic RoslynDiagnostic => this._diagnostic;
+
         public string Id => this._diagnostic.Id;
 
         public string Message => this._diagnostic.GetLocalizedMessage();
