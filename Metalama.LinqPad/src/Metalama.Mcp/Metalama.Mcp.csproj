@@ -17,6 +17,9 @@
         <!-- A tool package that contains PDBs gets its symbol package rejected, as for Metalama.Tool. -->
         <IncludeSymbols>false</IncludeSymbols>
         <DebugType>Portable</DebugType>
+        <!-- The translated resources of Roslyn and its dependencies are a sixth of the package, and the server only
+             returns compiler messages to agents, so English is enough. -->
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
         <PackageDescription>A local Model Context Protocol server that lets coding agents load C# projects and run C# queries over the Metalama code model and introspection API. It communicates only over stdio and never opens a listening socket, because it runs arbitrary code by design.</PackageDescription>
 
         <!-- Uses Metalama internals, as Metalama.LinqPad does. -->
