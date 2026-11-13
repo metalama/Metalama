@@ -17,12 +17,19 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
     {
         private static readonly WeakCache<Compilation, CompilationReferenceGraph> _instances = new( isStaticCache: true );
         private readonly Dictionary<IAssemblySymbol, (int Min, int Max)> _depth = new();
+        private readonly ICompilationReferenceGraphObserver? _observer;
 
-        public static CompilationReferenceGraph GetInstance( Compilation compilation )
-            => _instances.GetOrAdd( compilation, c => new CompilationReferenceGraph( c ) );
-
-        private CompilationReferenceGraph( Compilation compilation )
+        public static CompilationReferenceGraph GetInstance( Compilation compilation, in ProjectServiceProvider serviceProvider )
         {
+            var observer = serviceProvider.GetService<ICompilationReferenceGraphObserver>();
+
+            return _instances.GetOrAdd( compilation, c => new CompilationReferenceGraph( c, observer ) );
+        }
+
+        private CompilationReferenceGraph( Compilation compilation, ICompilationReferenceGraphObserver? observer )
+        {
+            this._observer = observer;
+
             this.Visit(
                 compilation.Assembly,
                 0,
@@ -42,9 +49,18 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 return;
             }
 
+            this._observer?.OnAssemblyVisited( assembly, depth );
+
             if ( !this._depth.TryGetValue( assembly, out var depthRange ) )
             {
                 depthRange = (depth, depth);
+            }
+            else if ( depth >= depthRange.Min && depth <= depthRange.Max )
+            {
+                // The references of this assembly were already walked at a depth at most this depth and at a depth at least this depth,
+                // so their depth ranges already contain every depth that walking them again would give. Walking them again on each path
+                // would make the analysis exponential in the number of diamonds of the graph (see #2330).
+                return;
             }
             else
             {
@@ -52,6 +68,8 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             }
 
             this._depth[assembly] = depthRange;
+
+            this._observer?.OnAssemblyExpanded( assembly, depth );
 
             var newProcessedAssemblies = processedAssemblies.Add( assembly );
 
