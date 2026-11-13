@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../../eng/RoslynVersions/Latest.props"/>
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>Metalama.Framework.Workspaces.Navigation</RootNamespace>
+        <PackageDescription>Walks objects of the Metalama code model and introspection API, summarizes them as result trees, and builds and resolves links to them. Shared by Metalama.LinqPad and Metalama.Mcp.</PackageDescription>
+
+        <!-- Uses Metalama internals (WeakCache, MetalamaStringFormatter, GetRoslynCompilation), as Metalama.LinqPad does. -->
+        <NoWarn>$(NoWarn);LAMA0820</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework.Workspaces" />
+        <PackageReference Include="Metalama.Framework.Sdk" ExcludeAssets="build;buildTransitive" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+
+        <InternalsVisibleTo Include="Metalama.LinqPad" />
+        <InternalsVisibleTo Include="Metalama.LinqPad.Tests" />
+        <InternalsVisibleTo Include="metalama-mcp" />
+        <InternalsVisibleTo Include="Metalama.Mcp.Tests" />
+        <InternalsVisibleTo Include="Metalama.Framework.Workspaces.Navigation.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

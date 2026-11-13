@@ -3,29 +3,38 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using LINQPad;
+using Metalama.Framework.Code;
+using Metalama.Framework.Workspaces.Navigation.Facade;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.LinqPad
 {
     /// <summary>
     /// A facade object for non-trivial object. It exposes only the public properties and use <see cref="FacadePropertyFormatter"/>
-    /// to format property values.
+    /// to format property values. Declarations get an additional <c>Permalink</c> property.
     /// </summary>
     internal sealed class FacadeObject : ICustomMemberProvider
     {
+        private const string _permalinkPropertyName = "Permalink";
+
+        private readonly FacadeObjectFactory _factory;
         private readonly FacadeType _type;
         private readonly object _instance;
 
-        internal FacadeObject( FacadeType facadeType, object instance )
+        internal FacadeObject( FacadeObjectFactory factory, FacadeType facadeType, object instance )
         {
+            this._factory = factory;
             this._type = facadeType;
             this._instance = instance;
         }
 
-        public IEnumerable<string> GetNames() => this._type.PropertyNames;
+        private bool HasPermalink => this._instance is IDeclaration;
 
-        public IEnumerable<Type> GetTypes() => this._type.PropertyTypes;
+        public IEnumerable<string> GetNames() => this.HasPermalink ? this._type.PropertyNames.Append( _permalinkPropertyName ) : this._type.PropertyNames;
+
+        public IEnumerable<Type> GetTypes() => this.HasPermalink ? this._type.PropertyTypes.Append( typeof(Permalink) ) : this._type.PropertyTypes;
 
         public IEnumerable<object?> GetValues()
         {
@@ -35,15 +44,8 @@ namespace Metalama.LinqPad
 
                 try
                 {
-                    if ( property.IsLazy )
-                    {
-                        value = FacadePropertyFormatter.FormatLazyPropertyValue( this._instance, property.Type, property.GetFunc );
-                    }
-                    else
-                    {
-                        var rawValue = property.GetFunc( this._instance );
-                        value = FacadePropertyFormatter.FormatPropertyValue( rawValue );
-                    }
+                    var rawValue = property.GetFunc( this._instance );
+                    value = FacadePropertyFormatter.FormatPropertyValue( rawValue );
                 }
                 catch ( Exception e )
                 {
@@ -51,6 +53,13 @@ namespace Metalama.LinqPad
                 }
 
                 yield return value;
+            }
+
+            if ( this._instance is IDeclaration declaration )
+            {
+                var permalink = new Permalink( this._factory.GetGetCompilationInfo( declaration ), declaration );
+
+                yield return FacadePropertyFormatter.FormatPropertyValue( permalink );
             }
         }
     }

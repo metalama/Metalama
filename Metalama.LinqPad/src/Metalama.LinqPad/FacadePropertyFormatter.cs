@@ -13,6 +13,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Workspaces.Navigation.Facade;
 
 namespace Metalama.LinqPad
 {
@@ -21,25 +22,6 @@ namespace Metalama.LinqPad
     /// </summary>
     internal static class FacadePropertyFormatter
     {
-        public static object FormatLazyPropertyValue( object owner, Type propertyType, Func<object, object?> getter )
-        {
-            if ( getter == null )
-            {
-                throw new ArgumentNullException( nameof(getter) );
-            }
-
-            if ( owner == null )
-            {
-                throw new ArgumentNullException( nameof(owner) );
-            }
-
-            return typeof(FacadePropertyFormatter)
-                .GetMethod( nameof(CreateLazy), BindingFlags.Static | BindingFlags.NonPublic )
-                .AssertNotNull()
-                .MakeGenericMethod( propertyType )
-                .Invoke( null, [new Func<object?>( () => getter( owner ) )] )!;
-        }
-
         public static object? FormatPropertyValue( object? value ) => FormatPropertyValueTestable( value ).View;
 
         public static (object? View, object? ViewModel) FormatPropertyValueTestable( object? value )
@@ -168,7 +150,6 @@ namespace Metalama.LinqPad
             return CreateHyperlink( exception, exception.Message, "error" );
         }
 
-        private static Lazy<T> CreateLazy<T>( Func<object?> func ) => new( () => (T) func()! );
 
         private static GroupingFacade<TKey, TItems> CreateGrouping<TKey, TItems>( IGrouping<TKey, TItems> group ) => new( group );
 

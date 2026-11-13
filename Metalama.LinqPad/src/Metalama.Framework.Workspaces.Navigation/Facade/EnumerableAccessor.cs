@@ -7,7 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Metalama.LinqPad
+namespace Metalama.Framework.Workspaces.Navigation.Facade
 {
     /// <summary>
     /// Exposes the number of items in a collection.

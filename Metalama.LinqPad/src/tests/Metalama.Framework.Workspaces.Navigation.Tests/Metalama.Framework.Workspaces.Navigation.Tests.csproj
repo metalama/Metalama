@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\..\..\..\eng\Coverage.props" />
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>Metalama.Framework.Workspaces.Navigation.Tests</RootNamespace>
+        <NoWarn>$(NoWarn);LAMA0820</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit.v3" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+        <PackageReference Include="Metalama.Compiler.Sdk" />
+        <PackageReference Include="Metalama.Testing.UnitTesting" />
+        <ProjectReference Include="..\..\Metalama.Framework.Workspaces.Navigation\Metalama.Framework.Workspaces.Navigation.csproj" />
+        <PackageReference Update="coverlet.collector">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Update="coverlet.msbuild">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+
+        <!-- Same as Metalama.LinqPad.Tests: the package has content, and the MSBuild assemblies must not be copied to the
+             output directory, for the reason given in Metalama.Framework.Workspaces.csproj. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
+    </ItemGroup>
+
+</Project>
