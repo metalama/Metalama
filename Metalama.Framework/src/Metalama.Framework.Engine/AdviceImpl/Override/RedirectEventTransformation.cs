@@ -47,7 +47,7 @@ internal sealed class RedirectEventTransformation : OverrideMemberTransformation
                     context.SyntaxGenerator.EventType( overriddenDeclaration ),
                     null,
                     SyntaxFactoryEx.SafeIdentifier(
-                        context.InjectionNameProvider.GetOverrideName(
+                        context.InjectionNameProvider.AssertNotNull().GetOverrideName(
                             overriddenDeclaration.DeclaringType,
                             this.AspectLayerId,
                             overriddenDeclaration ) ),

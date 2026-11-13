@@ -53,7 +53,7 @@ internal sealed class RedirectPropertyTransformation : OverrideMemberTransformat
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     null,
                     SyntaxFactoryEx.SafeIdentifier(
-                        context.InjectionNameProvider.GetOverrideName(
+                        context.InjectionNameProvider.AssertNotNull().GetOverrideName(
                             overriddenDeclaration.DeclaringType,
                             this.AspectLayerId,
                             overriddenDeclaration ) ),

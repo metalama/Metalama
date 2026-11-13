@@ -87,7 +87,7 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
                     PredefinedType( Token( SyntaxKind.VoidKeyword ) ),
                     null,
                     SyntaxFactoryEx.SafeIdentifier(
-                        context.InjectionNameProvider.GetOverrideName(
+                        context.InjectionNameProvider.AssertNotNull().GetOverrideName(
                             overriddenDeclaration.DeclaringType,
                             this.AspectLayerId,
                             overriddenDeclaration ) ),
@@ -116,7 +116,7 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
     {
         var originalParameterList = context.SyntaxGenerator.ParameterList( overriddenDeclaration, context.FinalCompilation, true );
 
-        var overriddenByParameterType = context.InjectionNameProvider.GetOverriddenByType(
+        var overriddenByParameterType = context.InjectionNameProvider.AssertNotNull().GetOverriddenByType(
             this.AspectInstance,
             overriddenDeclaration,
             context.SyntaxGenerationContext );
