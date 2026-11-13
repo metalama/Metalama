@@ -239,7 +239,7 @@ truncated: 50 of 120 shown; append .Skip(50) or pass maxItems
 | Declaration | Its link (the ID, relative to the base), then `file:line`. |
 | Grouping | A key line, with the group's items indented below it. |
 | Nested collection | `[count]` and the link that opens it. Expanded only within `maxDepth`. |
-| Lazy or expensive property | `[?]` and a link. Nothing is computed until the agent opens it. |
+| Collection without an `int` `Count` or `Length` | `[?]` and a link. The renderer does not enumerate it to count it. |
 | Getter that throws | `‹error: NotSupportedException›`; rendering continues. |
 | Diagnostic | `error LAMA0041 BullFrog.cs:20 message`, with words rather than LINQPad's glyphs. |
 | Transformed-code declaration | Suffix `[transformed]`. |
@@ -250,6 +250,7 @@ truncated: 50 of 120 shown; append .Skip(50) or pass maxItems
 ```text
 <rendered value>
 --- console ---              only when the query wrote to the console
+--- error list ---           only when the query caused Metalama to report diagnostics (section 10.3)
 --- query diagnostics ---    only on compile errors or warnings; positions are relative to the agent's code
 --- 312 ms · fingerprint 3f9a… · truncated at 20,000 characters ---
 ```
@@ -495,10 +496,14 @@ not be able to run script in the viewer or send data anywhere.
 - `Metalama.Mcp` adds the text and JSON renderers, the tools and the process split.
 - Both front ends then show the same properties, in the same order, with the same links.
 
-### 10.1. Display conventions
+The customizations that `Metalama.LinqPad` supports fall into three groups: which members are shown (section 10.1),
+how values are summarized (section 10.2), and what the driver does around a query (section 10.3). The first two move
+with the walker into the shared project, so the text, JSON and HTML output honor them as LINQPad does. The third is
+reimplemented by the MCP server.
 
-The Metalama API marks what tools should not show, and `FacadeType` encodes further rules. They move with the walker
-into the shared project, so the text, JSON and HTML output honor them as LINQPad does.
+### 10.1. Member selection
+
+The Metalama API marks what tools should not show, and `FacadeType` encodes further rules.
 
 | Convention | Effect today | Examples |
 |---|---|---|
@@ -522,6 +527,39 @@ Changes in the shared walker:
 
 Hiding affects display only. A query can still read a hidden member, because C# sees the full API.
 
+### 10.2. Value summaries
+
+`FacadePropertyFormatter` decides how a value looks when it is shown collapsed, as a property value or a grid cell.
+
+| Value | LINQPad today | Text, JSON and HTML |
+|---|---|---|
+| `Severity` | A glyph and the name: ⛔ Error, ⚠ Warning, ℹ Info. | The name only. |
+| Enum | `ToString()`. | Same. |
+| Primitive, string | Inline. | Same. |
+| `IGrouping<TKey, T>` | Wrapped in `GroupingFacade`, which materializes the items and summarizes as `Key => n item(s)`. | A grouping node (section 7.4). |
+| Collection | Collapsed: `(empty)`, `(1 item)`, `(n items)`, or `(? items)` when the type has no `int` `Count` or `Length`. Never enumerated to count. | `[]`, `[n]` or `[?]`. |
+| `IDisplayable` | `ToDisplayString( CodeDisplayFormat.ShortDiagnosticMessage )`. | Same string, as the display text next to the link. |
+| `FormattableString` | Rich text: arguments that are objects become inline links that expand in place, formatted with `MetalamaStringFormatter`. | Text: the string formatted with `MetalamaStringFormatter`. JSON and HTML: the format segments plus the arguments as nodes with their links, so the viewer can expand them. |
+| Other object | `ToString()`, or the type name when that is blank. | Same. |
+| Getter that throws | A red link with the exception message that expands to the exception. | `‹error: Type: message›`. |
+| LINQPad's own objects | Passed through unchanged. | Not applicable. |
+
+`FacadeProperty` has an `IsLazy` flag and `FacadePropertyFormatter` has a lazy path, but no code sets the flag, so
+every getter runs when its object is shown. The shared walker drops the unused path. Deferring work is the renderer's
+job: a collapsed value is never enumerated, and `maxDepth` bounds expansion.
+
+### 10.3. Driver behaviors
+
+| Behavior | LINQPad today | MCP server |
+|---|---|---|
+| Load diagnostics | Dumped as "Loading Issues" when the connection's `ReportWorkspaceErrors` option is on (the default). | Summarized in the `load_workspace` result; listed in full under the workspace's `diagnostics` link anchor. |
+| Diagnostics reported during a query | `DiagnosticReporter.ReportAction` dumps them as "Error List". The counters are cleared before and after each query. | The worker sets the same action to collect them, returns them under `--- error list ---`, and clears the counters around each query. |
+| Metrics | `WorkspaceCollection.Default.ServiceBuilder.AddMetrics()`, so `Metalama.Extensions.Metrics` works in queries. | Same. |
+| Schema explorer | `SchemaFactory` lists the collections of `IProjectSet` and `ICompilationSet`, adds "Source Code", "Transformed Code" and "Aspects" only when Metalama is enabled, lists each project, and adds `GetInboundReferences()` and `GetOutboundReferences()` under declarations. | The primer in the server's `instructions` is generated from the same reflection rules, so it lists the same entry points, and `load_workspace` reports the same per-project expressions. |
+| `MetalamaDumper.ToDump` | Lets a query use the Metalama formatting without the driver. | No equivalent needed: every result goes through the walker. |
+| `METALAMA_LINQPAD_DEBUG` | Launches a debugger at initialization. | `METALAMA_MCP_DEBUG` does the same in the worker. |
+| Shadow-copy check | Fails if `Microsoft.Build.dll` sits next to the queries. | Not applicable: the worker is not loaded by LINQPad. |
+
 ## 11. Testing
 
 Tests use the existing `FrogHattery` sample from the LINQPad tests.
@@ -543,6 +581,10 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
 - **Display conventions:** the output never contains `Depth`, `Comparers` or `Cache`, nor members contributed by a
   `[Hidden]` interface, and an `open` link that names a hidden property is rejected. The same test runs against the
   LINQPad facade.
+- **Value summaries:** each row of section 10.2 has a case, including a diagnostic whose message is a
+  `FormattableString` with a declaration argument.
+- **Error list:** a query that makes Metalama report a diagnostic returns it under `error list`, and the next query
+  starts with empty counters.
 - **Viewer injection:** a sample whose string constants and attribute arguments contain `</script>`, HTML tags and
   event-handler attributes renders as plain text in the static file, and the page makes no network request.
 - **Viewer smoke test:** a headless browser opens a static file of the sample, expands a nested table, sorts a grid,
