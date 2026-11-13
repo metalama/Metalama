@@ -292,7 +292,7 @@ code.
 
 | Step | Applies to | Meaning |
 |---|---|---|
-| `<Property>` | Any object | A public-interface property, from the same set the facade walker shows. |
+| `<Property>` | Any object | A public-interface property, from the same set the facade walker shows (section 10.1). A hidden property is not a valid step. |
 | `<n>` | Any collection | Zero-based position in enumeration order. Fragile. |
 | `aspects/<AspectClass>[/<n>]` | Declaration | Aspect instances that target the declaration, by aspect class full name; `n` only when there are several. |
 | `diagnostics/<Id>[/<n>]` | Declaration, project, workspace | Diagnostics by ID, then by position. |
@@ -495,6 +495,33 @@ not be able to run script in the viewer or send data anywhere.
 - `Metalama.Mcp` adds the text and JSON renderers, the tools and the process split.
 - Both front ends then show the same properties, in the same order, with the same links.
 
+### 10.1. Display conventions
+
+The Metalama API marks what tools should not show, and `FacadeType` encodes further rules. They move with the walker
+into the shared project, so the text, JSON and HTML output honor them as LINQPad does.
+
+| Convention | Effect today | Examples |
+|---|---|---|
+| `[Hidden]` on an interface (`Metalama.Framework.Utilities.HiddenAttribute`) | The interface counts as non-public, so none of its members are shown through it. | `ICompilationElement`, `IExpression`, `IObjectCreationExpression`, `IWorkspaceLoadInfo` |
+| `[Hidden]` on a property or field | The member is skipped. | `ICompilation.Comparers`, `ICompilation.Cache`, `IDeclaration.Depth` |
+| `[Obsolete]` on a property | The property is skipped. | |
+| Public assemblies | Only interfaces from `Metalama.Framework`, `Metalama.Framework.Introspection`, `Metalama.Framework.Workspaces` and the core library contribute members. A type with no public base and no interface, such as an anonymous type, shows its own public properties. | |
+| Getters only | Indexers and properties without a getter are skipped. | |
+| Inline values | `null`, strings, primitives and collections are rendered as values, not as objects with properties. | |
+| Property order | `PropertyComparer`: `Index` and `Id` first, then `Severity` and `Position`, `ShortName`, `Name` and `DisplayName`, `FullName`, then the rest; scalars before collections; then by name. In the HTML viewer, this is also the column order of a grid. | |
+| `Permalink` | `FacadeType` adds a synthetic `Permalink` property to every declaration. | |
+
+Changes in the shared walker:
+
+- **`[Hidden]` and `[Obsolete]` on interface properties.** `FacadeType` checks both attributes only for properties
+  found on a public base class. Code-model objects are internal classes reached through their public interfaces, so
+  the check never runs for them, and `IDeclaration.Depth` appears to be shown despite `[Hidden]`. The shared walker
+  checks the attributes on the interface property as well. This also changes what LINQPad shows.
+- **`Permalink` becomes the link.** It is no longer a property: the text format prints the link at the start of the
+  row, JSON has a `link` field, and LINQPad renders the same link as a hyperlink.
+
+Hiding affects display only. A query can still read a hidden member, because C# sees the full API.
+
 ## 11. Testing
 
 Tests use the existing `FrogHattery` sample from the LINQPad tests.
@@ -513,6 +540,9 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
 - **No listeners:** the banned-API analyzer, the dependency-closure check, and the socket check on the running
   process tree.
 - **JSON schema:** every JSON result validates against the published schema.
+- **Display conventions:** the output never contains `Depth`, `Comparers` or `Cache`, nor members contributed by a
+  `[Hidden]` interface, and an `open` link that names a hidden property is rejected. The same test runs against the
+  LINQPad facade.
 - **Viewer injection:** a sample whose string constants and attribute arguments contain `</script>`, HTML tags and
   event-handler attributes renders as plain text in the static file, and the page makes no network request.
 - **Viewer smoke test:** a headless browser opens a static file of the sample, expands a nested table, sorts a grid,
