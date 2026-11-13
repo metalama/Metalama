@@ -23,8 +23,8 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 /// <remarks>
 /// <para>
 /// The second layer of every test is a <see cref="RemoteBackendDouble"/> that is passed directly to the enhancer. The
-/// double lets a test defer a removal as a backend that is not blocking does, and choose the source identifier of the
-/// events.
+/// double lets a test block a read of the second layer, defer a removal as a backend that is not blocking does, and
+/// choose the source identifier of the events.
 /// </para>
 /// <para>
 /// When the second layer is not blocking, a removal replaces the item of the first layer with a tombstone that expires
@@ -52,7 +52,13 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
     private const string _dependency = "dependency";
 
     /// <summary>
-    /// The maximum time to wait for an asynchronous operation to complete. It only detects a failure of the test.
+    /// The name of the thread that reads the item through the layered backend.
+    /// </summary>
+    private const string _readerThreadName = "Reader";
+
+    /// <summary>
+    /// The maximum time to wait for a thread to reach a gate, for a thread to complete, or for an asynchronous operation
+    /// to complete. It only detects a failure of the test.
     /// </summary>
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds( 10 );
 
@@ -149,6 +155,87 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
         Assert.True(
             finalItem == null,
             $"GetItem returned {DescribeItem( finalItem )} although the second layer raised the item-removed event with a foreign source identifier." );
+    }
+
+    /// <summary>
+    /// Verifies that a read of the second layer that overlaps a removal of the same key does not store the removed value
+    /// in the first layer.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The key is absent from the first layer, so the read continues in the second layer. The read is blocked after it
+    /// has read the value of the second layer. The test thread then removes the key. The removal from the first layer
+    /// has no effect, because the key is absent there, and the removal from the second layer succeeds. When the read
+    /// resumes, it stores the value that it has read in the first layer.
+    /// </para>
+    /// <para>
+    /// The second layer raises its events with its own identifier, as the Redis backend does. The test waits until the
+    /// enhancer has processed these events before the final read.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task ReadThrough_ConcurrentWithRemoveItem_DoesNotStoreRemovedValueInL1()
+    {
+        using var cancellation = new CancellationTokenSource( _timeout );
+        using var fakes = new FakeCachingServices();
+
+        // The first layer resolves the FakeMemoryCache of the services. The second layer is blocking, so the enhancer
+        // writes no tombstone.
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider, raisesEvents: true );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value" ) );
+
+        // Remove the item from the first layer only, as an eviction would.
+        layered.LocalCache.RemoveItem( _key );
+
+        Assert.True(
+            !layered.LocalCache.ContainsItem( _key ) && remote.ContainsItem( _key ),
+            "Precondition: the first layer still holds the item, or the second layer no longer holds it." );
+
+        var readGate = remote.ArmReadGate( _key );
+        CacheItem? readThroughItem = null;
+        var reader = ConcurrencyTestWorker.Start( _readerThreadName, () => readThroughItem = layered.GetItem( _key ) );
+        bool readerCompleted;
+
+        try
+        {
+            Assert.True( readGate.WaitUntilReached( _timeout ), "Precondition: the reader did not reach the read of the second layer." );
+
+            Assert.True(
+                readGate.ReachedThreadName == _readerThreadName,
+                $"Precondition: the read gate was reached by the thread '{readGate.ReachedThreadName}' instead of the reader." );
+
+            Assert.True( readGate.ReadItem is { Value: "value" }, "Precondition: the reader did not read the value of the second layer." );
+
+            layered.RemoveItem( _key );
+
+            Assert.False( remote.ContainsItem( _key ), "Precondition: the removal did not remove the item from the second layer." );
+        }
+        finally
+        {
+            readGate.Release();
+            readerCompleted = reader.Join( _timeout );
+        }
+
+        Assert.True( readerCompleted, "The reader did not complete." );
+        Assert.True( reader.Exception == null, $"The reader threw an exception: {reader.Exception}" );
+
+        Assert.True(
+            readThroughItem is { Value: "value" },
+            $"Precondition: the read returned {DescribeItem( readThroughItem )} instead of the value that it read from the second layer." );
+
+        // Let the enhancer process the events that the removal raised in the second layer.
+        await fakes.WhenPendingWorkItemsCompletedAsync( cancellation.Token );
+
+        var finalItem = layered.GetItem( _key );
+
+        this._output.WriteLine( "Reads of the second layer: " + string.Join( " | ", remote.Reads ) );
+        this._output.WriteLine( "Final read: " + DescribeItem( finalItem ) );
+
+        Assert.True(
+            finalItem == null,
+            $"GetItem returned {DescribeItem( finalItem )} after the removal. The first layer stored a value that the removal had already removed from the second layer." );
     }
 
     /// <summary>

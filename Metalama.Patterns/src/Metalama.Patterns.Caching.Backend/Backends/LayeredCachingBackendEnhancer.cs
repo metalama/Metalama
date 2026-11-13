@@ -18,6 +18,13 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     private readonly TimeSpan _removedItemTransitionPeriod = TimeSpan.FromMinutes( 1 );
 
     /// <summary>
+    /// A counter incremented before every removal, invalidation or clearing that can affect the local cache. A read that
+    /// copies a value of the remote cache into the local cache compares it before and after the copy, so that a value read
+    /// before a concurrent removal does not stay in the local cache.
+    /// </summary>
+    private long _removalVersion;
+
+    /// <summary>
     /// Gets the in-memory local cache.
     /// </summary>
     public MemoryCachingBackend LocalCache { get; }
@@ -56,6 +63,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void OnBackendDependencyInvalidated( object? sender, CacheDependencyInvalidatedEventArgs args )
     {
+        this.IncrementRemovalVersion();
+
         if ( args.SourceId != this.UnderlyingBackend.Id )
         {
             this.LocalCache.InvalidateDependency( args.Key );
@@ -67,6 +76,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void OnBackendItemRemoved( object? sender, CacheItemRemovedEventArgs args )
     {
+        this.IncrementRemovalVersion();
+
         if ( args.SourceId != this.UnderlyingBackend.Id )
         {
             this.LocalCache.RemoveItem( args.Key );
@@ -165,13 +176,14 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         {
             // The dependencies are always requested, because the item is stored in the local cache, which must register
             // them so that a local invalidation removes it.
+            var removalVersion = this.GetRemovalVersion();
             var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, true );
 
             if ( remoteCacheItem != null )
             {
                 // We have a value stored remotely.
                 // Cache in local memory.
-                this.SetMemoryCacheFromRemote( key, remoteCacheItem );
+                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
 
                 return remoteCacheItem;
             }
@@ -188,6 +200,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                     {
                         // We have the magic string meaning that the node has been deleted.
 
+                        var removalVersion = this.GetRemovalVersion();
+
                         var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, true );
 
                         if ( remoteCacheItem == null )
@@ -198,7 +212,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                         {
                             if ( remoteCacheItem.Timestamp > removedValue.Timestamp )
                             {
-                                this.SetMemoryCacheFromRemote( key, remoteCacheItem );
+                                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
 
                                 return remoteCacheItem;
                             }
@@ -240,10 +254,28 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         return cacheValue;
     }
 
-    private void SetMemoryCacheFromRemote( string key, MaterializedCacheItem remoteCacheValue )
+    /// <summary>
+    /// Copies a value read from the remote cache into the local cache, unless a removal, an invalidation or a clearing
+    /// started after <paramref name="removalVersion"/> was read.
+    /// </summary>
+    /// <remarks>
+    /// The version is compared after the copy. A removal increments the version before it removes the local item. Either
+    /// the removal runs after the copy and removes it, or the comparison observes the increment and the copy is removed
+    /// here. A removal of an unrelated key also withdraws the copy, which only costs a later read of the remote cache.
+    /// </remarks>
+    private void SetMemoryCacheFromRemote( string key, MaterializedCacheItem remoteCacheValue, long removalVersion )
     {
         this.LocalCache.SetItem( key, remoteCacheValue );
+
+        if ( this.GetRemovalVersion() != removalVersion )
+        {
+            this.LocalCache.RemoveItemImpl( key );
+        }
     }
+
+    private long GetRemovalVersion() => Interlocked.Read( ref this._removalVersion );
+
+    private void IncrementRemovalVersion() => Interlocked.Increment( ref this._removalVersion );
 
     /// <inheritdoc />
     protected override async ValueTask<CacheItem?> GetItemAsyncCore( string key, bool includeDependencies, CancellationToken cancellationToken )
@@ -253,13 +285,14 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
 
         if ( localCacheValue == null )
         {
+            var removalVersion = this.GetRemovalVersion();
             var remoteCacheItem = await this.GetValueFromUnderlyingBackendAsync( key, cancellationToken );
 
             if ( remoteCacheItem != null )
             {
                 // We have a value stored remotely.
                 // Cache in local memory.
-                this.SetMemoryCacheFromRemote( key, remoteCacheItem );
+                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
 
                 return remoteCacheItem;
             }
@@ -276,6 +309,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                     {
                         // We have the magic string meaning that the node has been deleted.
 
+                        var removalVersion = this.GetRemovalVersion();
+
                         var remoteCacheItem = await this.GetValueFromUnderlyingBackendAsync( key, cancellationToken );
 
                         if ( remoteCacheItem == null )
@@ -286,7 +321,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                         {
                             if ( remoteCacheItem.Timestamp > removedValue.Timestamp )
                             {
-                                this.SetMemoryCacheFromRemote( key, remoteCacheItem );
+                                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
 
                                 return remoteCacheItem;
                             }
@@ -307,6 +342,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void InvalidateDependencyCore( string key )
     {
+        this.IncrementRemovalVersion();
+
         if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
         {
             this.LocalCache.InvalidateDependency( key );
@@ -322,6 +359,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override ValueTask InvalidateDependencyAsyncCore( string key, CancellationToken cancellationToken )
     {
+        this.IncrementRemovalVersion();
+
         if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
         {
             this.LocalCache.InvalidateDependency( key );
@@ -337,6 +376,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void RemoveItemCore( string key )
     {
+        this.IncrementRemovalVersion();
+
         if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
         {
             this.LocalCache.RemoveItem( key );
@@ -352,6 +393,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override ValueTask RemoveItemAsyncCore( string key, CancellationToken cancellationToken )
     {
+        this.IncrementRemovalVersion();
+
         if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
         {
             this.LocalCache.RemoveItem( key );
@@ -368,6 +411,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void ClearCore( ClearCacheOptions options )
     {
+        this.IncrementRemovalVersion();
+
         this.LocalCache.Clear();
 
         if ( options == ClearCacheOptions.Default )
@@ -379,6 +424,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override ValueTask ClearAsyncCore( ClearCacheOptions options, CancellationToken cancellationToken )
     {
+        this.IncrementRemovalVersion();
+
         this.LocalCache.Clear();
 
         if ( options == ClearCacheOptions.Default )
