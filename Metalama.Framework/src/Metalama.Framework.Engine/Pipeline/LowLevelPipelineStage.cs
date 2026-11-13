@@ -94,6 +94,9 @@ internal sealed class LowLevelPipelineStage : PipelineStage
         // and we don't test what happens when a low-level stage is before a high-level stage).
         var newCompilationModel = newCompilation == compilationModel.PartialCompilation ? compilationModel : null;
 
+        // Carry over the results of the previous stages. When the weaver is the last stage, its result is the result of the pipeline.
+        // When a high-level stage follows, that stage appends its own results to these. When the weaver modified the compilation,
+        // the next compilation model is created from these annotations.
         return new AspectPipelineResult(
             newCompilation,
             input.Project,
@@ -103,12 +106,18 @@ internal sealed class LowLevelPipelineStage : PipelineStage
             input.Configuration,
             input.Diagnostics,
             input.ContributorSources,
-            aspectInstanceResults: aspectInstances.SelectAsImmutableArray(
-                x => new AspectInstanceResult(
-                    x.Value,
-                    AdviceOutcome.Default,
-                    default,
-                    default,
-                    default ) ) );
+            input.ExternallyInheritableAspects,
+            input.Annotations,
+            input.TransitiveContributors,
+            input.AdditionalSyntaxTrees,
+            input.AspectInstanceResults.AddRange(
+                aspectInstances.Select(
+                    x => new AspectInstanceResult(
+                        x.Value,
+                        AdviceOutcome.Default,
+                        default,
+                        default,
+                        default ) ) ),
+            input.AdditionalCompilationOutputFiles );
     }
 }
