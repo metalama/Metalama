@@ -22,6 +22,10 @@ namespace Metalama.Framework.Tests.UnitTests.Introspection;
 /// </summary>
 public sealed class IntrospectionFileWriterTests : AspectTestBase
 {
+    /// <summary>
+    /// The code of the tests: an aspect that overrides a method, introduces a field and reports a warning, applied by an
+    /// attribute and by a fabric.
+    /// </summary>
     private const string _code = """
                                  using Metalama.Framework.Advising;
                                  using Metalama.Framework.Aspects;
@@ -67,6 +71,10 @@ public sealed class IntrospectionFileWriterTests : AspectTestBase
                                  }
                                  """;
 
+    /// <summary>
+    /// Checks that the file describes the aspect instances of the code, with their predecessors, transformations and diagnostics,
+    /// and that the shared reader reads it.
+    /// </summary>
     [Fact]
     public async Task TheFileDescribesTheAspectInstances()
     {
@@ -139,6 +147,10 @@ public sealed class IntrospectionFileWriterTests : AspectTestBase
         }
     }
 
+    /// <summary>
+    /// Checks that an aspect instance inherited from a base type of the same compilation has an inherited predecessor that refers
+    /// to the base type, which the loader reads, and not to the aspect instance of the base type.
+    /// </summary>
     [Fact]
     public async Task AnInheritedAspectInstanceRefersToItsBaseDeclaration()
     {
@@ -186,6 +198,9 @@ public sealed class IntrospectionFileWriterTests : AspectTestBase
         }
     }
 
+    /// <summary>
+    /// Checks that no file is written when <c>MetalamaWriteIntrospectionFile</c> is not set, even when the path of the file is.
+    /// </summary>
     [Fact]
     public async Task NoFileIsWrittenWhenThePropertyIsNotSet()
     {
@@ -200,12 +215,18 @@ public sealed class IntrospectionFileWriterTests : AspectTestBase
         Assert.False( File.Exists( path ) );
     }
 
+    /// <summary>
+    /// Creates the options of a test context that writes the file at the given path.
+    /// </summary>
     private static MetalamaTestContextOptions CreateOptions( string path )
         => new()
         {
             Properties = ImmutableDictionary<string, string>.Empty.Add( "MetalamaWriteIntrospectionFile", "True" ).Add( "MetalamaIntrospectionFile", path )
         };
 
+    /// <summary>
+    /// Asserts that the shared reader reads the whole file, and that the file holds a diagnostic.
+    /// </summary>
     private static void AssertReadable( string path )
     {
         using var stream = File.OpenRead( path );
