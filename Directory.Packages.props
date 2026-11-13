@@ -322,6 +322,12 @@
 
     <PackageVersion Include="LINQPad.Reference" Version="1.4.0-preview.1" />
     <PackageVersion Include="LINQPad.Runtime" Version="8.3.7" />
+    <!-- Metalama.Mcp is a tool that we host ourselves, so no design-time host constrains these versions. Only the core
+         package is referenced: the main ModelContextProtocol package adds a dependency on hosting and dependency
+         injection, and the HTTP transport, which Metalama.Mcp must never contain, lives in a separate package. -->
+    <PackageVersion Include="ModelContextProtocol.Core" Version="2.3.0" />
+    <!-- Used by Metalama.Mcp to ban listening network APIs. Pinned to the lowest Roslyn line we compile with. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.0.0" />
     <PackageVersion Include="SharpZipLib" Version="1.4.2" />
 
 

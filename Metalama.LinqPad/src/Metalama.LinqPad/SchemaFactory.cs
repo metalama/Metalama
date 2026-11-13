@@ -6,6 +6,7 @@ using LINQPad.Extensibility.DataContext;
 using Metalama.Framework.Code;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
+using Metalama.Framework.Workspaces.Navigation.Facade;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;

@@ -25,7 +25,8 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
         <PackageReference Include="LINQPad.Reference" />
         <PackageReference Include="Metalama.Framework.Sdk" ExcludeAssets="build;buildTransitive" />
-        
+        <ProjectReference Include="..\Metalama.Framework.Workspaces.Navigation\Metalama.Framework.Workspaces.Navigation.csproj" />
+
         <!-- Required to force LinqPad to load this package instead of the one of the SDK directory. -->
         <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="$(MicrosoftExtensionsLoggingWorkspacesVersion)" />
         

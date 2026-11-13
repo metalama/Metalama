@@ -1,0 +1,9 @@
+T:System.Net.HttpListener;Metalama.Mcp must never open a listening endpoint: it runs arbitrary code, and stdio is its only transport.
+T:System.Net.Sockets.TcpListener;Metalama.Mcp must never open a listening endpoint: it runs arbitrary code, and stdio is its only transport.
+T:System.Net.Sockets.UdpClient;Metalama.Mcp must never open a listening endpoint: it runs arbitrary code, and stdio is its only transport.
+M:System.Net.Sockets.Socket.Bind(System.Net.EndPoint);Metalama.Mcp must never open a listening endpoint: it runs arbitrary code, and stdio is its only transport.
+M:System.Net.Sockets.Socket.Listen;Metalama.Mcp must never open a listening endpoint: it runs arbitrary code, and stdio is its only transport.
+M:System.Net.Sockets.Socket.Listen(System.Int32);Metalama.Mcp must never open a listening endpoint: it runs arbitrary code, and stdio is its only transport.
+T:System.IO.Pipes.NamedPipeServerStream;Metalama.Mcp talks to its worker over anonymous pipes, which have no name and no address.
+T:Microsoft.AspNetCore.Builder.WebApplication;Metalama.Mcp must never contain an HTTP transport.
+T:Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServer;Metalama.Mcp must never contain an HTTP transport.

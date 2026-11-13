@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Metalama.LinqPad
+namespace Metalama.Framework.Workspaces.Navigation.Facade
 {
     /// <summary>
     /// Orders instances of <see cref="FacadeProperty"/>.

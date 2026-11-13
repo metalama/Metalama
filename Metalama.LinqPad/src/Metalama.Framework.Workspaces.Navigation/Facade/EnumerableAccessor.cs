@@ -7,7 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Metalama.LinqPad
+namespace Metalama.Framework.Workspaces.Navigation.Facade
 {
     /// <summary>
     /// Exposes the number of items in a collection.
@@ -17,7 +17,8 @@ namespace Metalama.LinqPad
         private readonly MethodInfo? _getter;
         private static readonly ConcurrentDictionary<Type, EnumerableAccessor> _instances = new();
 
-        public static EnumerableAccessor Get( Type type ) => _instances.GetOrAdd( type, t => new EnumerableAccessor( t ) );
+        public static EnumerableAccessor Get( Type type )
+            => FacadeTypeFactory.IsCollectible( type ) ? new EnumerableAccessor( type ) : _instances.GetOrAdd( type, t => new EnumerableAccessor( t ) );
 
         private EnumerableAccessor( Type type )
         {
