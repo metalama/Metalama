@@ -49,17 +49,12 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         {
             var additionalSyntaxTreeDictionary = new ConcurrentDictionary<string, IntroducedSyntaxTree>();
 
-            var useNullability = partialCompilation.InitialCompilation.Options.NullableContextOptions != NullableContextOptions.Disable;
-
             // Reuse the compilation's parse options so generated trees share LangVersion / preprocessor symbols with the
             // existing sources; otherwise Roslyn rejects them with "Inconsistent language versions".
             var parseOptions = partialCompilation.InitialCompilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions
                                ?? CSharpParseOptions.Default;
 
             var lexicalScopeFactory = new LexicalScopeFactory( finalCompilationModel );
-            var injectionHelperProvider = new LinkerInjectionHelperProvider( finalCompilationModel, useNullability );
-            var injectionNameProvider = new LinkerInjectionNameProvider( finalCompilationModel, injectionHelperProvider );
-            var aspectReferenceSyntaxProvider = new LinkerAspectReferenceSyntaxProvider();
 
             // Get all transformations that are observable at design time and group them by future target file. A
             // transformation whose declaration the compiler synthesizes is registered in the code model and emits no
@@ -281,15 +276,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var members = List<MemberDeclarationSyntax>();
                 var syntaxGenerationContext = finalCompilationModel.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, true );
 
-                // The name provider and the reference provider are the ones that the build-time linker uses. This
-                // pipeline runs no linker, so nothing consumes the names and the references they produce. Issue #2021
-                // tracks giving this pipeline providers of its own, or letting the two be null.
+                // This pipeline runs no linker, so it passes no injection name provider and no aspect reference syntax
+                // provider. These providers produce names and references that only the linker resolves.
                 var introductionContext = new MemberInjectionContext(
                     serviceProvider,
                     diagnostics,
-                    injectionNameProvider,
+                    null,
                     lexicalScopeFactory,
-                    aspectReferenceSyntaxProvider,
+                    null,
                     syntaxGenerationContext,
                     finalCompilationModel );
 

@@ -11,14 +11,18 @@ namespace Metalama.Framework.Engine.Transformations;
 
 internal sealed class MemberInjectionContext : TransformationContext
 {
-    public InjectionNameProvider InjectionNameProvider { get; }
+    /// <summary>
+    /// Gets the provider of the names of the members that the linker resolves, or <c>null</c> when the context belongs to a pipeline
+    /// that runs no linker, such as the design-time pipeline.
+    /// </summary>
+    public InjectionNameProvider? InjectionNameProvider { get; }
 
     public MemberInjectionContext(
         ProjectServiceProvider serviceProvider,
         UserDiagnosticSink diagnosticSink,
-        InjectionNameProvider injectionNameProvider,
+        InjectionNameProvider? injectionNameProvider,
         ITemplateLexicalScopeProvider lexicalScopeProvider,
-        AspectReferenceSyntaxProvider aspectReferenceSyntaxProvider,
+        AspectReferenceSyntaxProvider? aspectReferenceSyntaxProvider,
         SyntaxGenerationContext syntaxGenerationContext,
         CompilationModel compilation ) : base(
         serviceProvider,

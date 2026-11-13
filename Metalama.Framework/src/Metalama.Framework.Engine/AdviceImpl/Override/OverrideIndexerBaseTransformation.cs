@@ -65,7 +65,7 @@ internal abstract class OverrideIndexerBaseTransformation : OverridePropertyOrIn
                         context.FinalCompilation,
                         context.SyntaxGenerationContext,
                         overriddenDeclaration,
-                        context.InjectionNameProvider.GetOverriddenByType(
+                        context.InjectionNameProvider.AssertNotNull().GetOverriddenByType(
                             this.AspectInstance,
                             overriddenDeclaration,
                             context.SyntaxGenerationContext ) ),
