@@ -47,7 +47,7 @@ namespace Metalama.Framework.Engine.Fabrics
             this._directoryDepth = depth;
 
             this._containingAssemblyIdentity = creationData.FabricType.ContainingAssembly.Identity;
-            this._referenceDepth = CompilationReferenceGraph.GetInstance( creationData.Compilation ).GetDepth( creationData.FabricType.ContainingAssembly );
+            this._referenceDepth = CompilationReferenceGraph.GetInstance( creationData.Compilation, creationData.FabricManager.ServiceProvider ).GetDepth( creationData.FabricType.ContainingAssembly );
         }
 
         public override FabricKind Kind => this.Fabric is TransitiveProjectFabric ? FabricKind.Transitive : FabricKind.Compilation;
