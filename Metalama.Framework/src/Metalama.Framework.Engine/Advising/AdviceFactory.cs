@@ -71,6 +71,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     /// The predecessor is the one of the <see cref="Owner"/>. For a type fabric, the owner is the amender, whose predecessor is the fabric instance
     /// and not the aggregate aspect that executes the fabric. When there is no owner, the predecessor is the aspect instance.
     /// </remarks>
+    [Memo]
     private AspectPredecessor ChildAspectPredecessor
         => this.Owner?.AspectPredecessor ?? new AspectPredecessor( AspectPredecessorKind.ChildAspect, this._state.AspectInstance );
 
