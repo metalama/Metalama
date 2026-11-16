@@ -5,6 +5,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.Framework.Analyzers.Durability
 {
@@ -37,13 +38,28 @@ namespace Metalama.Framework.Analyzers.Durability
             /// </summary>
             public Location? Location { get; }
 
+            /// <summary>
+            /// Gets the expression whose type makes the verdict fail, or <c>null</c> when the verdict does not come from
+            /// the type of one expression.
+            /// </summary>
+            /// <remarks>
+            /// For <c>new { T = x }</c>, it is <c>x</c>. The rule that reports the verdict uses it to suggest a method that
+            /// converts the value to a durable one.
+            /// </remarks>
+            public IOperation? Operand { get; }
+
             public bool IsDurable => this.DurabilityVerdict.IsDurable;
 
-            public ExpressionVerdict( DurabilityVerdict verdict, ISymbol? capturedSymbol = null, Location? location = null )
+            public ExpressionVerdict(
+                DurabilityVerdict verdict,
+                ISymbol? capturedSymbol = null,
+                Location? location = null,
+                IOperation? operand = null )
             {
                 this.DurabilityVerdict = verdict;
                 this.CapturedSymbol = capturedSymbol;
                 this.Location = location;
+                this.Operand = operand;
             }
 
             public static readonly ExpressionVerdict Durable = new( DurabilityVerdict.Durable );
@@ -107,10 +123,182 @@ namespace Metalama.Framework.Analyzers.Durability
 
                     return whenTrueVerdict.IsDurable ? this.GetExpressionVerdict( whenFalse ) : whenTrueVerdict;
                 }
+
+                // An anonymous object stores the values of its initializers and nothing else, and each value is visible
+                // here. The values carry more evidence than the property types: a property of type object that is
+                // initialized with a literal is durable, and a lambda assigned to a property is analyzed for captures.
+                case IAnonymousObjectCreationOperation anonymousObjectCreation:
+                    return this.GetAnonymousObjectCreationVerdict( anonymousObjectCreation );
+
+                case IObjectCreationOperation { Initializer: { } } objectCreation:
+                    return this.GetCollectionCreationVerdict( objectCreation );
             }
 
-            return new ExpressionVerdict( this.GetVerdict( value.Type ) );
+            return new ExpressionVerdict( this.GetVerdict( value.Type ), operand: value );
         }
+
+        /// <summary>
+        /// The names of the methods that convert a value to a durable value, in the order of preference.
+        /// </summary>
+        /// <remarks>
+        /// <c>ToDurableRef</c> comes first because a value can support both methods: an <c>IParameter</c> is a
+        /// declaration and an <c>IExpression</c>, and the durable reference keeps the declaration where the durable
+        /// expression keeps only its text.
+        /// </remarks>
+        private static readonly string[] _durableConversionNames = { "ToDurableRef", "ToDurable" };
+
+        /// <summary>
+        /// Returns a method that converts the value of an expression to a durable value, or <c>null</c>.
+        /// </summary>
+        /// <remarks>
+        /// The method is looked up at the location of the expression, so an extension method is returned only when its
+        /// namespace is imported there. The method must take no required argument, and its return type must be durable.
+        /// </remarks>
+        public IMethodSymbol? FindDurableConversion( IOperation operand )
+        {
+            if ( operand is not { Type: { } type, SemanticModel: { } semanticModel, Syntax: { } syntax }
+                 || type.TypeKind == TypeKind.Error )
+            {
+                return null;
+            }
+
+            foreach ( var name in _durableConversionNames )
+            {
+                foreach ( var symbol in semanticModel.LookupSymbols(
+                             syntax.SpanStart,
+                             type,
+                             name,
+                             includeReducedExtensionMethods: true ) )
+                {
+                    if ( symbol is IMethodSymbol { IsStatic: false } method
+                         && method.Parameters.All( p => p.IsOptional || p.IsParams )
+                         && this.GetVerdict( method.ReturnType ).IsDurable )
+                    {
+                        return method;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Evaluates an anonymous object creation expression by the value of each of its property initializers.
+        /// </summary>
+        private ExpressionVerdict GetAnonymousObjectCreationVerdict( IAnonymousObjectCreationOperation anonymousObjectCreation )
+        {
+            foreach ( var initializer in anonymousObjectCreation.Initializers )
+            {
+                if ( initializer is not ISimpleAssignmentOperation { Target: IPropertyReferenceOperation { Property: { } property } } assignment )
+                {
+                    // The compiler produces no other form of initializer. The declared type is the only evidence left.
+                    return new ExpressionVerdict( this.GetVerdict( anonymousObjectCreation.Type ) );
+                }
+
+                var valueVerdict = this.GetExpressionVerdict( assignment.Value );
+
+                if ( !valueVerdict.IsDurable )
+                {
+                    return Prepend( valueVerdict, "." + property.Name );
+                }
+            }
+
+            return ExpressionVerdict.Durable;
+        }
+
+        /// <summary>
+        /// Evaluates an object creation expression that has an initializer. When the created type is a system collection
+        /// whose durability depends only on its type arguments, the expression is evaluated by its constructor arguments
+        /// and by the elements of its initializer instead of by its type arguments.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This rule is sound only because the expression is the value that is stored or passed. No other code holds a
+        /// reference to the new collection, so the elements of the initializer are all the elements that the collection
+        /// contains when it reaches the durable member or parameter.
+        /// </para>
+        /// <para>
+        /// The constructor arguments are evaluated because a constructor can store them, for instance a collection to
+        /// copy or a comparer.
+        /// </para>
+        /// </remarks>
+        private ExpressionVerdict GetCollectionCreationVerdict( IObjectCreationOperation objectCreation )
+        {
+            var typeVerdict = new ExpressionVerdict( this.GetVerdict( objectCreation.Type ) );
+
+            if ( typeVerdict.IsDurable
+                 || objectCreation is not { Type: INamedTypeSymbol createdType, Initializer: IObjectOrCollectionInitializerOperation initializer }
+                 || !this.IsTransparentCollection( createdType ) )
+            {
+                return typeVerdict;
+            }
+
+            foreach ( var argument in objectCreation.Arguments )
+            {
+                var argumentVerdict = this.GetExpressionVerdict( argument.Value );
+
+                if ( !argumentVerdict.IsDurable )
+                {
+                    return argumentVerdict;
+                }
+            }
+
+            foreach ( var element in initializer.Initializers )
+            {
+                switch ( element )
+                {
+                    // A collection initializer element, such as { 1 } or { "k", 1 }, which calls the Add method. An element
+                    // whose call is bound dynamically is handled by the default case.
+                    case IInvocationOperation invocation:
+                        foreach ( var invocationArgument in invocation.Arguments )
+                        {
+                            var elementVerdict = this.GetExpressionVerdict( invocationArgument.Value );
+
+                            if ( !elementVerdict.IsDurable )
+                            {
+                                return Prepend( elementVerdict, "[]" );
+                            }
+                        }
+
+                        break;
+
+                    // An index initializer element, such as ["k"] = 1, which calls the indexer.
+                    case ISimpleAssignmentOperation { Target: IPropertyReferenceOperation { Property.IsIndexer: true } indexer } assignment:
+                        foreach ( var indexArgument in indexer.Arguments )
+                        {
+                            var indexVerdict = this.GetExpressionVerdict( indexArgument.Value );
+
+                            if ( !indexVerdict.IsDurable )
+                            {
+                                return Prepend( indexVerdict, "[]" );
+                            }
+                        }
+
+                        var assignedVerdict = this.GetExpressionVerdict( assignment.Value );
+
+                        if ( !assignedVerdict.IsDurable )
+                        {
+                            return Prepend( assignedVerdict, "[]" );
+                        }
+
+                        break;
+
+                    // A member initializer, such as Capacity = 4, or a nested initializer. These forms are not analyzed,
+                    // so the declared type is the evidence.
+                    default:
+                        return typeVerdict;
+                }
+            }
+
+            return ExpressionVerdict.Durable;
+        }
+
+        /// <summary>
+        /// Returns a verdict identical to the given one except that a step is prepended to its chain. The captured symbol
+        /// and the location are kept, so that a capture is still reported where it occurs.
+        /// </summary>
+        private static ExpressionVerdict Prepend( ExpressionVerdict verdict, string step )
+            => new( verdict.DurabilityVerdict.Prepend( step ), verdict.CapturedSymbol, verdict.Location, verdict.Operand );
 
         /// <summary>
         /// Removes the conversions and parentheses that stand between an assignment or an argument and the expression

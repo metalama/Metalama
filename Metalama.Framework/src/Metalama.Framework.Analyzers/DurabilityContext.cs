@@ -328,6 +328,29 @@ namespace Metalama.Framework.Analyzers.Durability
                 return DurabilityVerdict.Durable;
             }
 
+            // Rule 7 also applies to an anonymous type, which is durable when each of its properties is. An anonymous
+            // type is immutable and stores only the values of its properties. An anonymous delegate type is excluded,
+            // because rule 9 applies to it.
+            if ( type is INamedTypeSymbol { IsAnonymousType: true, TypeKind: TypeKind.Class } anonymousType )
+            {
+                foreach ( var member in anonymousType.GetMembers() )
+                {
+                    if ( member is not IPropertySymbol property )
+                    {
+                        continue;
+                    }
+
+                    var propertyVerdict = this.GetVerdictCore( property.Type, depth + 1, unionEvaluation );
+
+                    if ( !propertyVerdict.IsDurable )
+                    {
+                        return propertyVerdict.Prepend( "." + property.Name );
+                    }
+                }
+
+                return DurabilityVerdict.Durable;
+            }
+
             // Rule 8. The static type says nothing about what may be stored.
             if ( type.SpecialType == SpecialType.System_Object || type is IDynamicTypeSymbol )
             {
@@ -470,6 +493,19 @@ namespace Metalama.Framework.Analyzers.Durability
 
             // Rule 16. Durability is opt-in.
             return DurabilityVerdict.NotDurable( GetDisplayName( type ), "the type is not marked [Durable]" );
+        }
+
+        /// <summary>
+        /// Determines whether a type is a system collection whose durability depends only on its type arguments, and
+        /// whose verdict the project does not override.
+        /// </summary>
+        private bool IsTransparentCollection( INamedTypeSymbol type )
+        {
+            var metadataName = GetFullMetadataName( type.OriginalDefinition );
+
+            return !this._additionalNonDurableTypes.Contains( metadataName )
+                   && WellKnownDurableTypes.TryGet( metadataName, out var entry )
+                   && entry.Durability == WellKnownDurability.Transparent;
         }
 
         /// <summary>

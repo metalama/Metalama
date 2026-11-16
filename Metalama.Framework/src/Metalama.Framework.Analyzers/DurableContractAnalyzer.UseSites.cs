@@ -5,6 +5,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Analyzers.Durability
 {
@@ -57,7 +58,7 @@ namespace Metalama.Framework.Analyzers.Durability
         internal static readonly DiagnosticDescriptor WeakReferenceShouldBeNamedDangerous = new(
             "LAMA0875",
             "A weak reference held by a durable type should be named Dangerous",
-            "'{0}' holds a weak reference, so its name should end in 'Dangerous' to show that the value may be absent.",
+            "'{0}' holds a weak reference, so its name should end in 'Dangerous' to show that the value may be absent",
             _category,
             DiagnosticSeverity.Info,
             true,
@@ -332,13 +333,54 @@ namespace Metalama.Framework.Analyzers.Durability
                 return;
             }
 
+            var retentionPath = verdict.DurabilityVerdict.FormatChain();
+            ImmutableDictionary<string, string?>? properties = null;
+
+            // When the value that is not durable has a method that converts it to a durable value, the message names it,
+            // and the diagnostic is reported on that value rather than on the whole argument or assignment.
+            if ( verdict.Operand is { Syntax: { } operandSyntax } operand
+                 && durabilityContext.FindDurableConversion( operand ) is { } conversion )
+            {
+                retentionPath += ". " + FormatConversionSuggestion( conversion.Name, operandSyntax );
+                location = operandSyntax.GetLocation();
+                properties = ImmutableDictionary<string, string?>.Empty.Add( DurableConversionPropertyName, conversion.Name );
+            }
+
             context.ReportDiagnostic(
                 Diagnostic.Create(
                     descriptor,
                     location,
+                    properties,
                     targetName,
                     value.Type == null ? "?" : DurabilityContext.GetDisplayName( value.Type ),
-                    verdict.DurabilityVerdict.FormatChain() ) );
+                    retentionPath ) );
+        }
+
+        /// <summary>
+        /// The name of the diagnostic property that holds the name of the method that converts the value to a durable
+        /// value, for a code fix.
+        /// </summary>
+        internal const string DurableConversionPropertyName = "DurableConversion";
+
+        /// <summary>
+        /// The maximal length of the source text of a value that the suggestion quotes. A longer value is described
+        /// rather than quoted.
+        /// </summary>
+        private const int _maxQuotedOperandLength = 60;
+
+        /// <summary>
+        /// Formats the sentence that suggests to call a conversion method on a value. The sentence has no trailing period,
+        /// because the message format adds it.
+        /// </summary>
+        private static string FormatConversionSuggestion( string methodName, SyntaxNode operandSyntax )
+        {
+            var operandText = operandSyntax.ToString();
+
+            var target = operandText.Length <= _maxQuotedOperandLength && operandText.IndexOf( '\n' ) < 0
+                ? "'" + operandText + "'"
+                : "the value";
+
+            return $"Call '{methodName}()' on {target} to store a durable value instead";
         }
     }
 }
