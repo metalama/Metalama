@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using System;
 using System.Collections.Generic;
@@ -36,6 +37,71 @@ public sealed class ServerEndToEndTests
         Assert.Equal( "ui://metalama/viewer", query.Meta?["ui"]?["resourceUri"]?.GetValue<string>() );
         Assert.NotNull( server.Client.ServerInstructions );
         Assert.Contains( "Open(link)", server.Client.ServerInstructions, StringComparison.Ordinal );
+    }
+
+    [Theory]
+    [InlineData( "load_workspace" )]
+    [InlineData( "reload_workspace" )]
+    [InlineData( "query" )]
+    [InlineData( "open" )]
+    public async Task ToolsThatRunCodeAreNotDeclaredHarmless( string name )
+    {
+        await using var server = await ServerProcess.StartAsync();
+        var tools = await server.Client.ListToolsAsync( cancellationToken: TestContext.Current.CancellationToken );
+        var annotations = tools.Single( t => t.Name == name ).ProtocolTool.Annotations;
+
+        // The defaults of the specification are true; a client may ask permission only for destructive or open-world tools.
+        Assert.NotEqual( false, annotations?.DestructiveHint );
+        Assert.NotEqual( false, annotations?.OpenWorldHint );
+    }
+
+    [Fact]
+    public async Task OnlyOpenIsCallableFromTheView()
+    {
+        await using var server = await ServerProcess.StartAsync();
+        var tools = await server.Client.ListToolsAsync( cancellationToken: TestContext.Current.CancellationToken );
+
+        static string[]? GetVisibility( McpClientTool tool ) => tool.ProtocolTool.Meta?["ui"]?["visibility"]?.AsArray().Select( v => v!.GetValue<string>() ).ToArray();
+
+        Assert.Equal( ["model"], GetVisibility( tools.Single( t => t.Name == "query" ) ) );
+        Assert.Equal( ["model", "app"], GetVisibility( tools.Single( t => t.Name == "open" ) ) );
+    }
+
+    [Fact]
+    public async Task TextIsTheSameWithAndWithoutMcpApps()
+    {
+        const string code = "new { A = new { B = new { C = 1 } } }";
+
+        await using var plain = await ServerProcess.StartAsync();
+        var plainText = await plain.QueryAsync( code );
+
+        await using var apps = await ServerProcess.StartAsync( withAppsCapability: true );
+        var appsText = await apps.QueryAsync( code );
+
+        static string WithoutFooter( string text ) => text.Substring( 0, text.LastIndexOf( "\n--- ", StringComparison.Ordinal ) );
+
+        Assert.Equal( WithoutFooter( plainText ), WithoutFooter( appsText ) );
+    }
+
+    [Fact]
+    public async Task HtmlEnumeratesTheResultOnce()
+    {
+        await using var server = await ServerProcess.StartAsync();
+
+        var text = await server.QueryAsync( "Enumerable.Range( 0, 3 ).Select( i => { Console.WriteLine( \"enumerated\" ); return i; } )", "html" );
+
+        Assert.Equal( 3, text.Split( "enumerated" ).Length - 1 );
+    }
+
+    [Fact]
+    public async Task QueryOnWorkspaceWithoutWorkspaceExplainsWhy()
+    {
+        await using var server = await ServerProcess.StartAsync();
+
+        var (isError, text, _) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "workspace.SourceCode.Types" } );
+
+        Assert.True( isError );
+        Assert.Contains( "No workspace is loaded", text, StringComparison.Ordinal );
     }
 
     [Fact]

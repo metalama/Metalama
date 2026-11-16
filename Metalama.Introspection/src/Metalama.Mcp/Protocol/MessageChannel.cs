@@ -18,16 +18,18 @@ namespace Metalama.Mcp.Protocol;
 /// </summary>
 internal sealed class MessageChannel : IDisposable
 {
-    private const int _maxMessageLength = 256 * 1024 * 1024;
+    public const int DefaultMaxMessageLength = 256 * 1024 * 1024;
 
     private readonly Stream _input;
     private readonly Stream _output;
+    private readonly int _maxMessageLength;
     private readonly SemaphoreSlim _writeLock = new( 1, 1 );
 
-    public MessageChannel( Stream input, Stream output )
+    public MessageChannel( Stream input, Stream output, int maxMessageLength = DefaultMaxMessageLength )
     {
         this._input = input;
         this._output = output;
+        this._maxMessageLength = maxMessageLength;
     }
 
     public async Task WriteAsync( JsonObject message, CancellationToken cancellationToken = default )
@@ -64,7 +66,7 @@ internal sealed class MessageChannel : IDisposable
 
         var length = BinaryPrimitives.ReadInt32LittleEndian( header );
 
-        if ( length is < 0 or > _maxMessageLength )
+        if ( length < 0 || length > this._maxMessageLength )
         {
             throw new InvalidDataException( $"Invalid message length {length}." );
         }

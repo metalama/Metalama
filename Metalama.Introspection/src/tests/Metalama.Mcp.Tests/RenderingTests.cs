@@ -7,6 +7,8 @@ using Metalama.Introspection.Navigation.Results;
 using Metalama.Mcp.Rendering;
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -95,5 +97,47 @@ public sealed class RenderingTests
         Assert.Matches( "default-src &#39;none&#39;; script-src &#39;sha256-[A-Za-z0-9+/=]+&#39;", html );
         Assert.DoesNotContain( "unsafe-eval", html, StringComparison.Ordinal );
         Assert.DoesNotContain( "id=\"metalama-data\"", html, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public void ScriptHashMatchesWhatTheBrowserHashes()
+    {
+        var html = HtmlWriter.CreatePage( null, "t" );
+
+        var hash = Regex.Match( html, "script-src &#39;sha256-(?<hash>[A-Za-z0-9+/=]+)&#39;" ).Groups["hash"].Value;
+        var script = Regex.Match( html, "<script>(?<script>.*?)</script>", RegexOptions.Singleline ).Groups["script"].Value;
+
+        // The HTML parser normalizes CRLF to LF before the browser computes the hash of an inline script.
+        var parsed = script.Replace( "\r\n", "\n", StringComparison.Ordinal ).Replace( '\r', '\n' );
+        var expected = Convert.ToBase64String( SHA256.HashData( Encoding.UTF8.GetBytes( parsed ) ) );
+
+        Assert.Equal( expected, hash );
+    }
+
+    [Fact]
+    public void JsonExpressionNamesTheScopeWhenItIsNotTheBase()
+    {
+        var node = new ObjectNode( "INamedType", "Customer" )
+        {
+            IsDeclaration = true,
+            InterfaceName = "INamedType",
+            IsTransformed = true,
+            Link = new Link( "App.sln", "Other@net48", true, "T:App.Customer", [], null ),
+            Properties = []
+        };
+
+        var json = new JsonRenderer( _base ).Render( node );
+
+        Assert.Equal( "D<INamedType>(\"T:App.Customer\", project: \"Other\", tfm: \"net48\", transformed: true)", json["expression"]!.GetValue<string>() );
+    }
+
+    [Fact]
+    public void JsonHasNoExpressionForATypeThatIsNotADeclaration()
+    {
+        var node = new ObjectNode( "IType", "int[]" ) { InterfaceName = "IType", Link = new Link( "App.sln", "App@net10.0", false, "Y:System.Int32[]", [], null ) };
+
+        var json = new JsonRenderer( _base ).Render( node );
+
+        Assert.Null( json["expression"] );
     }
 }
