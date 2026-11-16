@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -36,6 +36,8 @@ public static class MSBuildPropertyNames
     public const string MetalamaProjectReferenceNames = nameof(MetalamaProjectReferenceNames);
     public const string MetalamaWriteHtml = nameof(MetalamaWriteHtml);
     public const string MetalamaWriteHtmlSymbols = nameof(MetalamaWriteHtmlSymbols);
+    public const string MetalamaWriteIntrospectionFile = nameof(MetalamaWriteIntrospectionFile);
+    public const string MetalamaIntrospectionFile = nameof(MetalamaIntrospectionFile);
     public const string ProjectAssetsFile = nameof(ProjectAssetsFile);
     public const string MetalamaReferenceAssemblyRestoreTimeout = nameof(MetalamaReferenceAssemblyRestoreTimeout);
     public const string MetalamaWriteLicenseUsageData = nameof(MetalamaWriteLicenseUsageData);
@@ -95,6 +97,8 @@ public static class MSBuildPropertyNames
         MetalamaProjectReferenceNames,
         MetalamaWriteHtml,
         MetalamaWriteHtmlSymbols,
+        MetalamaWriteIntrospectionFile,
+        MetalamaIntrospectionFile,
         ProjectAssetsFile,
         MetalamaReferenceAssemblyRestoreTimeout,
         MetalamaWriteLicenseUsageData,

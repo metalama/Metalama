@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -714,6 +714,15 @@ namespace Metalama.Framework.Engine.Diagnostics
                     Warning,
                     "The compile-time code of a reference requires a more recent C# language version than the current process supports.",
                     _helpLinkFormat );
+
+        internal static readonly DiagnosticDefinition<(string Path, string Message)> CannotWriteIntrospectionFile =
+            new(
+                "LAMA0092",
+                _category,
+                "Metalama could not write the introspection file '{0}': {1}",
+                Warning,
+                "Cannot write the introspection file.",
+                _helpLinkFormat );
 
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>

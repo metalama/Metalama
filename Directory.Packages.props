@@ -285,6 +285,7 @@
     <PackageVersion Include="Metalama.Backstage" Version="$(BackstageVersion)" />
     <PackageVersion Include="SharpCrafters.Backstage" Version="$(BackstageVersion)" />
     <PackageVersion Include="SharpCrafters.Backstage.Commands" Version="$(BackstageVersion)" />
+    <PackageVersion Include="SharpCrafters.Aspects.Introspection" Version="$(BackstageVersion)" />
     <PackageVersion Include="SharpCrafters.Aspects.Introspection.Query" Version="$(BackstageVersion)" />
     <PackageVersion Include="Metalama.Backstage.Tools" Version="$(BackstageVersion)" />
     <PackageVersion Include="Metalama.Compiler" Version="$(MetalamaCompilerVersion)" />

@@ -33,6 +33,11 @@ internal sealed class IntrospectionFabric : IIntrospectionFabric, IIntrospection
 
     public string FullName => this._fabric.Fabric.GetType().FullName!;
 
+    /// <summary>
+    /// Gets the name of the assembly that declares the fabric: the project, or a referenced project for a transitive fabric.
+    /// </summary>
+    internal string AssemblyName => this._fabric.FabricAssemblyName;
+
     public ImmutableArray<IntrospectionAspectRelationship> Predecessors => ImmutableArray<IntrospectionAspectRelationship>.Empty;
 
     [Memo]
