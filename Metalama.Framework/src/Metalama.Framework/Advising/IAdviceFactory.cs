@@ -47,7 +47,7 @@ namespace Metalama.Framework.Advising
         ///     This property must be annotated with <see cref="TemplateAttribute"/>. To select a different templates according to the kind of target method
         ///     (such as async or iterator methods), use the constructor of the <see cref="MethodTemplateSelector"/> type. To specify a single
         ///     template for all methods, pass a string.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
         ///     of the <see cref="meta"/> API.</param>
         /// <seealso href="@overriding-methods"/>
@@ -67,7 +67,7 @@ namespace Metalama.Framework.Advising
         /// <param name="whenExists">Determines the implementation strategy when a method of the same name and signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildMethod">An optional callback that allows you to configure the introduced method, such as changing its name, accessibility, return type, or adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
         ///     of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IMethodBuilder"/> that allows to modify the name or signature, or to add custom attributes.</returns>
@@ -89,7 +89,7 @@ namespace Metalama.Framework.Advising
         ///     annotated with <see cref="TemplateAttribute"/>. This method can parameters and a return type.</param>
         /// <param name="whenExists">Determines the implementation strategy when a finalizer is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
         ///     of the <see cref="meta"/> API.</param>
         /// <seealso href="@introducing-members"/>
@@ -110,7 +110,7 @@ namespace Metalama.Framework.Advising
         /// <param name="kind">The kind of unary operator to introduce (e.g., <see cref="OperatorKind.UnaryPlus"/>, <see cref="OperatorKind.UnaryNegation"/>).</param>
         /// <param name="whenExists">Determines the implementation strategy when a unary operator of the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced unary operator.</returns>
         /// <seealso href="@introducing-members"/>
@@ -137,7 +137,7 @@ namespace Metalama.Framework.Advising
         /// <param name="kind">The kind of binary operator to introduce (e.g., <see cref="OperatorKind.Addition"/>, <see cref="OperatorKind.Multiplication"/>, ...).</param>
         /// <param name="whenExists">Determines the implementation strategy when a binary operator of the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced binary operator.</returns>
         /// <seealso href="@introducing-members"/>
@@ -165,7 +165,7 @@ namespace Metalama.Framework.Advising
         /// <param name="isChecked"><c>true</c> to introduce a checked conversion operator; <c>false</c> otherwise. The default is <c>false</c>.</param>
         /// <param name="whenExists">Determines the implementation strategy when a conversion operator of the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced conversion operator.</returns>
         /// <seealso href="@introducing-members"/>
@@ -188,7 +188,7 @@ namespace Metalama.Framework.Advising
         /// <param name="targetConstructor">The constructor to override.</param>
         /// <param name="template">Name of a method in the aspect class whose implementation will be used as a template.
         ///     This method must be annotated with <see cref="TemplateAttribute"/>.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
         ///     of the <see cref="meta"/> API.</param>
         IOverrideAdviceResult<IConstructor> Override( IConstructor targetConstructor, string template, object? args = null, object? tags = null );
@@ -200,7 +200,7 @@ namespace Metalama.Framework.Advising
         /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced constructor. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
         /// <param name="whenExists">Determines the implementation strategy when a constructor with the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildConstructor">An optional callback that allows you to configure the introduced constructor, such as changing its accessibility, parameters, or adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced constructor.</returns>
         /// <seealso href="@introducing-members"/>
@@ -239,7 +239,7 @@ namespace Metalama.Framework.Advising
         /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c>
         ///     if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
         ///     be <c>void Set(T value)</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <seealso href="@overriding-fields-or-properties"/>
@@ -256,7 +256,7 @@ namespace Metalama.Framework.Advising
         /// <param name="targetFieldOrProperty">The field or property to override.</param>
         /// <param name="getTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c> if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. To select different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type.</param>
         /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c> if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IOverrideAdviceResult{T}"/> representing the result of the advice.</returns>
         /// <seealso href="@overriding-fields-or-properties"/>
@@ -273,7 +273,7 @@ namespace Metalama.Framework.Advising
         /// <param name="targetIndexer">The indexer to override.</param>
         /// <param name="getTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c> if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. To select different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type.</param>
         /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c> if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IOverrideAdviceResult{T}"/> representing the result of the advice.</returns>
         /// <seealso href="@overriding-fields-or-properties"/>
@@ -441,7 +441,7 @@ namespace Metalama.Framework.Advising
         /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its name, type, accessibility, or adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced property.</returns>
@@ -474,7 +474,7 @@ namespace Metalama.Framework.Advising
         /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
@@ -507,7 +507,7 @@ namespace Metalama.Framework.Advising
         /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
@@ -540,7 +540,7 @@ namespace Metalama.Framework.Advising
         /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
@@ -573,7 +573,7 @@ namespace Metalama.Framework.Advising
         /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
@@ -604,7 +604,7 @@ namespace Metalama.Framework.Advising
         ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
         ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
         /// <param name="raiseTemplate">Not yet implemented.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <seealso href="@overriding-events"/>
@@ -666,7 +666,7 @@ namespace Metalama.Framework.Advising
         /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildEvent"></param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
         /// <returns>An <see cref="IEventBuilder"/> that allows to change the name and the type of the event.</returns>
@@ -728,7 +728,7 @@ namespace Metalama.Framework.Advising
         /// <param name="kind">The type of initializer to add.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
         /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields
         ///     on the aspect type, used for cross-layer coordination when <paramref name="kind"/> is
         ///     <see cref="InitializerKind.AfterObjectInitializer"/> or <see cref="InitializerKind.AfterLastInstanceConstructor"/>.</param>
@@ -753,7 +753,7 @@ namespace Metalama.Framework.Advising
         /// <param name="position">Position of the initializer relative to the call to the base initializer (<c>base.Initialize(...)</c> or <c>base.OnConstructed(...)</c>).</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
         /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields
         ///     on the aspect type, used for cross-layer coordination.</param>
         /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides which constructors receive a
@@ -787,7 +787,7 @@ namespace Metalama.Framework.Advising
         /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with the <see cref="TemplateAttribute"/> custom attribute.</param>
         /// <param name="tags">An optional opaque object of anonymous type  passed to templates and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
         IAddInitializerAdviceResult AddInitializer( IConstructor targetConstructor, string template, object? tags = null, object? args = null );
 
         /// <summary>
@@ -805,7 +805,7 @@ namespace Metalama.Framework.Advising
         /// <param name="direction">Direction of the data flow to which the contract should apply. See <see cref="ContractDirection"/> for details.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
         IAddContractAdviceResult<IParameter> AddContract(
             IParameter targetParameter,
             string template,
@@ -822,7 +822,7 @@ namespace Metalama.Framework.Advising
         /// <param name="direction">Direction of the data flow to which the contract should apply. See <see cref="ContractDirection"/> for details.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
         IAddContractAdviceResult<IFieldOrPropertyOrIndexer> AddContract(
             IFieldOrPropertyOrIndexer targetMember,
             string template,

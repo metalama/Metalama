@@ -2,8 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Code;
-
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
@@ -26,8 +24,7 @@ namespace Metalama.Framework.Aspects;
 /// <param name="TemplateProvider">An optional <see cref="Metalama.Framework.Aspects.TemplateProvider"/> specifying where to find the template,
 /// or <c>default</c> if the current template provider (usually the current aspect) should be used.</param>
 /// <param name="Arguments">Compile-time template arguments that will be passed to the template. These are typically anonymous objects
-/// whose properties map to template parameters (e.g., <c>new { paramName = value }</c>).
-/// A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation where the template is expanded before it is passed to the template.</param>
+/// whose properties map to template parameters (e.g., <c>new { paramName = value }</c>).</param>
 /// <seealso cref="TemplateAttribute"/>
 /// <seealso cref="ITemplateProvider"/>
 /// <seealso cref="TemplateProvider"/>

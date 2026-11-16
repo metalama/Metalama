@@ -16,12 +16,16 @@ namespace Metalama.Framework.Engine.Advising;
 /// </summary>
 /// <remarks>
 /// <para>
+/// This class is used by an extension that keeps template arguments across compilations, for instance the arguments of a
+/// <see cref="DurableTemplateInvocation"/>. The advice of the framework does not use it, because the arguments of an advice are
+/// consumed in the compilation in which they are created.
+/// </para>
+/// <para>
 /// An <see cref="IDurableExpression"/> is resolved to an <see cref="IExpression"/>, and an <see cref="IDurableRef"/> is resolved to the
 /// declaration or type that it references. A template therefore receives the same value as if the non-durable value had been passed.
 /// </para>
 /// <para>
 /// Only the top-level values of the arguments are resolved. A durable value nested in an array, a list or a dictionary is passed unchanged.
-/// Tags are not resolved.
 /// </para>
 /// </remarks>
 public static class DurableArgumentResolver

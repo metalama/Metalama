@@ -83,7 +83,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its name, type, accessibility, or adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden property.</returns>
@@ -127,7 +127,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
@@ -171,7 +171,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
@@ -215,7 +215,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
@@ -259,7 +259,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
@@ -343,7 +343,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildEvent">An optional callback that allows you to configure the introduced event, such as changing its name, type, accessibility, or adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden event.</returns>
@@ -388,7 +388,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a method of the same name and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildMethod">An optional callback that allows you to configure the introduced method, such as changing its name, signature, accessibility, or adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden method.</returns>
@@ -421,7 +421,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <param name="kind">The kind of operator to introduce.</param>
     /// <param name="whenExists">Determines the implementation strategy when an operator of the same kind and signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden unary operator.</returns>
     /// <seealso href="@introducing-members"/>
