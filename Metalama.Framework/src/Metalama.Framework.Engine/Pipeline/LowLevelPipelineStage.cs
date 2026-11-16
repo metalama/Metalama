@@ -111,7 +111,7 @@ internal sealed class LowLevelPipelineStage : PipelineStage
             input.TransitiveContributors,
             input.AdditionalSyntaxTrees,
             input.AspectInstanceResults.AddRange(
-                aspectInstances.Select(
+                aspectInstances.SelectAsImmutableArray(
                     x => new AspectInstanceResult(
                         x.Value,
                         AdviceOutcome.Default,
