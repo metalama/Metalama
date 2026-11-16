@@ -33,7 +33,7 @@ A work item that queues another work item before it returns is covered. The coun
 
 `FakeMemoryCache` reads a `TimeProvider` instead of the wall clock. An entry expires as soon as the clock passes its expiration instant. The class registers a timer with the `TimeProvider` for the earliest expiration instant, so advancing a `FakeTimeProvider` evicts the entries that fall due and invokes their post-eviction callbacks, without the test having to notify the cache.
 
-`FakeMemoryCache` implements `IClearableMemoryCache`, so a backend that stores its entries in it reports the `Clear` feature, as it does with `MemoryCache`.
+`FakeMemoryCache` implements `IClearableMemoryCache`, so a backend that owns it can compact it, as it does with `MemoryCache`.
 
 `FakeCachingServices` registers the memory cache as a single instance. Two backends that resolve it from the same service provider therefore share one store, which is not what the two layers of a layered backend need. Give the second layer its own store in that case.
 

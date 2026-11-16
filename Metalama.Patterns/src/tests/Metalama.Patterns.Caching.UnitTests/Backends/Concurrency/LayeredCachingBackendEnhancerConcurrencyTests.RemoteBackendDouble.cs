@@ -31,7 +31,8 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
         /// <para>
         /// When the double defers its removals, <see cref="CachingBackend.RemoveItem"/> returns before the item is
         /// removed, as the removal of a backend that is not blocking does. The removal takes effect when the test calls
-        /// <see cref="CompletePendingRemovals"/>. An invalidation of a dependency always takes effect immediately.
+        /// <see cref="CompletePendingRemovals"/>. When the double defers its invalidations, the same applies to
+        /// <see cref="CachingBackend.InvalidateDependency"/> and <see cref="CompletePendingInvalidations"/>.
         /// </para>
         /// </remarks>
         private sealed partial class RemoteBackendDouble : CachingBackend
@@ -57,6 +58,11 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
             private readonly List<string> _pendingRemovals = new();
 
             /// <summary>
+            /// The dependencies whose invalidation has been requested and has not taken effect yet.
+            /// </summary>
+            private readonly List<string> _pendingInvalidations = new();
+
+            /// <summary>
             /// A description of each read, in the order of the reads.
             /// </summary>
             private readonly ConcurrentQueue<string> _reads = new();
@@ -77,6 +83,12 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
             private readonly bool _defersRemovals;
 
             /// <summary>
+            /// A value indicating whether an invalidation takes effect only when the test calls
+            /// <see cref="CompletePendingInvalidations"/>.
+            /// </summary>
+            private readonly bool _defersInvalidations;
+
+            /// <summary>
             /// The source identifier of the events, or <see langword="null"/> to use <see cref="CachingBackend.Id"/>.
             /// </summary>
             private readonly Guid? _eventSourceId;
@@ -85,6 +97,11 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
             /// The gate that blocks the next read of a chosen key, or <see langword="null"/> when no gate is armed.
             /// </summary>
             private RemoteReadGate? _readGate;
+
+            /// <summary>
+            /// The gate that blocks the next removal of a chosen key, or <see langword="null"/> when no gate is armed.
+            /// </summary>
+            private RemoteReadGate? _removalGate;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="RemoteBackendDouble"/> class.
@@ -105,18 +122,24 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
             /// <param name="eventSourceId">
             /// The source identifier of the events, or <see langword="null"/> to use <see cref="CachingBackend.Id"/>.
             /// </param>
+            /// <param name="defersInvalidations">
+            /// <see langword="true"/> to make an invalidation take effect only when the test calls
+            /// <see cref="CompletePendingInvalidations"/>.
+            /// </param>
             public RemoteBackendDouble(
                 IServiceProvider? serviceProvider,
                 bool blocking = true,
                 bool raisesEvents = false,
                 bool defersRemovals = false,
-                Guid? eventSourceId = null )
+                Guid? eventSourceId = null,
+                bool defersInvalidations = false )
                 : base( serviceProvider: serviceProvider )
             {
                 this._blocking = blocking;
                 this._raisesEvents = raisesEvents;
                 this._defersRemovals = defersRemovals;
                 this._eventSourceId = eventSourceId;
+                this._defersInvalidations = defersInvalidations;
             }
 
             /// <summary>
@@ -139,6 +162,20 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
             }
 
             /// <summary>
+            /// Gets the number of invalidations that have been requested and have not taken effect yet.
+            /// </summary>
+            public int PendingInvalidationCount
+            {
+                get
+                {
+                    lock ( this._sync )
+                    {
+                        return this._pendingInvalidations.Count;
+                    }
+                }
+            }
+
+            /// <summary>
             /// Gets the source identifier of the events.
             /// </summary>
             private Guid EventSourceId => this._eventSourceId ?? this.Id;
@@ -155,6 +192,39 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
                 Volatile.Write( ref this._readGate, gate );
 
                 return gate;
+            }
+
+            /// <summary>
+            /// Arms a gate that blocks the next removal of <paramref name="key"/>, before the double removes the item
+            /// from its store. The double must not defer its removals.
+            /// </summary>
+            /// <param name="key">The key whose removal the gate blocks.</param>
+            /// <returns>The gate.</returns>
+            public RemoteReadGate ArmRemovalGate( string key )
+            {
+                var gate = new RemoteReadGate( key );
+                Volatile.Write( ref this._removalGate, gate );
+
+                return gate;
+            }
+
+            /// <summary>
+            /// Applies the invalidations that have been requested and have not taken effect yet, on the calling thread.
+            /// </summary>
+            public void CompletePendingInvalidations()
+            {
+                List<string> invalidations;
+
+                lock ( this._sync )
+                {
+                    invalidations = this._pendingInvalidations.ToList();
+                    this._pendingInvalidations.Clear();
+                }
+
+                foreach ( var dependency in invalidations )
+                {
+                    this.InvalidateNow( dependency );
+                }
             }
 
             /// <summary>
@@ -257,12 +327,34 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
                 }
                 else
                 {
+                    Volatile.Read( ref this._removalGate )?.OnRead( key, null );
+
                     this.RemoveNow( key );
                 }
             }
 
             /// <inheritdoc />
             protected override void InvalidateDependencyCore( string key )
+            {
+                if ( this._defersInvalidations )
+                {
+                    lock ( this._sync )
+                    {
+                        this._pendingInvalidations.Add( key );
+                    }
+                }
+                else
+                {
+                    this.InvalidateNow( key );
+                }
+            }
+
+            /// <summary>
+            /// Removes the items that depend on <paramref name="key"/>, and raises the events when the double raises
+            /// events.
+            /// </summary>
+            /// <param name="key">The invalidated dependency.</param>
+            private void InvalidateNow( string key )
             {
                 var removedKeys = new List<string>();
 
@@ -312,6 +404,7 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
                     this._items.Clear();
                     this._dependencies.Clear();
                     this._pendingRemovals.Clear();
+                    this._pendingInvalidations.Clear();
                 }
             }
 
