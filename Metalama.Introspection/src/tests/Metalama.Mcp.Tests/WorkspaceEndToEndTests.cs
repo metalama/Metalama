@@ -215,6 +215,6 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
         var footer = text.Split( '\n' ).Last();
         var start = footer.IndexOf( "fingerprint ", StringComparison.Ordinal ) + "fingerprint ".Length;
 
-        return footer.Substring( start, 12 );
+        return new string( footer.Skip( start ).TakeWhile( char.IsAsciiHexDigit ).ToArray() );
     }
 }

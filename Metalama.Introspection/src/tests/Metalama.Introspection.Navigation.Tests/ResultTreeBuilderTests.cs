@@ -129,11 +129,4 @@ public sealed class ResultTreeBuilderTests : UnitTestClass
         var argument = Assert.Single( node.Segments, s => s.Argument != null ).Argument;
         Assert.Equal( "T:C", argument!.Link!.Anchor );
     }
-
-    private sealed class Throwing
-    {
-        private readonly string _message = "boom";
-
-        public int Value => throw new InvalidOperationException( this._message );
-    }
 }

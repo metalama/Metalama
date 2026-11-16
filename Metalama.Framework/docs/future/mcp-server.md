@@ -113,9 +113,11 @@ The guarantee covers the server's own code. A query can open a socket, as any pr
 
 ### 4.3. Client-side gating
 
-- `query`, `load_workspace` and `reload_workspace` carry `readOnlyHint: false`, so clients that ask permission for
-  tool calls ask for these.
-- Links with a query anchor run code when they are followed, so `open` is also declared as not read-only.
+- `query`, `load_workspace`, `reload_workspace` and `open` carry `readOnlyHint: false` and leave `destructiveHint` and
+  `openWorldHint` at the default of the specification, which is `true`: a query runs arbitrary code, and a load runs
+  MSBuild targets and a NuGet restore over the network. Clients that ask permission for tool calls, or only for
+  destructive or open-world ones, ask for these.
+- Links with a query anchor run code when they are followed, so `open` is declared in the same way.
 
 ## 5. Tools and resources
 
@@ -445,8 +447,10 @@ Interactions:
   and `maxItems` 500, with a size cap of 10 MB.
 - Links that point into the snapshot jump to the anchor in the page. Other links offer the two copy actions of
   section 9.2.
-- Files go to the directory given by the `--output-dir` option, or by default to
-  `<temp>/metalama-mcp/<workspace key>/`, with a name built from the time and a hash of the query.
+- Files go to the directory given by the `--output-dir` option, or by default to a directory of the user
+  (`Metalama/Mcp/Results` under the local application data), with a name built from the time and a hash of the result.
+  The temporary directory is not used, because it is shared by all users on Linux. On Unix, the directory is created
+  readable by the user only.
 - The server does not start a browser. The agent or the person opens the file.
 
 ### 9.4. MCP App
@@ -462,7 +466,10 @@ transport rules of section 4.
 - The host passes the result to the view with `ui/notifications/tool-result`.
 - **Live drill-down.** A click on a link sends `tools/call` for `open` through the host. "Show more" on a truncated
   grid sends `open` again with a larger `maxItems`. Hosts reject calls from the view to tools whose `visibility`
-  lacks `"app"`, so `query` and `open` declare `["model", "app"]`.
+  lacks `"app"`, so `open` declares `["model", "app"]`. `query` declares `["model"]`: the view renders its results but
+  cannot run a query, so a script injection in the view could not run code through it.
+- The view gets the JSON of a deeper tree (the depth of the HTML snapshot) than the text for the model, which keeps the
+  depth of the requested format. Both come from one build of the result, so the query runs once.
 - The resource declares no `csp` domains, so the host applies the extension's restrictive default and the view has
   no network access.
 - The view resource and the `_meta.ui` of the tools are always present, because hosts without the extension ignore

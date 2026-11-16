@@ -7,7 +7,6 @@ using Metalama.Extensions.Metrics;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
-using SharpCrafters.Backstage.Application;
 using SharpCrafters.Backstage.Extensibility;
 using System;
 using System.Collections.Generic;
@@ -65,12 +64,5 @@ internal static class WorkerInitialization
 
             return diagnostics;
         }
-    }
-
-    private sealed class McpApplicationInfo : ApplicationInfoBase
-    {
-        public McpApplicationInfo() : base( typeof(McpApplicationInfo).Assembly, MetalamaProduct.Profile ) { }
-
-        public override string Name => "Metalama.Mcp";
     }
 }

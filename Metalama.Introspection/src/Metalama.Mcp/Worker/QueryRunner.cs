@@ -6,13 +6,12 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.Loader;
 using System.Threading.Tasks;
 
 namespace Metalama.Mcp.Worker;
 
 /// <summary>
-/// Runs a compiled query in a collectible <see cref="AssemblyLoadContext"/>, and unloads it afterwards.
+/// Runs a compiled query in a collectible <see cref="System.Runtime.Loader.AssemblyLoadContext"/>, and unloads it afterwards.
 /// </summary>
 internal static class QueryRunner
 {
@@ -54,13 +53,5 @@ internal static class QueryRunner
         {
             loadContext.Unload();
         }
-    }
-
-    private sealed class QueryLoadContext : AssemblyLoadContext
-    {
-        public QueryLoadContext() : base( "MetalamaQuery", isCollectible: true ) { }
-
-        // Every dependency of a query, including Metalama and the workspace, resolves from the default context.
-        protected override Assembly? Load( AssemblyName assemblyName ) => null;
     }
 }

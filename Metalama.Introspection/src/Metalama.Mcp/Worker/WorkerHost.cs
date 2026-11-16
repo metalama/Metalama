@@ -4,6 +4,7 @@
 
 using Metalama.Mcp.Protocol;
 using System;
+using System.IO;
 using System.IO.Pipes;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -14,7 +15,7 @@ namespace Metalama.Mcp.Worker;
 
 /// <summary>
 /// The main loop of the worker: it reads requests from the supervisor and runs them one at a time. A <c>cancel</c> message
-/// cancels the request in progress. The worker exits when the supervisor closes the pipe.
+/// cancels the request in progress. The worker exits as soon as the pipe from the supervisor closes, even during a request.
 /// </summary>
 internal static class WorkerHost
 {
@@ -22,6 +23,12 @@ internal static class WorkerHost
     {
         using var input = new AnonymousPipeClientStream( PipeDirection.In, options.WorkerInputHandle! );
         using var output = new AnonymousPipeClientStream( PipeDirection.Out, options.WorkerOutputHandle! );
+
+        // The processes that the worker starts, such as the MSBuild build host or a process started by a query, must not
+        // inherit the pipes: they could write to the supervisor, and they would keep the pipe open after the worker exits.
+        HandleInheritance.Disable( input.SafePipeHandle );
+        HandleInheritance.Disable( output.SafePipeHandle );
+
         using var channel = new MessageChannel( input, output );
 
         WorkerInitialization.Initialize();
@@ -31,25 +38,34 @@ internal static class WorkerHost
         CancellationTokenSource? current = null;
         var currentLock = new object();
 
-        var reader = Task.Run(
+        _ = Task.Run(
             async () =>
             {
-                while ( await channel.ReadAsync() is { } message )
+                try
                 {
-                    if ( message[WorkerMethods.Method]?.GetValue<string>() == WorkerMethods.Cancel )
+                    while ( await channel.ReadAsync() is { } message )
                     {
-                        lock ( currentLock )
+                        if ( message[WorkerMethods.Method]?.GetValue<string>() == WorkerMethods.Cancel )
                         {
-                            current?.Cancel();
+                            lock ( currentLock )
+                            {
+                                current?.Cancel();
+                            }
+                        }
+                        else
+                        {
+                            await requests.Writer.WriteAsync( message );
                         }
                     }
-                    else
-                    {
-                        await requests.Writer.WriteAsync( message );
-                    }
+                }
+                catch ( Exception e ) when ( e is not OutOfMemoryException )
+                {
+                    await Console.Error.WriteLineAsync( $"The pipe from the supervisor failed: {e.Message}" );
                 }
 
-                requests.Writer.Complete();
+                // The supervisor is gone. A request in progress, such as a query that never ends, must not keep the worker
+                // and its build host running without a parent.
+                Environment.Exit( 0 );
             } );
 
         await foreach ( var request in requests.Reader.ReadAllAsync() )
@@ -83,10 +99,26 @@ internal static class WorkerHost
                 response[WorkerMethods.Text] = text.Replace( "\r\n", "\n", StringComparison.Ordinal );
             }
 
-            await channel.WriteAsync( response );
-        }
+            try
+            {
+                await channel.WriteAsync( response );
+            }
+            catch ( InvalidDataException e )
+            {
+                // The response is above the size limit of the pipe, for example a JSON result with a large maxItems.
+                var message =
+                    $"The result is too large to return ({e.Message}). Narrow the query, or lower maxItems or maxDepth.";
 
-        await reader;
+                await channel.WriteAsync(
+                    new JsonObject
+                    {
+                        [WorkerMethods.Id] = request[WorkerMethods.Id]?.DeepClone(),
+                        [WorkerMethods.Ok] = false,
+                        [WorkerMethods.Error] = message,
+                        [WorkerMethods.Text] = "error: " + message
+                    } );
+            }
+        }
 
         return 0;
     }

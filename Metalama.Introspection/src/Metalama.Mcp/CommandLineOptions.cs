@@ -18,9 +18,20 @@ internal sealed class CommandLineOptions
     public const string TimeoutOption = "--timeout";
 
     /// <summary>
-    /// Gets the directory where HTML results are written.
+    /// Gets the directory where HTML results are written. The default is a directory of the user, because the temporary
+    /// directory is shared by all users on Linux.
     /// </summary>
-    public string OutputDirectory { get; private set; } = Path.Combine( Path.GetTempPath(), "metalama-mcp" );
+    public string OutputDirectory { get; private set; } = GetDefaultOutputDirectory();
+
+    private static string GetDefaultOutputDirectory()
+    {
+        var applicationData = Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.DoNotVerify );
+
+        // Without a home directory, a new directory that only this user can read.
+        return string.IsNullOrEmpty( applicationData )
+            ? Directory.CreateTempSubdirectory( "metalama-mcp-" ).FullName
+            : Path.Combine( applicationData, "Metalama", "Mcp", "Results" );
+    }
 
     /// <summary>
     /// Gets the default soft timeout of a query. The hard timeout, after which the worker is killed, is twice as long.

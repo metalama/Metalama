@@ -176,12 +176,20 @@ internal sealed class ResultTreeBuilder
             items.Add( new ErrorNode( e.GetType().Name, e.Message ) );
         }
 
-        if ( count == null && !isTruncated )
+        var isCountFromEnumeration = count == null && !isTruncated;
+
+        if ( isCountFromEnumeration )
         {
             count = index;
         }
 
-        return new CollectionNode( typeName, count ) { Link = link, Items = items.ToImmutable(), IsTruncated = isTruncated || (count != null && count > index) };
+        return new CollectionNode( typeName, count )
+        {
+            Link = link,
+            Items = items.ToImmutable(),
+            IsCountFromEnumeration = isCountFromEnumeration,
+            IsTruncated = isTruncated || (count != null && count > index)
+        };
     }
 
     private GroupingNode BuildGrouping( IEnumerable grouping, Type groupingInterface, int depth, bool expand )
@@ -384,47 +392,5 @@ internal sealed class ResultTreeBuilder
         var enumerableInterface = type.GetInterfaces().FirstOrDefault( i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>) );
 
         return enumerableInterface != null ? FormatTypeName( enumerableInterface ) : "IEnumerable";
-    }
-
-    /// <summary>
-    /// Formats the arguments of a <see cref="FormattableString"/> with <see cref="MetalamaStringFormatter"/> and replaces the
-    /// arguments that are objects by placeholders, so that they can become nodes.
-    /// </summary>
-    private sealed class RichTextFormatter : ICustomFormatter, IFormatProvider
-    {
-        public const string Separator = "\u0001";
-        public const string ArgumentPrefix = "\u0002";
-
-        public List<(string Text, object Value)> Arguments { get; } = [];
-
-        public string Format( string? format, object? arg, IFormatProvider? formatProvider )
-        {
-            var text = FormatArgument( format, arg );
-
-            if ( arg == null || arg is string || arg.GetType().IsPrimitive || arg is Enum )
-            {
-                return text;
-            }
-
-            var index = this.Arguments.Count;
-            this.Arguments.Add( (text, arg) );
-
-            return $"{Separator}{ArgumentPrefix}{index.ToString( CultureInfo.InvariantCulture )}{Separator}";
-        }
-
-        public object? GetFormat( Type? formatType ) => formatType == typeof(ICustomFormatter) ? this : null;
-
-        private static string FormatArgument( string? format, object? arg )
-        {
-            try
-            {
-                return MetalamaStringFormatter.Instance.Format( format, arg, CultureInfo.InvariantCulture );
-            }
-            catch ( InvalidOperationException )
-            {
-                // The formatter is initialized with the Metalama engine, which may not have run yet.
-                return arg is IFormattable formattable ? formattable.ToString( format, CultureInfo.InvariantCulture ) : arg?.ToString() ?? "";
-            }
-        }
     }
 }

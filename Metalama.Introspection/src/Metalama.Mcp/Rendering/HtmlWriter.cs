@@ -5,6 +5,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.IO.Hashing;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -43,10 +44,13 @@ internal static partial class HtmlWriter
     /// </summary>
     public static string CreatePage( JsonObject? document, string title )
     {
-        var template = EmbeddedResources.Read( "Viewer.viewer.html" );
-        var script = EmbeddedResources.Read( "Viewer.viewer.js" );
-        var css = EmbeddedResources.Read( "Viewer.viewer.css" );
+        // The HTML parser normalizes line endings to LF before the browser hashes an inline script, and the resources have
+        // CRLF line endings in a Windows working tree, so they are normalized before they are hashed and embedded.
+        var template = EmbeddedResources.Read( "Viewer.viewer.html" ).ReplaceLineEndings( "\n" );
+        var script = EmbeddedResources.Read( "Viewer.viewer.js" ).ReplaceLineEndings( "\n" );
+        var css = EmbeddedResources.Read( "Viewer.viewer.css" ).ReplaceLineEndings( "\n" );
 
+        // SHA-256 is what the content security policy requires for script hashes.
         var scriptHash = Convert.ToBase64String( SHA256.HashData( Encoding.UTF8.GetBytes( script ) ) );
 
         // The page loads nothing: no network, no frames, and only its own script, allowed by its hash.
@@ -76,9 +80,17 @@ internal static partial class HtmlWriter
     /// </summary>
     public static string WriteFile( JsonObject document, string title, string outputDirectory )
     {
-        Directory.CreateDirectory( outputDirectory );
+        // The pages contain declarations and string constants of the analysed code, so only the user may read them.
+        if ( OperatingSystem.IsWindows() )
+        {
+            Directory.CreateDirectory( outputDirectory );
+        }
+        else
+        {
+            Directory.CreateDirectory( outputDirectory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute );
+        }
 
-        var hash = Convert.ToHexStringLower( SHA256.HashData( Encoding.UTF8.GetBytes( document.ToJsonString() ) ) ).Substring( 0, 8 );
+        var hash = XxHash64.HashToUInt64( Encoding.UTF8.GetBytes( document.ToJsonString() ) ).ToString( "x16", CultureInfo.InvariantCulture ).Substring( 0, 8 );
         var fileName = $"result-{DateTime.Now.ToString( "yyyyMMdd-HHmmss", CultureInfo.InvariantCulture )}-{hash}.html";
         var path = Path.Combine( outputDirectory, fileName );
 

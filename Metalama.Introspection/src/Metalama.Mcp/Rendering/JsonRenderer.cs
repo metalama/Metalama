@@ -89,9 +89,9 @@ internal sealed class JsonRenderer
             json["location"] = obj.Location;
         }
 
-        if ( obj.InterfaceName != null && obj.Link is { Steps.IsEmpty: true, IsIdentifierAnchor: true } link )
+        if ( DeclarationExpression.Get( obj, this._base ) is { } expression )
         {
-            json["expression"] = $"D<{obj.InterfaceName}>(\"{link.Anchor}\")";
+            json["expression"] = expression;
         }
 
         if ( obj.Properties is { } properties )

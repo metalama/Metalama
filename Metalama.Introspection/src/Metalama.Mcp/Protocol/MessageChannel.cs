@@ -32,9 +32,19 @@ internal sealed class MessageChannel : IDisposable
         this._maxMessageLength = maxMessageLength;
     }
 
+    /// <summary>
+    /// Writes a message.
+    /// </summary>
+    /// <exception cref="InvalidDataException">The message is larger than the limit that the reader enforces. Nothing is written.</exception>
     public async Task WriteAsync( JsonObject message, CancellationToken cancellationToken = default )
     {
         var payload = Encoding.UTF8.GetBytes( message.ToJsonString() );
+
+        if ( payload.Length > this._maxMessageLength )
+        {
+            throw new InvalidDataException( $"The message is {payload.Length} bytes long, above the limit of {this._maxMessageLength} bytes." );
+        }
+
         var header = new byte[4];
         BinaryPrimitives.WriteInt32LittleEndian( header, payload.Length );
 

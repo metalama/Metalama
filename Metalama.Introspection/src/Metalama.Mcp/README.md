@@ -16,7 +16,8 @@ Or install it as a tool with `dotnet tool install -g Metalama.Mcp` and register 
 
 Options:
 
-* `--output-dir <directory>`: where HTML results are written. Default: `<temp>/metalama-mcp`.
+* `--output-dir <directory>`: where HTML results are written. Default: `Metalama/Mcp/Results` in the local application
+  data directory of the user.
 * `--timeout <seconds>`: the default soft timeout of a query. The worker process is stopped after twice this time.
 
 ## Tools

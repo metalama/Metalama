@@ -107,7 +107,7 @@ internal sealed class RequestHandler
         return new JsonObject { [WorkerMethods.Ok] = true, [WorkerMethods.Workspace] = entry.Key, [WorkerMethods.Text] = $"Unloaded {entry.Key}." };
     }
 
-    private static JsonObject DescribeWorkspace( WorkspaceRegistry.Entry entry, string verb, TimeSpan elapsed, JsonObject args )
+    private static JsonObject DescribeWorkspace( WorkspaceEntry entry, string verb, TimeSpan elapsed, JsonObject args )
     {
         var workspace = entry.Workspace;
         var linkBase = entry.DefaultBase;
@@ -165,7 +165,7 @@ internal sealed class RequestHandler
         }
 
         var workspaceKey = args["workspace"]?.GetValue<string>();
-        WorkspaceRegistry.Entry? entry = null;
+        WorkspaceEntry? entry = null;
 
         if ( workspaceKey != null || this._registry.Entries.Count == 1 )
         {
@@ -216,7 +216,12 @@ internal sealed class RequestHandler
         {
             Console.SetOut( originalOut );
 
-            return Failure( "The query threw " + FormatException( e ) + FormatConsole( console.ToString() ) );
+            // Without a workspace, the `workspace` global is null: say why rather than leaving a bare NullReferenceException.
+            var workspaceNote = entry == null && Unwrap( e ) is NullReferenceException && !this._registry.TryGet( null, out _, out var noWorkspace )
+                ? $"\nnote: `workspace` is null. {noWorkspace}"
+                : "";
+
+            return Failure( "The query threw " + FormatException( e ) + workspaceNote + FormatConsole( console.ToString() ) );
         }
         finally
         {
@@ -243,7 +248,7 @@ internal sealed class RequestHandler
         }
 
         var workspaceKey = args["workspace"]?.GetValue<string>();
-        WorkspaceRegistry.Entry? entry = null;
+        WorkspaceEntry? entry = null;
 
         if ( workspaceKey != null || this._registry.Entries.Count == 1 )
         {
@@ -287,31 +292,53 @@ internal sealed class RequestHandler
     private RenderedResult RenderResult(
         object? value,
         Link? link,
-        WorkspaceRegistry.Entry? entry,
+        WorkspaceEntry? entry,
         WorkspaceLinkContext linkContext,
         LinkBase? linkBase,
         RenderOptions options,
         string title )
     {
-        var builder = new ResultTreeBuilder( new ResultTreeOptions( options.MaxDepth, options.MaxItems, entry?.RootDirectory ), new LinkBuilder( linkContext ) );
-        var tree = builder.Build( value, link );
+        // The value is built once, with the largest limits that any output needs, and smaller outputs are cut from that
+        // tree. Building runs the getters and enumerates the result, so building twice would run a lazy query twice.
+        var outputLimits = new ResultTreeOptions( options.MaxDepth, options.MaxItems, entry?.RootDirectory );
+        var structuredLimits = options.GetStructuredLimits( entry?.RootDirectory );
+        var buildLimits = structuredLimits ?? outputLimits;
 
-        var needsJson = options.Format != ResultFormat.Text || options.IncludeStructured;
-        var json = needsJson ? new JsonRenderer( linkBase ).RenderDocument( tree, title ) : null;
-        var text = options.Format == ResultFormat.Json ? json!.ToJsonString() : new TextRenderer( linkBase ).Render( tree );
+        var tree = new ResultTreeBuilder( buildLimits, new LinkBuilder( linkContext ) ).Build( value, link );
+        var outputTree = buildLimits == outputLimits ? tree : ResultTreePruner.Prune( tree, outputLimits );
 
+        var jsonRenderer = new JsonRenderer( linkBase );
+        var outputJson = options.Format != ResultFormat.Text ? jsonRenderer.RenderDocument( outputTree, title ) : null;
+
+        // The MCP App view gets the deeper tree; the text for the model has the depth of the requested format.
+        var structuredJson = structuredLimits != null ? jsonRenderer.RenderDocument( tree, title ) : null;
+
+        string text;
         string? htmlPath = null;
 
-        if ( options.Format == ResultFormat.Html )
+        switch ( options.Format )
         {
-            htmlPath = HtmlWriter.WriteFile( json!, title.Length > 80 ? title.Substring( 0, 79 ) + "…" : title, this._options.OutputDirectory );
+            case ResultFormat.Json:
+                text = outputJson!.ToJsonString();
 
-            // The agent gets a short text summary, so that the page never enters its context.
-            var summary = new TextRenderer( linkBase ).Render( new ResultTreeBuilder( new ResultTreeOptions( 0, 10, entry?.RootDirectory ), new LinkBuilder( linkContext ) ).Build( value, link ) );
-            text = $"html: {new Uri( htmlPath ).AbsoluteUri}\n{summary}";
+                break;
+
+            case ResultFormat.Html:
+                htmlPath = HtmlWriter.WriteFile( outputJson!, title.Length > 80 ? title.Substring( 0, 79 ) + "…" : title, this._options.OutputDirectory );
+
+                // The agent gets a short text summary, so that the page never enters its context.
+                var summary = new TextRenderer( linkBase ).Render( ResultTreePruner.Prune( outputTree, new ResultTreeOptions( 0, 10, entry?.RootDirectory ) ) );
+                text = $"html: {new Uri( htmlPath ).AbsoluteUri}\n{summary}";
+
+                break;
+
+            default:
+                text = new TextRenderer( linkBase ).Render( outputTree );
+
+                break;
         }
 
-        return new RenderedResult( text, json, htmlPath, linkBase );
+        return new RenderedResult( text, structuredJson ?? outputJson, htmlPath, linkBase );
     }
 
     private static JsonObject CreateResponse(
@@ -319,7 +346,7 @@ internal sealed class RequestHandler
         string console,
         IReadOnlyList<QueryDiagnostic> warnings,
         TimeSpan elapsed,
-        WorkspaceRegistry.Entry? entry,
+        WorkspaceEntry? entry,
         RenderOptions options,
         JsonObject args )
     {
@@ -405,10 +432,7 @@ internal sealed class RequestHandler
         }
 
         var includeStructured = args[WorkerMethods.IncludeStructured]?.GetValue<bool>() == true;
-
-        // The MCP App renders the JSON form, so it gets the depth of the HTML snapshot.
-        var defaultDepth = includeStructured ? ResultFormat.Html.GetDefaultMaxDepth() : format.GetDefaultMaxDepth();
-        var maxDepth = Math.Clamp( args["maxDepth"]?.GetValue<int>() ?? defaultDepth, 0, 10 );
+        var maxDepth = Math.Clamp( args["maxDepth"]?.GetValue<int>() ?? format.GetDefaultMaxDepth(), 0, 10 );
         var maxItems = Math.Clamp( args["maxItems"]?.GetValue<int>() ?? format.GetDefaultMaxItems(), 1, 10_000 );
 
         options = new RenderOptions( format, maxDepth, maxItems, includeStructured );
@@ -424,12 +448,11 @@ internal sealed class RequestHandler
         return $"{diagnostic.Severity.ToString().ToLowerInvariant()} {diagnostic.Id}{location} {diagnostic.Message}";
     }
 
+    private static Exception Unwrap( Exception e ) => e is AggregateException { InnerExceptions.Count: 1 } aggregate ? aggregate.InnerExceptions[0] : e;
+
     private static string FormatException( Exception e )
     {
-        if ( e is AggregateException { InnerExceptions.Count: 1 } aggregate )
-        {
-            e = aggregate.InnerExceptions[0];
-        }
+        e = Unwrap( e );
 
         if ( e is MSBuildInitializationException )
         {
@@ -450,8 +473,4 @@ internal sealed class RequestHandler
     private static string FormatConsole( string console ) => console.Length > 0 ? "\n--- console ---\n" + console.TrimEnd() : "";
 
     private static JsonObject Failure( string? message ) => new() { [WorkerMethods.Ok] = false, [WorkerMethods.Error] = message, [WorkerMethods.Text] = "error: " + message };
-
-    private sealed record RenderOptions( ResultFormat Format, int MaxDepth, int MaxItems, bool IncludeStructured );
-
-    private sealed record RenderedResult( string Text, JsonObject? Json, string? HtmlPath, LinkBase? Base );
 }

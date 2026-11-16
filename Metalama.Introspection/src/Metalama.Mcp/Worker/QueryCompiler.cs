@@ -207,17 +207,3 @@ internal sealed class QueryCompiler
         ];
     }
 }
-
-/// <summary>
-/// The result of compiling a query: the assembly, or <c>null</c> when compilation failed, and the diagnostics.
-/// </summary>
-internal sealed record CompiledQuery( byte[]? Assembly, ImmutableArray<QueryDiagnostic> Diagnostics );
-
-/// <summary>
-/// A compiler diagnostic, with its position in the code of the query, or no position when it is in generated code.
-/// </summary>
-internal sealed record QueryDiagnostic( string Severity, string Id, int? Line, int? Column, string Message )
-{
-    public override string ToString()
-        => this.Line != null ? $"{this.Severity} {this.Id} ({this.Line},{this.Column}): {this.Message}" : $"{this.Severity} {this.Id}: {this.Message}";
-}

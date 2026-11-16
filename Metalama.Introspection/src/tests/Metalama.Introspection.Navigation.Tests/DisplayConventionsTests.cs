@@ -46,17 +46,6 @@ public sealed class DisplayConventionsTests : UnitTestClass
         Assert.Equal( ["Zeta", "Name", "Id"], type.PropertyNames.ToArray() );
     }
 
-    public sealed class Ordered
-    {
-        public int Zeta { get; } = 1;
-
-        public string Name { get; } = "n";
-
-        public int Id { get; } = 2;
-
-        public int[] Items { get; } = [1];
-    }
-
     [Fact]
     public void AnonymousTypeExposesItsProperties()
     {

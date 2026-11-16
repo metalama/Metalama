@@ -6,6 +6,7 @@ using Metalama.Framework.Engine;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Metalama.Introspection.Navigation.Facade
 {
@@ -17,8 +18,13 @@ namespace Metalama.Introspection.Navigation.Facade
         private readonly MethodInfo? _getter;
         private static readonly ConcurrentDictionary<Type, EnumerableAccessor> _instances = new();
 
+        // Does not keep collectible types alive. See FacadeTypeFactory.
+        private static readonly ConditionalWeakTable<Type, EnumerableAccessor> _collectibleInstances = new();
+
         public static EnumerableAccessor Get( Type type )
-            => FacadeTypeFactory.IsCollectible( type ) ? new EnumerableAccessor( type ) : _instances.GetOrAdd( type, t => new EnumerableAccessor( t ) );
+            => FacadeTypeFactory.IsCollectible( type )
+                ? _collectibleInstances.GetValue( type, t => new EnumerableAccessor( t ) )
+                : _instances.GetOrAdd( type, t => new EnumerableAccessor( t ) );
 
         private EnumerableAccessor( Type type )
         {

@@ -40,35 +40,39 @@ internal sealed class McpTools
 
     public IEnumerable<McpServerTool> CreateTools()
     {
-        yield return this.Create( nameof(this.LoadWorkspace), "load_workspace", "Load workspace", readOnly: false, withViewer: false );
-        yield return this.Create( nameof(this.ReloadWorkspace), "reload_workspace", "Reload workspace", readOnly: false, withViewer: false );
-        yield return this.Create( nameof(this.UnloadWorkspace), "unload_workspace", "Unload workspace", readOnly: false, withViewer: false );
-        yield return this.Create( nameof(this.Query), "query", "Run a C# query", readOnly: false, withViewer: true );
+        // Loading runs MSBuild targets, aspects and a NuGet restore; a query runs arbitrary code. Their destructive and
+        // open-world hints are left to the default of the specification, which is true, so that clients ask for permission.
+        yield return this.Create( nameof(this.LoadWorkspace), "load_workspace", "Load workspace", runsCode: true, ViewerAccess.None );
+        yield return this.Create( nameof(this.ReloadWorkspace), "reload_workspace", "Reload workspace", runsCode: true, ViewerAccess.None );
+        yield return this.Create( nameof(this.UnloadWorkspace), "unload_workspace", "Unload workspace", runsCode: false, ViewerAccess.None );
 
-        // Following a link runs no code today, because query anchors are not supported yet, but it will once they are.
-        yield return this.Create( nameof(this.Open), "open", "Open a link", readOnly: false, withViewer: true );
+        // The viewer renders the result of a query but cannot run a query: only the model can.
+        yield return this.Create( nameof(this.Query), "query", "Run a C# query", runsCode: true, ViewerAccess.Render );
+
+        // The viewer calls open to drill down. Following a link runs no code today, because query anchors are not
+        // supported yet, but it will once they are.
+        yield return this.Create( nameof(this.Open), "open", "Open a link", runsCode: true, ViewerAccess.RenderAndCall );
     }
 
-    private McpServerTool Create( string methodName, string name, string title, bool readOnly, bool withViewer )
+    private McpServerTool Create( string methodName, string name, string title, bool runsCode, ViewerAccess viewerAccess )
     {
         var method = typeof(McpTools).GetMethod( methodName )!;
         var description = method.GetCustomAttributes( typeof(DescriptionAttribute), false ).OfType<DescriptionAttribute>().Single().Description;
 
-        var options = new McpServerToolCreateOptions
-        {
-            Name = name,
-            Title = title,
-            Description = description,
-            ReadOnly = readOnly,
-            Destructive = false,
-            OpenWorld = false
-        };
+        var options = new McpServerToolCreateOptions { Name = name, Title = title, Description = description, ReadOnly = false };
 
-        if ( withViewer )
+        if ( !runsCode )
         {
-            // MCP Apps: hosts that support the extension render the result with the viewer, and the viewer may call the
-            // tool itself to drill down. Other hosts ignore this metadata.
-            options.Meta = new JsonObject { ["ui"] = new JsonObject { ["resourceUri"] = ViewerResourceUri, ["visibility"] = new JsonArray( "model", "app" ) } };
+            options.Destructive = false;
+            options.OpenWorld = false;
+        }
+
+        if ( viewerAccess != ViewerAccess.None )
+        {
+            // MCP Apps: hosts that support the extension render the result with the viewer. A tool is callable from the
+            // viewer only when its visibility includes "app". Other hosts ignore this metadata.
+            var visibility = viewerAccess == ViewerAccess.RenderAndCall ? new JsonArray( "model", "app" ) : new JsonArray( "model" );
+            options.Meta = new JsonObject { ["ui"] = new JsonObject { ["resourceUri"] = ViewerResourceUri, ["visibility"] = visibility } };
         }
 
         return McpServerTool.Create( method, this, options );

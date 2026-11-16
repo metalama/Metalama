@@ -186,9 +186,9 @@ internal sealed class TextRenderer
     {
         string header;
 
-        if ( obj.IsDeclaration && obj.Link is { Steps.IsEmpty: true, IsIdentifierAnchor: true } link )
+        if ( DeclarationExpression.Get( obj, this._base ) is { } expression )
         {
-            header = $"D<{obj.InterfaceName ?? "IDeclaration"}>(\"{link.Anchor}\"{this.GetScopeArguments( link )})";
+            header = expression;
         }
         else if ( obj.Link != null )
         {
@@ -200,25 +200,6 @@ internal sealed class TextRenderer
         }
 
         return obj.Location != null ? $"{header}  {obj.Location}" : header;
-    }
-
-    private string GetScopeArguments( Link link )
-    {
-        var arguments = new StringBuilder();
-
-        if ( this._base?.Scope != link.Scope && link.Scope != Link.WholeWorkspaceScope )
-        {
-            var at = link.Scope.LastIndexOf( '@' );
-
-            arguments.Append( at < 0 ? $", project: \"{link.Scope}\"" : $", project: \"{link.Scope.Substring( 0, at )}\", tfm: \"{link.Scope.Substring( at + 1 )}\"" );
-        }
-
-        if ( link.IsTransformed )
-        {
-            arguments.Append( ", transformed: true" );
-        }
-
-        return arguments.ToString();
     }
 
     private string FormatLink( Link link ) => link.ToRelativeString( this._base );
