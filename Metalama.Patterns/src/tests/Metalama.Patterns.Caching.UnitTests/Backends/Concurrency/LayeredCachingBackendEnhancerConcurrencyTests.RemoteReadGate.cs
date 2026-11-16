@@ -12,7 +12,8 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
         /// <summary>
         /// A single-use gate armed on a <see cref="RemoteBackendDouble"/>. The gate blocks the thread that reads the item
         /// of a chosen key from the double until the test calls <see cref="Release"/>. The thread is blocked after the
-        /// double has read its store and before the read returns.
+        /// double has read its store and before the read returns. The double also uses the gate to block the thread that
+        /// removes the item of a chosen key, before the double changes its store.
         /// </summary>
         /// <remarks>
         /// The double releases its own lock before it calls the gate, so a thread that is blocked at the gate holds no

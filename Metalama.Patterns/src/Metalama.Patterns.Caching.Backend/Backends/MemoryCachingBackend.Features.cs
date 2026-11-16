@@ -8,14 +8,17 @@ namespace Metalama.Patterns.Caching.Backends
 {
     internal partial class MemoryCachingBackend
     {
-        private class Features : CachingBackendFeatures
+        /// <summary>
+        /// The features of <see cref="MemoryCachingBackend"/>.
+        /// </summary>
+        private sealed class Features : CachingBackendFeatures
         {
-            public Features( bool supportsClear )
-            {
-                this.Clear = supportsClear;
-            }
-
-            public override bool Clear { get; }
+            /// <summary>
+            /// Gets a value indicating whether the backend supports <see cref="CachingBackend.Clear"/>. The backend
+            /// clears its items one key at a time, so the feature does not depend on the type of the
+            /// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/>.
+            /// </summary>
+            public override bool Clear => true;
         }
     }
 }

@@ -4,6 +4,8 @@
 
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Implementation;
+using Metalama.Testing.Hooks;
+using System.Collections.Concurrent;
 using System.Globalization;
 
 namespace Metalama.Patterns.Caching.Backends;
@@ -12,17 +14,45 @@ namespace Metalama.Patterns.Caching.Backends;
 /// A <see cref="CachingBackendEnhancer"/> that adds a local (fast) <see cref="MemoryCachingBackend"/> to a remote (slower) cache.
 /// This class is typically instantiated in the back-end factory method. You should normally not use this class unless you develop a custom caching back-end.
 /// </summary>
+/// <remarks>
+/// <para>
+/// A read that finds no item in the local cache reads the remote cache and copies the item into the local cache. Such a
+/// read is registered in <see cref="_pendingReadThroughs"/> for its duration, so that a removal, an invalidation or a
+/// clearing that overlaps the read can mark it. A marked read withdraws its copy from the local cache.
+/// </para>
+/// <para>
+/// When the remote cache is blocking, a removal changes the local cache, then the remote cache. It then marks the
+/// pending reads and changes the local cache again. A read that overlaps the change of the remote cache is therefore
+/// either marked, or has copied its item before the second change of the local cache, which removes it.
+/// </para>
+/// <para>
+/// When the remote cache is not blocking, the change of the remote cache is still pending when the removal returns. The
+/// removal therefore replaces the local item with a replacement value (tombstone) that carries the timestamp of the
+/// removal. A read does not copy a remote item that is not newer than the replacement value.
+/// </para>
+/// </remarks>
 [PublicAPI]
-internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
+internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnhancer
 {
     private readonly TimeSpan _removedItemTransitionPeriod = TimeSpan.FromMinutes( 1 );
 
     /// <summary>
-    /// A counter incremented before every removal, invalidation or clearing that can affect the local cache. A read that
-    /// copies a value of the remote cache into the local cache compares it before and after the copy, so that a value read
-    /// before a concurrent removal does not stay in the local cache.
+    /// The optional test synchronization service, resolved once from the service provider of the remote backend. It is
+    /// never registered in production, in which case it stays <see langword="null"/> and every synchronization point is
+    /// skipped.
     /// </summary>
-    private long _removalVersion;
+    private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
+
+    /// <summary>
+    /// The reads that are reading an item from the remote cache or copying it into the local cache.
+    /// </summary>
+    private readonly ConcurrentDictionary<ReadThrough, bool> _pendingReadThroughs = new();
+
+    /// <summary>
+    /// The number of reads that are registered, or are being registered, in <see cref="_pendingReadThroughs"/>. It lets a
+    /// removal skip the enumeration of <see cref="_pendingReadThroughs"/> when no read is pending.
+    /// </summary>
+    private int _pendingReadThroughCount;
 
     /// <summary>
     /// Gets the in-memory local cache.
@@ -46,6 +76,9 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         this.LocalCache = memoryCache ?? new MemoryCachingBackend(
             serviceProvider: remoteCache.ServiceProvider,
             configuration: configuration?.L1Configuration );
+
+        this._testSynchronizationProvider =
+            (ITestSynchronizationProvider?) remoteCache.ServiceProvider.GetService( typeof(ITestSynchronizationProvider) );
     }
 
     protected override async Task InitializeCoreAsync( CancellationToken cancellationToken = default )
@@ -63,7 +96,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void OnBackendDependencyInvalidated( object? sender, CacheDependencyInvalidatedEventArgs args )
     {
-        this.IncrementRemovalVersion();
+        // The remote cache has already changed. The pending reads are marked before the local cache changes.
+        this.InvalidateReadThroughs( null );
 
         if ( args.SourceId != this.UnderlyingBackend.Id )
         {
@@ -76,7 +110,8 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void OnBackendItemRemoved( object? sender, CacheItemRemovedEventArgs args )
     {
-        this.IncrementRemovalVersion();
+        // The remote cache has already changed. The pending reads are marked before the local cache changes.
+        this.InvalidateReadThroughs( args.Key );
 
         if ( args.SourceId != this.UnderlyingBackend.Id )
         {
@@ -174,167 +209,183 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
 
         if ( localCacheItem == null || (includeDependencies && localCacheItem.Dependencies.IsDefault) )
         {
-            // The dependencies are always requested, because the item is stored in the local cache, which must register
-            // them so that a local invalidation removes it.
-            var removalVersion = this.GetRemovalVersion();
-            var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, true );
-
-            if ( remoteCacheItem != null )
-            {
-                // We have a value stored remotely.
-                // Cache in local memory.
-                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
-
-                return remoteCacheItem;
-            }
-            else
-            {
-                return null;
-            }
+            return this.ReadThroughRemote( key, null );
+        }
+        else if ( localCacheItem is RemovedValue removedValue )
+        {
+            // The local cache holds the replacement value that means that the item has been removed.
+            return this.ReadThroughRemote( key, removedValue );
         }
         else
         {
-            switch ( localCacheItem )
-            {
-                case RemovedValue removedValue:
-                    {
-                        // We have the magic string meaning that the node has been deleted.
-
-                        var removalVersion = this.GetRemovalVersion();
-
-                        var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, true );
-
-                        if ( remoteCacheItem == null )
-                        {
-                            return null;
-                        }
-                        else
-                        {
-                            if ( remoteCacheItem.Timestamp > removedValue.Timestamp )
-                            {
-                                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
-
-                                return remoteCacheItem;
-                            }
-                            else
-                            {
-                                // The remote value is older than the deletion.
-                                return null;
-                            }
-                        }
-                    }
-
-                default:
-                    return localCacheItem;
-            }
+            return localCacheItem;
         }
     }
-
-    private MaterializedCacheItem? GetValueFromUnderlyingBackend( string key, bool includeDependencies )
-    {
-        var cacheValue = (MaterializedCacheItem?) this.UnderlyingBackend.GetItem( key, includeDependencies );
-
-        if ( cacheValue == null )
-        {
-            return null;
-        }
-
-        return cacheValue;
-    }
-
-    private async Task<MaterializedCacheItem?> GetValueFromUnderlyingBackendAsync( string key, CancellationToken cancellationToken )
-    {
-        var cacheValue = (MaterializedCacheItem?) await this.UnderlyingBackend.GetItemAsync( key, true, cancellationToken );
-
-        if ( cacheValue == null )
-        {
-            return null;
-        }
-
-        return cacheValue;
-    }
-
-    /// <summary>
-    /// Copies a value read from the remote cache into the local cache, unless a removal, an invalidation or a clearing
-    /// started after <paramref name="removalVersion"/> was read.
-    /// </summary>
-    /// <remarks>
-    /// The version is compared after the copy. A removal increments the version before it removes the local item. Either
-    /// the removal runs after the copy and removes it, or the comparison observes the increment and the copy is removed
-    /// here. A removal of an unrelated key also withdraws the copy, which only costs a later read of the remote cache.
-    /// </remarks>
-    private void SetMemoryCacheFromRemote( string key, MaterializedCacheItem remoteCacheValue, long removalVersion )
-    {
-        this.LocalCache.SetItem( key, remoteCacheValue );
-
-        if ( this.GetRemovalVersion() != removalVersion )
-        {
-            this.LocalCache.RemoveItemImpl( key );
-        }
-    }
-
-    private long GetRemovalVersion() => Interlocked.Read( ref this._removalVersion );
-
-    private void IncrementRemovalVersion() => Interlocked.Increment( ref this._removalVersion );
 
     /// <inheritdoc />
     protected override async ValueTask<CacheItem?> GetItemAsyncCore( string key, bool includeDependencies, CancellationToken cancellationToken )
     {
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-        var localCacheValue = this.LocalCache.GetItem( key, includeDependencies );
+        var localCacheItem = this.LocalCache.GetItem( key, includeDependencies );
 
-        if ( localCacheValue == null )
+        if ( localCacheItem == null )
         {
-            var removalVersion = this.GetRemovalVersion();
-            var remoteCacheItem = await this.GetValueFromUnderlyingBackendAsync( key, cancellationToken );
-
-            if ( remoteCacheItem != null )
-            {
-                // We have a value stored remotely.
-                // Cache in local memory.
-                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
-
-                return remoteCacheItem;
-            }
-            else
-            {
-                return null;
-            }
+            return await this.ReadThroughRemoteAsync( key, null, cancellationToken );
+        }
+        else if ( localCacheItem is RemovedValue removedValue )
+        {
+            // The local cache holds the replacement value that means that the item has been removed.
+            return await this.ReadThroughRemoteAsync( key, removedValue, cancellationToken );
         }
         else
         {
-            switch ( localCacheValue )
+            return localCacheItem;
+        }
+    }
+
+    /// <summary>
+    /// Reads an item from the remote cache and copies it into the local cache.
+    /// </summary>
+    /// <param name="key">The key of the item.</param>
+    /// <param name="removedValue">The replacement value that the local cache holds for the key, or <see langword="null"/>.</param>
+    /// <returns>
+    /// The item of the remote cache, or <see langword="null"/> when the remote cache has no item or when its item is not
+    /// newer than <paramref name="removedValue"/>.
+    /// </returns>
+    private MaterializedCacheItem? ReadThroughRemote( string key, RemovedValue? removedValue )
+    {
+        var readThrough = this.BeginReadThrough( key );
+
+        try
+        {
+            // The dependencies are always requested, because the item is stored in the local cache, which must register
+            // them so that a local invalidation removes it.
+            var remoteCacheItem = (MaterializedCacheItem?) this.UnderlyingBackend.GetItem( key, true );
+
+            return this.CompleteReadThrough( readThrough, remoteCacheItem, removedValue );
+        }
+        finally
+        {
+            this.EndReadThrough( readThrough );
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously reads an item from the remote cache and copies it into the local cache.
+    /// </summary>
+    /// <param name="key">The key of the item.</param>
+    /// <param name="removedValue">The replacement value that the local cache holds for the key, or <see langword="null"/>.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// The item of the remote cache, or <see langword="null"/> when the remote cache has no item or when its item is not
+    /// newer than <paramref name="removedValue"/>.
+    /// </returns>
+    private async ValueTask<MaterializedCacheItem?> ReadThroughRemoteAsync( string key, RemovedValue? removedValue, CancellationToken cancellationToken )
+    {
+        var readThrough = this.BeginReadThrough( key );
+
+        try
+        {
+            var remoteCacheItem = (MaterializedCacheItem?) await this.UnderlyingBackend.GetItemAsync( key, true, cancellationToken );
+
+            return this.CompleteReadThrough( readThrough, remoteCacheItem, removedValue );
+        }
+        finally
+        {
+            this.EndReadThrough( readThrough );
+        }
+    }
+
+    /// <summary>
+    /// Copies an item read from the remote cache into the local cache, unless a replacement value masks it, and withdraws
+    /// the copy when a removal, an invalidation or a clearing has marked the read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The copy is conditional and is decided while the local cache holds the lock of the key. The local cache does not
+    /// replace a replacement value whose timestamp is not older than the timestamp of the remote item, because that
+    /// replacement value belongs to a removal that is more recent than the item.
+    /// </para>
+    /// <para>
+    /// The mark is read after the copy. A removal marks the read before it changes the local cache. Either the removal
+    /// changes the local cache after the copy and removes it, or the read observes the mark and withdraws the copy. The
+    /// withdrawal removes only the entry that this read has stored, so it removes neither a replacement value nor a
+    /// newer item.
+    /// </para>
+    /// </remarks>
+    /// <param name="readThrough">The registration of the read.</param>
+    /// <param name="remoteCacheItem">The item read from the remote cache, or <see langword="null"/>.</param>
+    /// <param name="removedValue">The replacement value that the local cache held when the read started, or <see langword="null"/>.</param>
+    /// <returns>The item that the read returns.</returns>
+    private MaterializedCacheItem? CompleteReadThrough( ReadThrough readThrough, MaterializedCacheItem? remoteCacheItem, RemovedValue? removedValue )
+    {
+        if ( remoteCacheItem == null )
+        {
+            return null;
+        }
+
+        if ( removedValue != null && remoteCacheItem.Timestamp <= removedValue.Timestamp )
+        {
+            // The remote value is not newer than the removal.
+            return null;
+        }
+
+        this._testSynchronizationProvider?.SyncPoint( SyncPoints.RemoteItemRead );
+
+        var storedItem = this.LocalCache.SetItemImpl(
+            readThrough.Key,
+            remoteCacheItem,
+            replacementValue => replacementValue is RemovedValue currentRemovedValue && remoteCacheItem.Timestamp <= currentRemovedValue.Timestamp );
+
+        if ( storedItem != null && readThrough.IsInvalidated )
+        {
+            this.LocalCache.RemoveItemImpl( readThrough.Key, expectedItem: storedItem );
+        }
+
+        return remoteCacheItem;
+    }
+
+    /// <summary>
+    /// Registers a read of the remote cache, so that a removal, an invalidation or a clearing can mark it.
+    /// </summary>
+    private ReadThrough BeginReadThrough( string key )
+    {
+        var readThrough = new ReadThrough( key );
+
+        // The counter is incremented before the read is registered. A removal that reads the counter before the increment
+        // has already changed the remote cache, or marks the pending reads again after it has changed the remote cache.
+        Interlocked.Increment( ref this._pendingReadThroughCount );
+        this._pendingReadThroughs.TryAdd( readThrough, true );
+
+        return readThrough;
+    }
+
+    private void EndReadThrough( ReadThrough readThrough )
+    {
+        this._pendingReadThroughs.TryRemove( readThrough, out _ );
+        Interlocked.Decrement( ref this._pendingReadThroughCount );
+    }
+
+    /// <summary>
+    /// Marks the pending reads of a key, so that they withdraw the copy that they store in the local cache.
+    /// </summary>
+    /// <param name="key">
+    /// The key of the removed item, or <see langword="null"/> to mark every pending read. An invalidation of a dependency
+    /// and a clearing mark every pending read, because the items that they remove are not known in advance: an item can
+    /// depend on the invalidated dependency through the keys of other items.
+    /// </param>
+    private void InvalidateReadThroughs( string? key )
+    {
+        if ( Volatile.Read( ref this._pendingReadThroughCount ) == 0 )
+        {
+            return;
+        }
+
+        foreach ( var pair in this._pendingReadThroughs )
+        {
+            if ( key == null || string.Equals( pair.Key.Key, key, StringComparison.Ordinal ) )
             {
-                case RemovedValue removedValue:
-                    {
-                        // We have the magic string meaning that the node has been deleted.
-
-                        var removalVersion = this.GetRemovalVersion();
-
-                        var remoteCacheItem = await this.GetValueFromUnderlyingBackendAsync( key, cancellationToken );
-
-                        if ( remoteCacheItem == null )
-                        {
-                            return null;
-                        }
-                        else
-                        {
-                            if ( remoteCacheItem.Timestamp > removedValue.Timestamp )
-                            {
-                                this.SetMemoryCacheFromRemote( key, remoteCacheItem, removalVersion );
-
-                                return remoteCacheItem;
-                            }
-                            else
-                            {
-                                // The remote value is older than the deletion.
-                                return null;
-                            }
-                        }
-                    }
-
-                default:
-                    return localCacheValue;
+                pair.Key.IsInvalidated = true;
             }
         }
     }
@@ -342,24 +393,26 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void InvalidateDependencyCore( string key )
     {
-        this.IncrementRemovalVersion();
-
-        if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
-        {
-            this.LocalCache.InvalidateDependency( key );
-        }
-        else
-        {
-            this.LocalCache.InvalidateDependencyImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
-        }
-
+        this.InvalidateLocalDependency( key );
         this.UnderlyingBackend.InvalidateDependency( key );
+        this.CompleteInvalidation( key );
     }
 
     /// <inheritdoc />
-    protected override ValueTask InvalidateDependencyAsyncCore( string key, CancellationToken cancellationToken )
+    protected override async ValueTask InvalidateDependencyAsyncCore( string key, CancellationToken cancellationToken )
     {
-        this.IncrementRemovalVersion();
+        this.InvalidateLocalDependency( key );
+        await this.UnderlyingBackend.InvalidateDependencyAsync( key, cancellationToken );
+        this.CompleteInvalidation( key );
+    }
+
+    /// <summary>
+    /// Marks every pending read, then invalidates a dependency in the local cache. When the remote cache is not blocking,
+    /// each removed item is replaced with a replacement value for the transition period.
+    /// </summary>
+    private void InvalidateLocalDependency( string key )
+    {
+        this.InvalidateReadThroughs( null );
 
         if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
         {
@@ -369,31 +422,45 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         {
             this.LocalCache.InvalidateDependencyImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
         }
+    }
 
-        return this.UnderlyingBackend.InvalidateDependencyAsync( key, cancellationToken );
+    /// <summary>
+    /// Marks every pending read and invalidates a dependency in the local cache again, after a blocking remote cache has
+    /// invalidated it. This removes the items that a read has copied from the remote cache between the first local
+    /// invalidation and the remote invalidation.
+    /// </summary>
+    private void CompleteInvalidation( string key )
+    {
+        if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
+        {
+            this.InvalidateReadThroughs( null );
+            this.LocalCache.InvalidateDependency( key );
+        }
     }
 
     /// <inheritdoc />
     protected override void RemoveItemCore( string key )
     {
-        this.IncrementRemovalVersion();
-
-        if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
-        {
-            this.LocalCache.RemoveItem( key );
-        }
-        else
-        {
-            this.LocalCache.RemoveItemImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
-        }
-
+        this.RemoveLocalItem( key );
         this.UnderlyingBackend.RemoveItem( key );
+        this.CompleteRemoval( key );
     }
 
     /// <inheritdoc />
-    protected override ValueTask RemoveItemAsyncCore( string key, CancellationToken cancellationToken )
+    protected override async ValueTask RemoveItemAsyncCore( string key, CancellationToken cancellationToken )
     {
-        this.IncrementRemovalVersion();
+        this.RemoveLocalItem( key );
+        await this.UnderlyingBackend.RemoveItemAsync( key, cancellationToken );
+        this.CompleteRemoval( key );
+    }
+
+    /// <summary>
+    /// Marks the pending reads of a key, then removes the item from the local cache. When the remote cache is not
+    /// blocking, the item is replaced with a replacement value for the transition period.
+    /// </summary>
+    private void RemoveLocalItem( string key )
+    {
+        this.InvalidateReadThroughs( key );
 
         if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
         {
@@ -403,39 +470,54 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         {
             this.LocalCache.RemoveItemImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
         }
+    }
 
-        return this.UnderlyingBackend.RemoveItemAsync( key, cancellationToken );
+    /// <summary>
+    /// Marks the pending reads of a key and removes the item from the local cache again, after a blocking remote cache
+    /// has removed it. This removes the item that a read has copied from the remote cache between the first local
+    /// removal and the remote removal.
+    /// </summary>
+    private void CompleteRemoval( string key )
+    {
+        if ( this.UnderlyingBackend.SupportedFeatures.Blocking )
+        {
+            this.InvalidateReadThroughs( key );
+            this.LocalCache.RemoveItemImpl( key );
+        }
     }
 
     /// <param name="options"></param>
     /// <inheritdoc />
     protected override void ClearCore( ClearCacheOptions options )
     {
-        this.IncrementRemovalVersion();
-
-        this.LocalCache.Clear();
+        this.ClearLocalCache();
 
         if ( options == ClearCacheOptions.Default )
         {
             this.UnderlyingBackend.Clear();
+            this.ClearLocalCache();
         }
     }
 
     /// <inheritdoc />
-    protected override ValueTask ClearAsyncCore( ClearCacheOptions options, CancellationToken cancellationToken )
+    protected override async ValueTask ClearAsyncCore( ClearCacheOptions options, CancellationToken cancellationToken )
     {
-        this.IncrementRemovalVersion();
-
-        this.LocalCache.Clear();
+        this.ClearLocalCache();
 
         if ( options == ClearCacheOptions.Default )
         {
-            return this.UnderlyingBackend.ClearAsync( options, cancellationToken );
+            await this.UnderlyingBackend.ClearAsync( options, cancellationToken );
+            this.ClearLocalCache();
         }
-        else
-        {
-            return default;
-        }
+    }
+
+    /// <summary>
+    /// Marks every pending read, then clears the local cache.
+    /// </summary>
+    private void ClearLocalCache()
+    {
+        this.InvalidateReadThroughs( null );
+        this.LocalCache.Clear();
     }
 
     /// <inheritdoc />
@@ -467,6 +549,38 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         public Features( CachingBackendFeatures underlyingBackendFeatures ) : base( underlyingBackendFeatures ) { }
 
         public override bool ContainsDependency => this.UnderlyingBackendFeatures is { ContainsDependency: true, Blocking: true };
+    }
+
+    /// <summary>
+    /// The registration of a read that reads an item from the remote cache and copies it into the local cache.
+    /// </summary>
+    private sealed class ReadThrough
+    {
+        private volatile bool _isInvalidated;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReadThrough"/> class.
+        /// </summary>
+        /// <param name="key">The key of the item that is read.</param>
+        public ReadThrough( string key )
+        {
+            this.Key = key;
+        }
+
+        /// <summary>
+        /// Gets the key of the item that is read.
+        /// </summary>
+        public string Key { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether a removal, an invalidation or a clearing has run since the read
+        /// started, so that the read must withdraw the copy that it stores in the local cache.
+        /// </summary>
+        public bool IsInvalidated
+        {
+            get => this._isInvalidated;
+            set => this._isInvalidated = value;
+        }
     }
 
     private sealed record RemovedValue : MemoryCacheItem
