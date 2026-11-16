@@ -7,6 +7,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
@@ -70,7 +71,8 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         [NotNullWhen( true )] out BlockSyntax? contractBlock )
     {
         var annotatedValueExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( valueExpression, valueType );
-        var boundTemplate = this._template.ForContract( annotatedValueExpression, this._templateArguments );
+        var templateArguments = DurableArgumentResolver.Wrap( this._templateArguments, method.GetCompilationModel() );
+        var boundTemplate = this._template.ForContract( annotatedValueExpression, templateArguments );
 
         var metaApiProperties = new MetaApiProperties(
             this.InitialCompilation,

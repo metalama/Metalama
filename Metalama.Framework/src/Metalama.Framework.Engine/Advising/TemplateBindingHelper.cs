@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.RunTime.Initialization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -50,6 +51,13 @@ internal static class TemplateBindingHelper
         this TemplateMember<IMethod> template,
         IObjectReader? arguments = null )
     {
+        // The target declaration is not known yet, so the durable values of type arguments are resolved in the ambient compilation.
+        // The values of the other parameters are resolved in the compilation of the target when the template is bound to it.
+        if ( arguments != null && UserCodeExecutionContext.CurrentOrNull?.Compilation is { } ambientCompilation )
+        {
+            arguments = DurableArgumentResolver.Wrap( arguments, ambientCompilation );
+        }
+
         var templateTypeArguments = GetTemplateTypeArguments( template, arguments );
 
         return new PartiallyBoundTemplateMethod( template, templateTypeArguments, arguments );
@@ -102,9 +110,11 @@ internal static class TemplateBindingHelper
             return mappingBuilder.ToImmutable();
         }
 
+        var arguments = DurableArgumentResolver.Wrap( template.TemplateArguments ?? ObjectReader.Empty, targetMethod.GetCompilationModel() );
+
         if ( targetMethod.OperatorKind.GetCategory() == OperatorCategory.None )
         {
-            var templateArguments = GetTemplateArguments( template, CreateParameterMapping() );
+            var templateArguments = GetTemplateArguments( template, arguments, CreateParameterMapping() );
 
             return new BoundTemplateMethod( template.TemplateMember, templateArguments );
         }
@@ -129,7 +139,7 @@ internal static class TemplateBindingHelper
                         $"Cannot use the method '{template.TemplateMember.Symbol}' as a template for the {targetMethod.OperatorKind} operator: this operator expects {expectedParameterCount} parameter(s) but got {runTimeParameters.Length}." ) );
             }
 
-            var templateArguments = GetTemplateArguments( template.TemplateMember, template.TemplateArguments, CreateParameterMapping() );
+            var templateArguments = GetTemplateArguments( template.TemplateMember, arguments, CreateParameterMapping() );
 
             return new BoundTemplateMethod( template.TemplateMember, templateArguments );
         }
@@ -181,7 +191,8 @@ internal static class TemplateBindingHelper
             return mappingBuilder.ToImmutable();
         }
 
-        var templateArguments = GetTemplateArguments( template, CreateParameterMapping() );
+        var arguments = DurableArgumentResolver.Wrap( template.TemplateArguments ?? ObjectReader.Empty, targetConstructor.GetCompilationModel() );
+        var templateArguments = GetTemplateArguments( template, arguments, CreateParameterMapping() );
 
         return new BoundTemplateMethod( template.TemplateMember, templateArguments );
     }
@@ -203,6 +214,11 @@ internal static class TemplateBindingHelper
         IObjectReader? arguments = null )
     {
         var templateMethodSymbol = (IMethodSymbol) template.Symbol;
+
+        if ( arguments != null && (targetMember?.GetCompilationModel() ?? UserCodeExecutionContext.CurrentOrNull?.Compilation) is { } compilation )
+        {
+            arguments = DurableArgumentResolver.Wrap( arguments, compilation );
+        }
 
         // The template must be void.
         if ( templateMethodSymbol.ReturnType.SpecialType != RoslynSpecialType.System_Void )
@@ -273,6 +289,8 @@ internal static class TemplateBindingHelper
         SyntaxSerializationService serializationService,
         SyntaxSerializationContext serializationContext )
     {
+        arguments = DurableArgumentResolver.Wrap( arguments, serializationContext.CompilationModel );
+
         var runTimeParameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
 
         foreach ( var runTimeParameter in template.TemplateClassMember.RunTimeParameters )
@@ -349,7 +367,7 @@ internal static class TemplateBindingHelper
         var templateMethodSymbol = (IMethodSymbol) template.Symbol;
 
         templateMethodSymbol.ThrowIfBelongsToDifferentCompilationThan( targetConstructor.GetSymbol() );
-        arguments ??= ObjectReader.Empty;
+        arguments = DurableArgumentResolver.Wrap( arguments ?? ObjectReader.Empty, targetConstructor.GetCompilationModel() );
         var parameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
 
         void AddParameter( IParameter methodParameter, IParameterSymbol templateParameter, ExpressionSyntax? customExpression = null )
@@ -426,7 +444,7 @@ internal static class TemplateBindingHelper
     {
         var templateMethodSymbol = (IMethodSymbol) template.Symbol;
         templateMethodSymbol.ThrowIfBelongsToDifferentCompilationThan( targetMethod.GetSymbol() );
-        arguments ??= ObjectReader.Empty;
+        arguments = DurableArgumentResolver.Wrap( arguments ?? ObjectReader.Empty, targetMethod.GetCompilationModel() );
         var parameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
 
         void AddParameter( IParameter methodParameter, IParameterSymbol templateParameter )
@@ -722,7 +740,7 @@ internal static class TemplateBindingHelper
         IObjectReader? arguments = null )
     {
         var templateMethodSymbol = (IMethodSymbol) template.Symbol;
-        arguments ??= ObjectReader.Empty;
+        arguments = DurableArgumentResolver.Wrap( arguments ?? ObjectReader.Empty, targetMethod.GetCompilationModel() );
         var parameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
         var firstOrdinal = hiddenLeadingParameterCount;
         var endOrdinal = targetMethod.Parameters.Count - nameOnlyTrailingParameterCount;
@@ -1042,14 +1060,13 @@ internal static class TemplateBindingHelper
 
     private static object?[] GetTemplateArguments(
         PartiallyBoundTemplateMethod? template,
+        IObjectReader compileTimeArguments,
         ImmutableDictionary<string, ExpressionSyntax> runTimeParameterMapping )
     {
         if ( template == null )
         {
             return [];
         }
-
-        var compileTimeArguments = template.TemplateArguments ?? ObjectReader.Empty;
 
         var templateArguments = new List<object?>();
         var templateOptionalArguments = new List<object?>();
@@ -1166,7 +1183,7 @@ internal static class TemplateBindingHelper
                             $"The value of type parameter '{parameter.Name}' for template '{template.Symbol}' must not be null." ) ),
                     _ => throw new InvalidAdviceParametersException(
                         MetalamaStringFormatter.Format(
-                            $"The value of parameter '{parameter.Name}' for template '{template.Symbol}' must be of type IType or Type." ) )
+                            $"The value of parameter '{parameter.Name}' for template '{template.Symbol}' must be of type IType, IDurableRef<IType> or Type." ) )
                 };
 
                 if ( typeModel.SpecialType == OurSpecialType.Void )

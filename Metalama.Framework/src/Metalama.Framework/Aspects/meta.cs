@@ -456,7 +456,7 @@ namespace Metalama.Framework.Aspects
         /// </summary>
         /// <param name="templateName">The name of the called template method.</param>
         /// <param name="templateProvider">A <see cref="TemplateProvider"/>.</param>
-        /// <param name="args">Compile-time template arguments that will be passed to the template.</param>
+        /// <param name="args">Compile-time template arguments that will be passed to the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the current compilation before it is passed to the template.</param>
         [TemplateKeyword]
         [CompileTime( isTemplateOnly: true )]
         public static void InvokeTemplate( string templateName, TemplateProvider templateProvider, object? args = null ) => throw CreateException();
@@ -466,7 +466,7 @@ namespace Metalama.Framework.Aspects
         /// </summary>
         /// <param name="templateName">The name of the called template method.</param>
         /// <param name="templateProvider">An optional <see cref="TemplateProvider"/>, or <see langword="default"/> for the current template provider (usually the current aspect).</param>
-        /// <param name="args">Compile-time template arguments that will be passed to the template.</param>
+        /// <param name="args">Compile-time template arguments that will be passed to the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the current compilation before it is passed to the template.</param>
         [TemplateKeyword]
         [CompileTime( isTemplateOnly: true )]
         public static void InvokeTemplate( string templateName, ITemplateProvider? templateProvider = null, object? args = null ) => throw CreateException();
@@ -475,7 +475,7 @@ namespace Metalama.Framework.Aspects
         /// Calls another template method.
         /// </summary>
         /// <param name="templateInvocation">Object that contains information about the called template method.</param>
-        /// <param name="args">Compile-time template arguments that will be passed to the template, in addition to arguments from <paramref name="templateInvocation"/>.</param>
+        /// <param name="args">Compile-time template arguments that will be passed to the template, in addition to arguments from <paramref name="templateInvocation"/>. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the current compilation before it is passed to the template.</param>
         [TemplateKeyword]
         [CompileTime( isTemplateOnly: true )]
         public static void InvokeTemplate( TemplateInvocation templateInvocation, object? args = null ) => throw CreateException();

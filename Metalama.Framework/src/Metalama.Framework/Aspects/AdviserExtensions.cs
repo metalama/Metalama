@@ -32,7 +32,7 @@ public static class AdviserExtensions
     /// </list>
     /// Template methods must be annotated with <see cref="TemplateAttribute"/>.
     /// </param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>, useful for passing context or configuration. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IOverrideAdviceResult{T}"/> providing access to the overridden method declaration.</returns>
     /// <remarks>
@@ -87,7 +87,7 @@ public static class AdviserExtensions
     /// Optional delegate to customize the introduced method's characteristics (name, accessibility, modifiers, parameters, etc.)
     /// via <see cref="IMethodBuilder"/>.
     /// </param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> providing access to the introduced method declaration.</returns>
     /// <remarks>
@@ -129,7 +129,7 @@ public static class AdviserExtensions
     ///     annotated with <see cref="TemplateAttribute"/>. This method can have parameters and a return type.</param>
     /// <param name="whenExists">Determines the implementation strategy when a finalizer is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/> (finalizer).</returns>
     /// <seealso href="@introducing-members"/>
@@ -160,7 +160,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an operator of the same kind and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildOperator">An optional delegate to customize the introduced operator via <see cref="IMethodBuilder"/>.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -203,7 +203,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an operator of the same kind and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildOperator">An optional delegate to customize the introduced operator via <see cref="IMethodBuilder"/>.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -248,7 +248,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an operator of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildOperator">An optional delegate to customize the introduced operator via <see cref="IMethodBuilder"/>.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -285,7 +285,7 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="template">Name of a template method in the aspect class. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IConstructor"/>.</returns>
     /// <seealso href="@overriding-constructors"/>
@@ -311,7 +311,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a constructor of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildConstructor">An optional delegate to customize the introduced constructor via <see cref="IConstructorBuilder"/>.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IConstructor"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -376,7 +376,7 @@ public static class AdviserExtensions
     /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c>
     ///     if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or compatible with the field, property or indexer type.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IPropertyOrIndexer"/>.</returns>
     /// <remarks>
@@ -418,7 +418,7 @@ public static class AdviserExtensions
     /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c>
     ///     if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IProperty"/>.</returns>
     /// <seealso href="@overriding-fields-or-properties"/>
@@ -450,7 +450,7 @@ public static class AdviserExtensions
     /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c>
     ///     if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IIndexer"/>.</returns>
     /// <seealso href="@overriding-fields-or-properties"/>
@@ -726,7 +726,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildProperty">An optional delegate that modifies the <see cref="IPropertyBuilder"/> representing the introduced property.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IProperty"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -778,7 +778,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -830,7 +830,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -882,7 +882,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -934,7 +934,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -977,7 +977,7 @@ public static class AdviserExtensions
     ///     <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c> where <c>T</c> is either <c>dynamic</c> or
     ///     a type compatible with the return value of the event's delegate type, <c>U</c> is either <c>dynamic</c> or the event's delegate type,
     ///     <c>Vn</c> are types matching the delegate's parameters. Use <c>meta.Proceed()</c> within the template to invoke the actual handler.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IEvent"/>.</returns>
     /// <remarks>
@@ -1091,7 +1091,7 @@ public static class AdviserExtensions
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildEvent">An optional delegate that modifies the <see cref="IEventBuilder"/> representing the introduced event.</param>
-    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="args">An optional object (typically of anonymous type) whose properties map to template method parameters or type parameters. See <see href="@sharing-state-with-advice"/> for details. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IEvent"/>.</returns>
     /// <seealso href="@introducing-members"/>
@@ -1178,7 +1178,7 @@ public static class AdviserExtensions
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="kind">The type of initializer to add.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields on the aspect type, used for cross-layer coordination.</param>
     /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides which constructors receive a forwarding
@@ -1231,7 +1231,7 @@ public static class AdviserExtensions
     /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="kind">The type of initializer to add. Must be <see cref="InitializerKind.AfterObjectInitializer"/> or <see cref="InitializerKind.AfterLastInstanceConstructor"/>.</param>
     /// <param name="position">Position of the initializer relative to the call to the base initializer.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <param name="slotFields">An optional collection of <see cref="IField"/> references to <c>public static readonly InitializationSlot</c> fields on the aspect type, used for cross-layer coordination.</param>
     /// <param name="overloadingStrategy">An optional <see cref="IConstructorOverloadingStrategy"/> that decides which constructors receive a forwarding
@@ -1291,7 +1291,7 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with <see cref="TemplateAttribute"/>.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     /// <remarks>
@@ -1342,7 +1342,7 @@ public static class AdviserExtensions
     /// <param name="template">The name of the template method. This method must have a single run-time parameter named <c>value</c> and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="direction">Direction of the data flow to which the contract should apply. Use <see cref="ContractDirection.Input"/> for preconditions,
     /// <see cref="ContractDirection.Output"/> for postconditions, or <see cref="ContractDirection.Default"/> to select automatically based on parameter type. See <see cref="ContractDirection"/> for details.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     /// <remarks>
@@ -1385,7 +1385,7 @@ public static class AdviserExtensions
     /// <param name="template">The name of the template method. This method must have a single run-time parameter named <c>value</c> and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="direction">Direction of the data flow to which the contract should apply. Use <see cref="ContractDirection.Input"/> to validate values being assigned (setter),
     /// <see cref="ContractDirection.Output"/> to validate values being retrieved (getter), or <see cref="ContractDirection.Default"/> to select automatically. See <see cref="ContractDirection"/> for details.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template. A property value of type <see cref="IDurableExpression"/> or <see cref="IDurableRef{T}"/> is resolved in the compilation of the target declaration before it is passed to the template.</param>
     /// <param name="tags">An optional object (typically of anonymous type) passed to the template and accessible via <c>meta.Tags</c>. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     /// <remarks>
