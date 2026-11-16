@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Linq;
@@ -151,12 +153,20 @@ namespace Metalama.Framework.Analyzers.Durability
         /// Returns a method that converts the value of an expression to a durable value, or <c>null</c>.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The method is looked up at the location of the expression, so an extension method is returned only when its
-        /// namespace is imported there. The method must take no required argument, and its return type must be durable.
+        /// namespace is imported there.
+        /// </para>
+        /// <para>
+        /// The call that the suggestion proposes, <c>(value).Name()</c>, is then bound speculatively at that location.
+        /// The suggestion is made only when overload resolution and type inference select a method, and when the
+        /// result is not <c>void</c> and has a durable type. A method that cannot be called without arguments, or whose
+        /// type arguments cannot be inferred, is therefore never suggested.
+        /// </para>
         /// </remarks>
         public IMethodSymbol? FindDurableConversion( IOperation operand )
         {
-            if ( operand is not { Type: { } type, SemanticModel: { } semanticModel, Syntax: { } syntax }
+            if ( operand is not { Type: { } type, SemanticModel: { } semanticModel, Syntax: ExpressionSyntax syntax }
                  || type.TypeKind == TypeKind.Error )
             {
                 return null;
@@ -164,18 +174,30 @@ namespace Metalama.Framework.Analyzers.Durability
 
             foreach ( var name in _durableConversionNames )
             {
-                foreach ( var symbol in semanticModel.LookupSymbols(
-                             syntax.SpanStart,
-                             type,
-                             name,
-                             includeReducedExtensionMethods: true ) )
+                // The lookup is a cheap filter: it avoids parsing and binding a call for the types that have no method
+                // of that name.
+                var hasCandidate = semanticModel.LookupSymbols( syntax.SpanStart, type, name, includeReducedExtensionMethods: true )
+                    .Any( s => s is IMethodSymbol { IsStatic: false } );
+
+                if ( !hasCandidate )
                 {
-                    if ( symbol is IMethodSymbol { IsStatic: false } method
-                         && method.Parameters.All( p => p.IsOptional || p.IsParams )
-                         && this.GetVerdict( method.ReturnType ).IsDurable )
-                    {
-                        return method;
-                    }
+                    continue;
+                }
+
+                var call = SyntaxFactory.InvocationExpression(
+                    SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactory.ParenthesizedExpression( syntax.WithoutTrivia() ),
+                        SyntaxFactory.IdentifierName( name ) ) );
+
+                var symbolInfo = semanticModel.GetSpeculativeSymbolInfo( syntax.SpanStart, call, SpeculativeBindingOption.BindAsExpression );
+                var typeInfo = semanticModel.GetSpeculativeTypeInfo( syntax.SpanStart, call, SpeculativeBindingOption.BindAsExpression );
+
+                if ( symbolInfo.Symbol is IMethodSymbol { ReturnsVoid: false } method
+                     && typeInfo.Type is { TypeKind: not TypeKind.Error } resultType
+                     && this.GetVerdict( resultType ).IsDurable )
+                {
+                    return method;
                 }
             }
 
@@ -192,7 +214,7 @@ namespace Metalama.Framework.Analyzers.Durability
                 if ( initializer is not ISimpleAssignmentOperation { Target: IPropertyReferenceOperation { Property: { } property } } assignment )
                 {
                     // The compiler produces no other form of initializer. The declared type is the only evidence left.
-                    return new ExpressionVerdict( this.GetVerdict( anonymousObjectCreation.Type ) );
+                    return new ExpressionVerdict( this.GetVerdict( anonymousObjectCreation.Type ), operand: anonymousObjectCreation );
                 }
 
                 var valueVerdict = this.GetExpressionVerdict( assignment.Value );
@@ -224,11 +246,11 @@ namespace Metalama.Framework.Analyzers.Durability
         /// </remarks>
         private ExpressionVerdict GetCollectionCreationVerdict( IObjectCreationOperation objectCreation )
         {
-            var typeVerdict = new ExpressionVerdict( this.GetVerdict( objectCreation.Type ) );
+            var typeVerdict = new ExpressionVerdict( this.GetVerdict( objectCreation.Type ), operand: objectCreation );
 
             if ( typeVerdict.IsDurable
                  || objectCreation is not { Type: INamedTypeSymbol createdType, Initializer: IObjectOrCollectionInitializerOperation initializer }
-                 || !this.IsTransparentCollection( createdType ) )
+                 || !this.TryGetTransparentCollectionEntry( createdType, out var entry ) )
             {
                 return typeVerdict;
             }
@@ -252,6 +274,11 @@ namespace Metalama.Framework.Analyzers.Durability
                     case IInvocationOperation invocation:
                         foreach ( var invocationArgument in invocation.Arguments )
                         {
+                            if ( !IsKeptAlive( invocationArgument.Parameter?.OriginalDefinition.Type, entry ) )
+                            {
+                                continue;
+                            }
+
                             var elementVerdict = this.GetExpressionVerdict( invocationArgument.Value );
 
                             if ( !elementVerdict.IsDurable )
@@ -266,6 +293,11 @@ namespace Metalama.Framework.Analyzers.Durability
                     case ISimpleAssignmentOperation { Target: IPropertyReferenceOperation { Property.IsIndexer: true } indexer } assignment:
                         foreach ( var indexArgument in indexer.Arguments )
                         {
+                            if ( !IsKeptAlive( indexArgument.Parameter?.OriginalDefinition.Type, entry ) )
+                            {
+                                continue;
+                            }
+
                             var indexVerdict = this.GetExpressionVerdict( indexArgument.Value );
 
                             if ( !indexVerdict.IsDurable )
@@ -274,11 +306,14 @@ namespace Metalama.Framework.Analyzers.Durability
                             }
                         }
 
-                        var assignedVerdict = this.GetExpressionVerdict( assignment.Value );
-
-                        if ( !assignedVerdict.IsDurable )
+                        if ( IsKeptAlive( indexer.Property.OriginalDefinition.Type, entry ) )
                         {
-                            return Prepend( assignedVerdict, "[]" );
+                            var assignedVerdict = this.GetExpressionVerdict( assignment.Value );
+
+                            if ( !assignedVerdict.IsDurable )
+                            {
+                                return Prepend( assignedVerdict, "[]" );
+                            }
                         }
 
                         break;
@@ -292,6 +327,20 @@ namespace Metalama.Framework.Analyzers.Durability
 
             return ExpressionVerdict.Durable;
         }
+
+        /// <summary>
+        /// Determines whether a collection keeps alive the value that it receives through a parameter of a given declared
+        /// type, according to the mask of type arguments of its table entry.
+        /// </summary>
+        /// <remarks>
+        /// The declared type is the one of the original definition, so that a parameter of type <c>TKey</c> is recognized
+        /// as the first type parameter of <c>ConditionalWeakTable{TKey,TValue}</c>, whose key is held weakly. A parameter
+        /// whose declared type is not a type parameter of the collection is always considered kept alive.
+        /// </remarks>
+        private static bool IsKeptAlive( ITypeSymbol? declaredType, WellKnownEntry entry )
+            => entry.ArgumentMask.IsDefault
+               || declaredType is not ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Type } typeParameter
+               || entry.ArgumentMask.Contains( typeParameter.Ordinal );
 
         /// <summary>
         /// Returns a verdict identical to the given one except that a step is prepended to its chain. The captured symbol

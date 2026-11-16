@@ -8,6 +8,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Metalama.Framework.Analyzers.Durability
 {
@@ -56,6 +57,7 @@ namespace Metalama.Framework.Analyzers.Durability
         public const string DurableAttributeMetadataName = "Metalama.Framework.Utilities.DurableAttribute";
 
         private readonly ConcurrentDictionary<ITypeSymbol, DurabilityVerdict> _verdicts;
+        private readonly ConcurrentDictionary<ITypeSymbol, DurabilityVerdict> _anonymousTypeVerdicts = new( ReferenceComparer.Instance );
         private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
         private readonly ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters> _storedTypeParameters;
         private readonly HashSet<string> _additionalDurableTypes;
@@ -224,7 +226,12 @@ namespace Metalama.Framework.Analyzers.Durability
                 return DurabilityVerdict.Durable;
             }
 
-            if ( this._verdicts.TryGetValue( type, out var cached ) )
+            // An anonymous type is cached by reference. SymbolEqualityComparer computes the hash code of an anonymous type
+            // from the types of its properties, recursively and without a cache, so nested anonymous types that share a
+            // property type would take exponential time to hash.
+            var cache = type.IsAnonymousType ? this._anonymousTypeVerdicts : this._verdicts;
+
+            if ( cache.TryGetValue( type, out var cached ) )
             {
                 return cached;
             }
@@ -233,9 +240,21 @@ namespace Metalama.Framework.Analyzers.Durability
 
             // The function is pure, so a racing duplicate computation is harmless and TryAdd is preferred over
             // GetOrAdd with a recursive value factory.
-            this._verdicts.TryAdd( type, verdict );
+            cache.TryAdd( type, verdict );
 
             return verdict;
+        }
+
+        /// <summary>
+        /// Compares symbols by reference, for the cache of the verdicts of anonymous types.
+        /// </summary>
+        private sealed class ReferenceComparer : IEqualityComparer<ITypeSymbol>
+        {
+            public static readonly ReferenceComparer Instance = new();
+
+            public bool Equals( ITypeSymbol? x, ITypeSymbol? y ) => ReferenceEquals( x, y );
+
+            public int GetHashCode( ITypeSymbol obj ) => RuntimeHelpers.GetHashCode( obj );
         }
 
         /// <summary>
@@ -340,7 +359,12 @@ namespace Metalama.Framework.Analyzers.Durability
                         continue;
                     }
 
-                    var propertyVerdict = this.GetVerdictCore( property.Type, depth + 1, unionEvaluation );
+                    // The cached entry point is used rather than GetVerdictCore, because nested anonymous types can share a
+                    // property type many times, and an evaluation that is not cached would then take exponential time.
+                    // Starting a new evaluation is sound here: an anonymous type cannot contain itself, and no declared
+                    // type, such as a union, can name an anonymous type, so no enclosing frame can be in progress for the
+                    // property type.
+                    var propertyVerdict = this.GetVerdict( property.Type );
 
                     if ( !propertyVerdict.IsDurable )
                     {
@@ -496,16 +520,27 @@ namespace Metalama.Framework.Analyzers.Durability
         }
 
         /// <summary>
-        /// Determines whether a type is a system collection whose durability depends only on its type arguments, and
-        /// whose verdict the project does not override.
+        /// Gets the table entry of a type when the type is a collection whose durability depends only on its type
+        /// arguments, and whose verdict the project does not override.
         /// </summary>
-        private bool IsTransparentCollection( INamedTypeSymbol type )
+        /// <param name="type">The type.</param>
+        /// <param name="entry">The entry, whose <see cref="WellKnownEntry.ArgumentMask"/> selects the type arguments that
+        /// the collection keeps alive.</param>
+        private bool TryGetTransparentCollectionEntry( INamedTypeSymbol type, out WellKnownEntry entry )
         {
             var metadataName = GetFullMetadataName( type.OriginalDefinition );
 
-            return !this._additionalNonDurableTypes.Contains( metadataName )
-                   && WellKnownDurableTypes.TryGet( metadataName, out var entry )
-                   && entry.Durability == WellKnownDurability.Transparent;
+            if ( !this._additionalNonDurableTypes.Contains( metadataName )
+                 && !this._additionalDurableTypes.Contains( metadataName )
+                 && WellKnownDurableTypes.TryGet( metadataName, out entry )
+                 && entry.Durability == WellKnownDurability.Transparent )
+            {
+                return true;
+            }
+
+            entry = default;
+
+            return false;
         }
 
         /// <summary>

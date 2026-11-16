@@ -281,6 +281,50 @@ public sealed class DurableUseSiteTests : DurableAnalyzerTestBase
             "LAMA0872" );
 
     /// <remarks>
+    /// A conditional weak table does not keep its key alive, so the key of an initializer element is not evaluated, as
+    /// the mask of the table entry of the type specifies.
+    /// </remarks>
+    [Fact]
+    public async Task PassingAConditionalWeakTableWithACompilationBoundKey_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            KeepCode(
+                "static void M(Compilation c) { Keep( new System.Runtime.CompilerServices.ConditionalWeakTable<Compilation, object> { { c, \"x\" } } ); }" ) );
+
+    [Fact]
+    public async Task PassingAConditionalWeakTableWithACompilationBoundValue_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            KeepCode(
+                "static void M(Compilation c) { Keep( new System.Runtime.CompilerServices.ConditionalWeakTable<string, object> { { \"x\", c } } ); }" ),
+            "LAMA0872" );
+
+    /// <remarks>
+    /// <para>
+    /// Each anonymous type has three properties of the previous anonymous type, so an evaluation that does not cache
+    /// the verdict of each type makes a number of calls that is exponential in the depth.
+    /// </para>
+    /// <para>
+    /// The depth is limited to 12, because the C# compiler itself takes time that is exponential in the depth for this
+    /// code: about 3 seconds at depth 16 and 150 seconds at depth 20, without the analyzer.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task PassingDeeplyNestedAnonymousTypesThatShareAPropertyType_IsNotReported()
+    {
+        const int depth = 12;
+
+        var body = new System.Text.StringBuilder( "static void M() { var x0 = 0; " );
+
+        for ( var i = 1; i <= depth; i++ )
+        {
+            body.Append( $"var x{i} = new {{ a = x{i - 1}, b = x{i - 1}, c = x{i - 1} }}; " );
+        }
+
+        body.Append( $"Keep( x{depth} ); }}" );
+
+        await AssertNoDiagnosticAsync( KeepCode( body.ToString() ) );
+    }
+
+    /// <remarks>
     /// The rule applies only when the creation expression is the value itself. Through a local, the collection may have
     /// received other elements, so the type argument is the evidence.
     /// </remarks>
@@ -355,6 +399,38 @@ public sealed class DurableUseSiteTests : DurableAnalyzerTestBase
         var diagnostic = Assert.Single( diagnostics );
         Assert.DoesNotContain( "Call '", diagnostic.GetMessage(), StringComparison.Ordinal );
         Assert.False( diagnostic.Properties.ContainsKey( DurableContractAnalyzer.DurableConversionPropertyName ) );
+    }
+
+    /// <remarks>
+    /// A method that returns no value, and a generic method whose type argument cannot be inferred from a call without
+    /// arguments, would produce a suggestion that does not compile.
+    /// </remarks>
+    [Fact]
+    public async Task ATypeWithConversionsThatCannotBeCalled_DoesNotSuggestAConversion()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            Code(
+                "class C { public SyntaxTree? Tree; public void ToDurableRef() { } public string ToDurable<T>() => \"\"; } "
+                + "class A { static void Keep([Durable] object value) { } static void M(C c) { Keep( c ); } }" ),
+            "LAMA0872" );
+
+        Assert.DoesNotContain( "Call '", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// An object creation with an object initializer is judged by its type, and the conversion is suggested on the
+    /// creation expression, as for a creation without an initializer.
+    /// </remarks>
+    [Fact]
+    public async Task PassingAnObjectCreationWithAnInitializer_SuggestsTheConversionOfItsType()
+    {
+        var message = await AssertSingleDiagnosticAsync(
+            Code(
+                "class C { public int P { get; set; } public SyntaxTree? Tree; public string ToDurable() => \"\"; } "
+                + "class A { static void Keep([Durable] object value) { } static void M() { Keep( new C { P = 1 } ); } }" ),
+            "LAMA0872" );
+
+        Assert.Contains( "Call 'ToDurable()'", message, StringComparison.Ordinal );
     }
 
     /// <remarks>
