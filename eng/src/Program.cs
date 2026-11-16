@@ -123,7 +123,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true }
+        new DotNetSolution( "Metalama.Introspection/Metalama.Introspection.sln" ) { CanFormatCode = true }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Framework.$(PackageVersion).nupkg",
@@ -143,7 +143,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Extensions.DiffEngine.$(PackageVersion).nupkg",
         "Metalama.Migration.$(PackageVersion).nupkg",
         "Metalama.LinqPad.$(PackageVersion).nupkg",
-        "Metalama.Framework.Workspaces.Navigation.$(PackageVersion).nupkg",
+        "Metalama.Introspection.Navigation.$(PackageVersion).nupkg",
         "Metalama.Mcp.$(PackageVersion).nupkg",
         "Metalama.Patterns.Caching.$(PackageVersion).nupkg",
         "Metalama.Patterns.Caching.Aspects.$(PackageVersion).nupkg",

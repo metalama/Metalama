@@ -14,7 +14,7 @@ Before starting work:
 - `Metalama.Framework`: core framework
 - `Metalama.Extensions`: extensions built on the core framework
 - `Metalama.Patterns`: aspects built on `Metalama.Framework`
-- `Metalama.LinqPad`: LinqPad driver
+- `Metalama.Introspection`: LINQPad driver and MCP server for querying code, with the library they share
 - `Metalama.Migration`: PostSharp API with upgrade documentation
 - `eng`: build orchestration (not a solution)
 

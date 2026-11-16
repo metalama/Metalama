@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../../eng/RoslynVersions/Latest.props"/>
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UseWpf>true</UseWpf>
+        <RootNamespace>Metalama.LinqPad</RootNamespace>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <!-- Packaging -->
+        <PackageTags>$(PackageTags) linqpaddriver linqpad-samples</PackageTags>
+        <PackageDescription>Loads any C# project or solution into LINQPad and exposes its code model to queries. This package contains an optional driver, samples, and dumping methods.</PackageDescription>
+        
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+        <!-- Temporarily allows Metalama.LinqPad to access Metalama internals. -->
+        <NoWarn>LAMA0820</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework.Workspaces" />
+        <PackageReference Include="Metalama.Extensions.Metrics" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+        <PackageReference Include="LINQPad.Reference" />
+        <PackageReference Include="Metalama.Framework.Sdk" ExcludeAssets="build;buildTransitive" />
+        <ProjectReference Include="..\Metalama.Introspection.Navigation\Metalama.Introspection.Navigation.csproj" />
+
+        <!-- Required to force LinqPad to load this package instead of the one of the SDK directory. -->
+        <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="$(MicrosoftExtensionsLoggingWorkspacesVersion)" />
+        
+        <InternalsVisibleTo Include="Metalama.LinqPad.Tests" />
+
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>Package:Microsoft.CodeAnalysis.Workspaces.MSBuild</_Parameter1>
+            <_Parameter2>$(RoslynMaxVersion)</_Parameter2>
+        </AssemblyAttribute>
+
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="linqpad-samples/*.linq" Pack="True" PackagePath="linqpad-samples" />
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Remove="Connection.png" />
+      <Content Include="Connection.png">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+</Project>

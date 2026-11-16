@@ -3,7 +3,7 @@
 This document proposes a local MCP server that lets coding agents explore C# code with LINQ queries against the
 Metalama code model, the way the `Metalama.LinqPad` driver does for people. The server runs arbitrary C# on purpose,
 so it talks only over stdio and never opens a listening socket. It is a design proposal. A first implementation of v1
-and of the MCP App exists in `Metalama.LinqPad/src/Metalama.Mcp`; section 14 records where it settled or changed this
+and of the MCP App exists in `Metalama.Introspection/src/Metalama.Mcp`; section 14 records where it settled or changed this
 design.
 
 ## 1. Goals and non-goals
@@ -493,7 +493,7 @@ not be able to run script in the viewer or send data anywhere.
 
 ## 10. Code shared with LINQPad
 
-- A new project, tentatively `Metalama.Framework.Workspaces.Navigation`, receives the facade walker
+- A new project, tentatively `Metalama.Introspection.Navigation`, receives the facade walker
   (`FacadeObjectFactory`, `FacadeType`), the value classifier from `FacadePropertyFormatter`, and the link builder and
   resolver. It has no LINQPad or WPF dependency.
 - `Metalama.LinqPad` keeps its HTML rendering and turns each link into a `Hyperlinq` that runs the `Open(…)`
@@ -627,7 +627,7 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
 4. **Roslyn version.** Queries are compiled with the Roslyn version that the Metalama engine uses
    (`eng/RoslynVersions`). The worker must load that version, not the one shipped with the SDK.
 5. **Headless Backstage.** Confirm that no welcome page, toast or browser launch can happen in the worker.
-6. **Names.** `Metalama.Mcp` for the tool and `Metalama.Framework.Workspaces.Navigation` for the shared project are
+6. **Names.** `Metalama.Mcp` for the tool and `Metalama.Introspection.Navigation` for the shared project are
    placeholders.
 7. **Viewer toolchain.** Settled for now: the viewer is about 400 lines of hand-written JavaScript, with sorting and
    filtering, and needs no Node.js build.
