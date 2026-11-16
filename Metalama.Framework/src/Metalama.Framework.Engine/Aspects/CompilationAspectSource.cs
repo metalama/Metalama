@@ -6,6 +6,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
@@ -115,7 +116,12 @@ internal sealed class CompilationAspectSource : IAspectSource
 
                 if ( eligibility == EligibleScenarios.None )
                 {
-                    var requestedEligibility = aspectInstance.IsInheritable ? EligibleScenarios.Inheritance : EligibleScenarios.Default;
+                    // ComputeEligibility removes the Inheritance scenario when the target cannot be inherited.
+                    // In this case, the justification must be requested for the Default scenario, otherwise the rules
+                    // that still allow inheritance (for instance the ones under ExceptForInheritance) are skipped.
+                    var requestedEligibility = aspectInstance.IsInheritable && ((IDeclarationImpl) targetDeclaration).CanBeInherited
+                        ? EligibleScenarios.Inheritance
+                        : EligibleScenarios.Default;
 
                     var reason = aspectClass.GetIneligibilityJustification(
                         requestedEligibility,

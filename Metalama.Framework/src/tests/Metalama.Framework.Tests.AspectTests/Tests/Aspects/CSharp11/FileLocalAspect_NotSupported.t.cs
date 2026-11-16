@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0296 on `LogAttribute`: `The type 'LogAttribute' is not a valid aspect type because it is declared with the 'file' modifier or is nested in a type declared with the 'file' modifier. Remove the 'file' modifier.`
