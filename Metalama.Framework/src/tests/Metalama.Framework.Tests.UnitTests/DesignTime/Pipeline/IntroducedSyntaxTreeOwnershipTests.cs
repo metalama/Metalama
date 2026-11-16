@@ -122,7 +122,7 @@ public sealed class IntroducedSyntaxTreeOwnershipTests : UnitTestClass
             ImmutableArray<ITransitivePipelineContributor>.Empty,
             ImmutableArray<IAspectInstance>.Empty,
             ImmutableArray<ITransformationBase>.Empty,
-            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty );
+            ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Empty );
 
         var projectVersion = new DesignTimeProjectVersion(
             new TestProjectVersion( compilation ),

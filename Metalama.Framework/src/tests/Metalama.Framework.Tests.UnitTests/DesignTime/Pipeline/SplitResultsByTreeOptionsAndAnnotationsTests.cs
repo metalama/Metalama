@@ -226,7 +226,7 @@ public sealed class SplitResultsByTreeOptionsAndAnnotationsTests : UnitTestClass
     /// <summary>
     /// Creates an exported annotation on <c>ExternalClass</c>, which is declared in <c>dependency.cs</c>.
     /// </summary>
-    private static ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> CreateAnnotations(
+    private static ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance> CreateAnnotations(
         MetalamaTestContext testContext,
         Compilation compilation )
     {
@@ -235,9 +235,9 @@ public sealed class SplitResultsByTreeOptionsAndAnnotationsTests : UnitTestClass
 
         var annotation = new AnnotationInstance( new TestAnnotation(), true, externalClass.ToRef() );
 
-        return ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Create(
+        return ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Create(
             ImmutableArray.Create( annotation ),
-            a => a.TargetDeclaration,
+            a => a.TargetDeclaration.ToDurable(),
             RefEqualityComparer<IDeclaration>.Default );
     }
 
@@ -256,7 +256,7 @@ public sealed class SplitResultsByTreeOptionsAndAnnotationsTests : UnitTestClass
         Compilation compilation,
         PartialCompilation partialCompilation,
         ImmutableArray<KeyValuePair<HierarchicalOptionsKey, IHierarchicalOptions>> inheritableOptions = default,
-        ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations = null )
+        ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>? annotations = null )
     {
         var pipelineResults = new DesignTimePipelineExecutionResult(
             partialCompilation.SyntaxTreeCollection,
@@ -269,7 +269,7 @@ public sealed class SplitResultsByTreeOptionsAndAnnotationsTests : UnitTestClass
             ImmutableArray<ITransitivePipelineContributor>.Empty,
             ImmutableArray<IAspectInstance>.Empty,
             ImmutableArray<ITransformationBase>.Empty,
-            annotations ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty );
+            annotations ?? ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Empty );
 
         var projectVersion = new DesignTimeProjectVersion(
             new TestProjectVersion( compilation ),

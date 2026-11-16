@@ -39,7 +39,15 @@ public sealed partial class CompilationModel
     private ImmutableDictionary<string, NamespaceBuilderData> _namespaceBuilders;
     private ImmutableDictionary<IFullRef<INamedType>, ExtensionBlockUpdatableCollection> _extensionBlocks;
 
-    internal ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
+    /// <summary>
+    /// Gets the annotations added to the declarations of the current project, indexed by the declaration they are added to.
+    /// </summary>
+    /// <remarks>
+    /// The keys are durable references, which are compared by the identifier of the declaration. These annotations are passed to the
+    /// next compilation model of the pipeline, which is not necessarily created from the same Roslyn compilation: the linker and a
+    /// low-level weaver both create a new one. A reference compared by symbol would no longer find the declaration. See issue #2263.
+    /// </remarks>
+    internal ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
 
     private bool IsMutable { get; }
 
@@ -279,7 +287,7 @@ public sealed partial class CompilationModel
     private void AddAnnotation( AddAnnotationTransformation addAnnotationTransformation )
         => this.Annotations =
             this.Annotations.Add(
-                addAnnotationTransformation.TargetDeclaration,
+                addAnnotationTransformation.TargetDeclaration.ToDurable(),
                 addAnnotationTransformation.AnnotationInstance );
 
     private void RemoveAttributes( RemoveAttributesTransformation removeAttributes )

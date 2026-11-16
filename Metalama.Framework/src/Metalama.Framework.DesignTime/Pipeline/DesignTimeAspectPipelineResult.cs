@@ -771,18 +771,22 @@ public sealed partial class DesignTimeAspectPipelineResult
                 continue;
             }
 
+            // The declaration is taken from an annotation and not from the key: the key of a type is a durable reference to the type, whose
+            // identifier is not a declaration identifier. All annotations of the group are attached to the same declaration.
+            var annotatedDeclaration = annotationsOnDeclaration.First().TargetDeclaration;
+
             // An annotation is filed under the serializable identifier of the declaration it is attached to. A declaration that has none is
             // skipped rather than aborting the whole pass. See issue #2051.
-            if ( !annotationsOnDeclaration.Key.TryGetSerializableId( out var annotatedDeclarationId ) )
+            if ( !annotatedDeclaration.TryGetSerializableId( out var annotatedDeclarationId ) )
             {
                 Logger.DesignTime.Warning?.Log(
-                    $"SplitResultsByTree: skipping {exportedAnnotations.Length} annotation(s) on '{annotationsOnDeclaration.Key}' because "
+                    $"SplitResultsByTree: skipping {exportedAnnotations.Length} annotation(s) on '{annotatedDeclaration}' because "
                     + "that declaration has no serializable id." );
 
                 continue;
             }
 
-            var syntaxTree = annotationsOnDeclaration.Key.GetPrimarySyntaxTree( compilationContext );
+            var syntaxTree = annotatedDeclaration.GetPrimarySyntaxTree( compilationContext );
 
             SyntaxTreePipelineResult.Builder? builder;
 
@@ -796,7 +800,7 @@ public sealed partial class DesignTimeAspectPipelineResult
                 // which is generally not in the file being edited. The annotation is skipped for the reason given for the inheritable options
                 // above: the tree keeps the result of the run that did include it, and that result already carries the annotation. See issue #1848.
                 Logger.DesignTime.Trace?.Log(
-                    $"SplitResultsByTree: skipping {exportedAnnotations.Length} annotation(s) on '{annotationsOnDeclaration.Key}' because the "
+                    $"SplitResultsByTree: skipping {exportedAnnotations.Length} annotation(s) on '{annotatedDeclaration}' because the "
                     + $"declaration is in syntax tree '{syntaxTree.FilePath}', which "
                     + (compilation.Compilation.ContainsSyntaxTree( syntaxTree )
                         ? "is a tree of this project that is not a part of the partial compilation."
