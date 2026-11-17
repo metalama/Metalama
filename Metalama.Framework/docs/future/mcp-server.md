@@ -498,6 +498,13 @@ transport rules of section 4.
   grid sends `open` again with a larger `maxItems`. Hosts reject calls from the view to tools whose `visibility`
   lacks `"app"`, so `open` declares `["model", "app"]`. `query` declares `["model"]`: the view renders its results but
   cannot run a query, so a script injection in the view could not run code through it.
+- **Hosts that do not forward calls.** Drill-down needs `hostCapabilities.serverTools` in the `ui/initialize` result.
+  Claude desktop renders the view but answers the view's `tools/call` with "IPC not available for MCP tool call", so the
+  view only makes values clickable when the host announces `serverTools`, and stops when a call is refused anyway.
+  Instead, once the result server of section 9.3 runs, every result shown in the view gets a `pageUrl` in its JSON: the
+  same result stored on the result server. The view shows "Open in browser", which asks the host to open it with
+  `ui/open-link` when it announces `openLinks`, or "Copy browser link" otherwise. The result server is not started for
+  this; only an html result starts it.
 - The view gets the JSON of a deeper tree (the depth of the HTML snapshot) than the text for the model, which keeps the
   depth of the requested format. Both come from one build of the result, so the query runs once.
 - The resource declares no `csp` domains, so the host applies the extension's restrictive default and the view has

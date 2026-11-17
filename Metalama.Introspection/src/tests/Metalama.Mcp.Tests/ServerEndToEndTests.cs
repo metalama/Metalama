@@ -140,6 +140,43 @@ public sealed class ServerEndToEndTests
     }
 
     [Fact]
+    public async Task AppResultLinksToTheServedPageOnceTheServerRuns()
+    {
+        // A host may render the MCP App view without forwarding its tools/call to the server, as Claude desktop does. The view
+        // then offers to open the served page in the browser, where every value expands on demand.
+        await using var server = await ServerProcess.StartAsync( withAppsCapability: true );
+
+        // Until an html result starts the server, results have no page.
+        var (_, _, before) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "1" } );
+        Assert.False( before!.Value.TryGetProperty( "pageUrl", out _ ) );
+
+        var (_, htmlText, html) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "2", ["format"] = "html" } );
+        var htmlPageUrl = html!.Value.GetProperty( "pageUrl" ).GetString();
+        Assert.Contains( "html: " + htmlPageUrl, htmlText, StringComparison.Ordinal );
+
+        // Once it runs, every result shown in the view gets a page.
+        var (_, _, after) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "3" } );
+        var pageUrl = new Uri( after!.Value.GetProperty( "pageUrl" ).GetString()! );
+
+        using var client = ServerProcess.CreateHttpClient();
+        var page = ServerProcess.GetEmbeddedDocument( await client.GetStringAsync( pageUrl, TestContext.Current.CancellationToken ) );
+        Assert.Equal( "3", page.GetProperty( "result" ).GetProperty( "value" ).GetString() );
+    }
+
+    [Fact]
+    public async Task ResultsHaveNoPageWithoutMcpApps()
+    {
+        // The model gets the link in the text of an html result; the JSON form only exists for the MCP App view.
+        await using var server = await ServerProcess.StartAsync();
+        await server.QueryHtmlLinkAsync( "2" );
+
+        var (_, text, structured) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "3" } );
+
+        Assert.Null( structured );
+        Assert.DoesNotContain( "https://", text, StringComparison.Ordinal );
+    }
+
+    [Fact]
     public async Task QueryOnWorkspaceWithoutWorkspaceExplainsWhy()
     {
         await using var server = await ServerProcess.StartAsync();

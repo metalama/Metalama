@@ -11,6 +11,8 @@
     "title": { "type": "string" },
     "root": { "type": "string", "description": "In an HTML page only: the absolute directory against which locations are relative." },
     "editor": { "type": "string", "description": "In an HTML page only: the template of the link that opens a location in an editor, with the {path} placeholder, the absolute path in URI form such as /C:/src/a.cs, and the {line} placeholder." },
+    "served": { "type": "boolean", "description": "In a page served by the result server only: the page fetches what it expands from ../open." },
+    "pageUrl": { "type": "string", "description": "In the MCP App view only: the https://localhost link of the same result on the result server, when it runs." },
     "result": { "$ref": "#/$defs/node" }
   },
   "$defs": {

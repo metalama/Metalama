@@ -10,6 +10,11 @@
   var app = document.getElementById( 'app' );
   var live = false;
   var served = false;
+
+  // In the MCP App, what the host announced in its ui/initialize result. Drill-down needs serverTools, which says that the
+  // host forwards tools/call to the server; openLinks lets the view open the served page in the browser instead.
+  var hostCapabilities = {};
+  var toolCallsRefused = false;
   var nextRequestId = 1;
   var pending = {};
 
@@ -91,7 +96,7 @@
   }
 
   // In the MCP App and on a served page, a collapsed value with a link can be opened in place through the server.
-  function canOpen() { return live || served; }
+  function canOpen() { return served || ( live && !!hostCapabilities.serverTools && !toolCallsRefused ); }
 
   function openable( element, node ) {
     if ( !canOpen() || !node.href ) {
@@ -107,7 +112,7 @@
       button.replaceWith( placeholder );
       openLink( node.href, null ).then(
         function ( result ) { placeholder.replaceWith( render( result, true ) ); },
-        function ( error ) { placeholder.replaceWith( el( 'span', 'error', String( error ) ) ); } );
+        function ( error ) { placeholder.replaceWith( el( 'span', 'error', error && error.message ? error.message : String( error ) ) ); } );
     } );
     return button;
   }
@@ -371,16 +376,40 @@
     root = typeof document_.root === 'string' ? document_.root : null;
     served = !live && document_.served === true;
 
+    var toolbar = document.getElementById( 'toolbar' );
+    toolbar.querySelectorAll( '.action' ).forEach( function ( action ) { action.remove(); } );
+
     if ( served ) {
       // The server sends the same page without the served marker as an attachment, which works without the server.
-      var save = el( 'a', 'tool save', 'Save' );
+      var save = el( 'a', 'action', 'Save' );
       save.href = '?download=1';
       save.title = 'Save a snapshot of this page. Values that were not loaded cannot be expanded in the snapshot.';
-      document.getElementById( 'toolbar' ).appendChild( save );
+      toolbar.appendChild( save );
+    } else if ( live && typeof document_.pageUrl === 'string' ) {
+      // The same result on the result server, where every value expands on demand.
+      toolbar.appendChild( pageAction( document_.pageUrl ) );
     }
 
     app.replaceChildren( render( document_.result ) );
     notifySize();
+  }
+
+  function pageAction( url ) {
+    if ( hostCapabilities.openLinks ) {
+      var open = el( 'button', 'action', 'Open in browser' );
+      open.type = 'button';
+      open.title = 'Open this result in your browser, where every value can be expanded.';
+      open.addEventListener( 'click', function () {
+        request( 'ui/open-link', { url: url } ).catch( function ( error ) { open.title = String( error ); open.classList.add( 'failed' ); } );
+      } );
+      return open;
+    }
+    // The host cannot open links: the user can paste it in a browser.
+    var copyLink = el( 'button', 'action', 'Copy browser link' );
+    copyLink.type = 'button';
+    copyLink.title = 'Copy the link of this result, to open it in your browser, where every value can be expanded.';
+    copyLink.addEventListener( 'click', function () { copy( url ); } );
+    return copyLink;
   }
 
   // MCP Apps: JSON-RPC 2.0 over postMessage with the host.
@@ -415,6 +444,10 @@
       }
       if ( !result || !result.structuredContent ) { throw new Error( 'The server returned no structured result.' ); }
       return result.structuredContent.result;
+    }, function ( error ) {
+      // The host refused the call itself, although it announced serverTools: stop offering drill-down in this view.
+      toolCallsRefused = true;
+      throw new Error( 'This host does not let the view load more data (' + error.message + '). Use "Open in browser", or ask the agent for the html format.' );
     } );
   }
 
@@ -465,7 +498,10 @@
   } else if ( window.parent !== window ) {
     live = true;
     request( 'ui/initialize', { protocolVersion: '2026-01-26', appInfo: { name: 'Metalama viewer', version: '1.0.0' }, appCapabilities: {} } )
-      .then( function () { send( { jsonrpc: '2.0', method: 'ui/notifications/initialized', params: {} } ); } );
+      .then( function ( result ) {
+        hostCapabilities = result && result.hostCapabilities || {};
+        send( { jsonrpc: '2.0', method: 'ui/notifications/initialized', params: {} } );
+      } );
     if ( window.ResizeObserver ) { new ResizeObserver( notifySize ).observe( document.body ); }
   } else {
     app.replaceChildren( el( 'p', 'muted', 'This page shows Metalama query results. Open the link returned by the html format of the query tool.' ) );

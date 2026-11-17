@@ -30,6 +30,11 @@ internal sealed class McpTools : IAsyncDisposable
     /// </summary>
     public const string AppsExtensionId = "io.modelcontextprotocol/ui";
 
+    /// <summary>
+    /// The property of the JSON form, in the MCP App view only, that holds the link of the same result on the result server.
+    /// </summary>
+    public const string PageUrlProperty = "pageUrl";
+
     private static readonly bool _reportAssemblies = Environment.GetEnvironmentVariable( "METALAMA_MCP_REPORT_ASSEMBLIES" ) == "1";
 
     private readonly WorkerClient _worker;
@@ -254,17 +259,32 @@ internal sealed class McpTools : IAsyncDisposable
 
         var response = await this._worker.CallAsync( method, args, timeout, cancellationToken );
         var text = response[WorkerMethods.Text]?.GetValue<string>() ?? response[WorkerMethods.Error]?.GetValue<string>() ?? "";
+        Uri? pageUrl = null;
 
         if ( resultServer != null && response[WorkerMethods.Page] is JsonObject page )
         {
             // The agent gets the link and a short summary; the person opens the link.
-            text = $"html: {resultServer.GetResultUri( this._results.Add( page ) )}\n{text}";
+            pageUrl = resultServer.GetResultUri( this._results.Add( page ) );
+            text = $"html: {pageUrl}\n{text}";
         }
 
         var result = new CallToolResult { Content = [new TextContentBlock { Text = text }], IsError = response[WorkerMethods.Ok]?.GetValue<bool>() != true };
 
-        if ( includeStructured && response[WorkerMethods.Structured] is { } structured )
+        if ( includeStructured && response[WorkerMethods.Structured] is JsonObject structured )
         {
+            // Some hosts render the MCP App view but do not forward its tools/call to the server, so the view cannot drill
+            // down. Once the result server runs, every result shown in the view also gets a served page, which the view
+            // offers to open in the browser. The server is not started for this: only an html result starts it.
+            if ( pageUrl == null && this._server is { } runningServer )
+            {
+                pageUrl = runningServer.GetResultUri( this._results.Add( (JsonObject) structured.DeepClone() ) );
+            }
+
+            if ( pageUrl != null )
+            {
+                structured[PageUrlProperty] = pageUrl.ToString();
+            }
+
             result.StructuredContent = JsonSerializer.SerializeToElement( structured );
         }
 
