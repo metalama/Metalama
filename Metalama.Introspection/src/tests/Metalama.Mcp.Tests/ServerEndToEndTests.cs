@@ -4,6 +4,7 @@
 
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using SharpCrafters.Backstage.Maintenance;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -91,6 +92,28 @@ public sealed class ServerEndToEndTests
         var text = await server.QueryAsync( "Enumerable.Range( 0, 3 ).Select( i => { Console.WriteLine( \"enumerated\" ); return i; } )", "html" );
 
         Assert.Equal( 3, text.Split( "enumerated" ).Length - 1 );
+    }
+
+    [Fact]
+    public async Task HtmlGoesToTheTemporaryDirectoryOfMetalama()
+    {
+        // Without --output-dir, the page goes to a temporary directory managed by Backstage, which is private to the user and
+        // cleaned up. The test redirects the temporary directory of Metalama with METALAMA_TEMP.
+        await using var server = await ServerProcess.StartAsync( defaultOutputDirectory: true );
+
+        var text = await server.QueryAsync( "42", "html" );
+
+        var uri = text.Split( '\n' ).Single( l => l.StartsWith( "html: ", StringComparison.Ordinal ) ).Substring( "html: ".Length );
+        var path = new Uri( uri ).LocalPath;
+
+        Assert.True( File.Exists( path ), path );
+        Assert.StartsWith( Path.GetFullPath( server.OutputDirectory ), path, StringComparison.OrdinalIgnoreCase );
+        Assert.Contains( "McpResults", path, StringComparison.Ordinal );
+
+        // Backstage records the clean-up policy of the directory, which deletes each page a month after it was written.
+        var policies = Directory.EnumerateFiles( server.OutputDirectory, "cleanup.json", SearchOption.AllDirectories ).Select( File.ReadAllText ).ToArray();
+        var strategy = (int) CleanUpStrategy.FileOneMonthAfterCreation;
+        Assert.Contains( policies, p => JsonDocument.Parse( p ).RootElement.GetProperty( "Strategy" ).GetInt32() == strategy );
     }
 
     [Fact]

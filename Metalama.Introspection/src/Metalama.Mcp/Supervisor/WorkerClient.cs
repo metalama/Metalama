@@ -317,8 +317,11 @@ internal sealed class WorkerClient : IAsyncDisposable
         startInfo.ArgumentList.Add( CommandLineOptions.WorkerOption );
         startInfo.ArgumentList.Add( toWorker.GetClientHandleAsString() );
         startInfo.ArgumentList.Add( fromWorker.GetClientHandleAsString() );
-        startInfo.ArgumentList.Add( CommandLineOptions.OutputDirectoryOption );
-        startInfo.ArgumentList.Add( this._options.OutputDirectory );
+        if ( this._options.OutputDirectory != null )
+        {
+            startInfo.ArgumentList.Add( CommandLineOptions.OutputDirectoryOption );
+            startInfo.ArgumentList.Add( this._options.OutputDirectory );
+        }
 
         var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += ( _, e ) => ForwardToStandardError( e.Data );

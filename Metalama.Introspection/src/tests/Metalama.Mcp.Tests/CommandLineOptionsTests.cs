@@ -11,19 +11,18 @@ namespace Metalama.Mcp.Tests;
 public sealed class CommandLineOptionsTests
 {
     [Fact]
-    public void DefaultOutputDirectoryBelongsToTheUser()
+    public void OutputDirectoryIsLeftToTheWorkerByDefault()
     {
-        var options = CommandLineOptions.Parse( [] );
+        // The worker then takes a temporary directory of Metalama; see ServerEndToEndTests.HtmlGoesToTheTemporaryDirectoryOfMetalama.
+        Assert.Null( CommandLineOptions.Parse( [] ).OutputDirectory );
+    }
 
-        // A fixed name under the temporary directory is shared by all users on Linux (/tmp).
-        Assert.False(
-            options.OutputDirectory.StartsWith( Path.GetTempPath(), StringComparison.OrdinalIgnoreCase ),
-            options.OutputDirectory );
+    [Fact]
+    public void OutputDirectoryOptionIsMadeAbsolute()
+    {
+        var options = CommandLineOptions.Parse( ["--output-dir", "results"] );
 
-        Assert.StartsWith(
-            Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData ),
-            options.OutputDirectory,
-            StringComparison.OrdinalIgnoreCase );
+        Assert.Equal( Path.GetFullPath( "results" ), options.OutputDirectory );
     }
 
     [Fact]

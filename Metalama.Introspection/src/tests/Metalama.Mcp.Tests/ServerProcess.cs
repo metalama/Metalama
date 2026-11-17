@@ -75,12 +75,34 @@ internal sealed partial class ServerProcess : IAsyncDisposable
         throw new TimeoutException( "The server did not report its process identifiers on standard error." );
     }
 
-    public static async Task<ServerProcess> StartAsync( bool withAppsCapability = false, int? timeoutSeconds = null, bool reportAssemblies = false )
+    /// <param name="defaultOutputDirectory">Whether to omit <c>--output-dir</c>. The temporary directory of Metalama is then redirected
+    /// to <see cref="OutputDirectory"/> with <c>METALAMA_TEMP</c>, so that the test does not write to the real one.</param>
+    public static async Task<ServerProcess> StartAsync(
+        bool withAppsCapability = false,
+        int? timeoutSeconds = null,
+        bool reportAssemblies = false,
+        bool defaultOutputDirectory = false )
     {
         var standardError = new ConcurrentQueue<string>();
         var outputDirectory = Path.Combine( Path.GetTempPath(), "metalama-mcp-tests", Guid.NewGuid().ToString( "N" ) );
 
-        List<string> arguments = [ServerPath, "--output-dir", outputDirectory];
+        List<string> arguments = [ServerPath];
+        var environment = new Dictionary<string, string?>();
+
+        if ( defaultOutputDirectory )
+        {
+            environment["METALAMA_TEMP"] = outputDirectory;
+        }
+        else
+        {
+            arguments.Add( "--output-dir" );
+            arguments.Add( outputDirectory );
+        }
+
+        if ( reportAssemblies )
+        {
+            environment["METALAMA_MCP_REPORT_ASSEMBLIES"] = "1";
+        }
 
         if ( timeoutSeconds != null )
         {
@@ -96,7 +118,7 @@ internal sealed partial class ServerProcess : IAsyncDisposable
                 Arguments = arguments,
                 WorkingDirectory = Path.GetDirectoryName( FrogHatteryPath ),
                 StandardErrorLines = standardError.Enqueue,
-                EnvironmentVariables = reportAssemblies ? new Dictionary<string, string?> { ["METALAMA_MCP_REPORT_ASSEMBLIES"] = "1" } : null
+                EnvironmentVariables = environment.Count > 0 ? environment : null
             } );
 
         var options = new McpClientOptions { ClientInfo = new Implementation { Name = "Metalama.Mcp.Tests", Version = "1.0" } };

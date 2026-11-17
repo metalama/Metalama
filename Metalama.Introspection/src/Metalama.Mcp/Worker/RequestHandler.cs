@@ -324,7 +324,7 @@ internal sealed class RequestHandler
                 break;
 
             case ResultFormat.Html:
-                htmlPath = HtmlWriter.WriteFile( outputJson!, title.Length > 80 ? title.Substring( 0, 79 ) + "…" : title, this._options.OutputDirectory );
+                htmlPath = HtmlWriter.WriteFile( outputJson!, title.Length > 80 ? title.Substring( 0, 79 ) + "…" : title, this._options.OutputDirectory ?? WorkerInitialization.GetDefaultOutputDirectory() );
 
                 // The agent gets a short text summary, so that the page never enters its context.
                 var summary = new TextRenderer( linkBase ).Render( ResultTreePruner.Prune( outputTree, new ResultTreeOptions( 0, 10, entry?.RootDirectory ) ) );

@@ -447,10 +447,12 @@ Interactions:
   and `maxItems` 500, with a size cap of 10 MB.
 - Links that point into the snapshot jump to the anchor in the page. Other links offer the two copy actions of
   section 9.2.
-- Files go to the directory given by the `--output-dir` option, or by default to a directory of the user
-  (`Metalama/Mcp/Results` under the local application data), with a name built from the time and a hash of the result.
-  The temporary directory is not used, because it is shared by all users on Linux. On Unix, the directory is created
-  readable by the user only.
+- Files go to the directory given by the `--output-dir` option, or by default to `McpResults` in the temporary
+  directory of Metalama, with a name built from the time and a hash of the result. The worker gets that directory from
+  the `ITempFileManager` of Backstage with `CleanUpStrategy.FileOneMonthAfterCreation`, so the clean-up of Metalama
+  deletes each page one month after it was written. The temporary directory of Metalama belongs to the user: on Unix it
+  is under the application data directory, not under the shared `/tmp`. A directory given with `--output-dir` is
+  created readable by the user only on Unix, and is never cleaned up.
 - The server does not start a browser. The agent or the person opens the file.
 
 ### 9.4. MCP App

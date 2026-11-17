@@ -16,8 +16,8 @@ Or install it as a tool with `dotnet tool install -g Metalama.Mcp` and register 
 
 Options:
 
-* `--output-dir <directory>`: where HTML results are written. Default: `Metalama/Mcp/Results` in the local application
-  data directory of the user.
+* `--output-dir <directory>`: where HTML results are written. Default: the `McpResults` directory in the temporary
+  directory of Metalama, which belongs to the user. Metalama deletes each page one month after it was written.
 * `--timeout <seconds>`: the default soft timeout of a query. The worker process is stopped after twice this time.
 
 ## Tools
