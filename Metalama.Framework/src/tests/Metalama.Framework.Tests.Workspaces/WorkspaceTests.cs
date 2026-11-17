@@ -352,6 +352,87 @@ class MyClass {}" );
             static IEnumerable<string> GetReferences( IDeclaration d ) => d.GetInboundReferences().Select( x => x.ToString()! ).OrderBy( x => x );
         }
 
+        [Fact]
+        public async Task LoadXmlSolution()
+        {
+            using var testContext = this.CreateTestContext();
+
+            var projectPath = Path.Combine( testContext.BaseDirectory, "Project", "Project.csproj" );
+            Directory.CreateDirectory( Path.GetDirectoryName( projectPath )! );
+
+            await File.WriteAllTextAsync(
+                projectPath,
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <PropertyGroup>
+                        <TargetFramework>net10.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """,
+                testContext.CancellationToken );
+
+            await File.WriteAllTextAsync( Path.Combine( testContext.BaseDirectory, "Project", "Code.cs" ), "class MyClass {}", testContext.CancellationToken );
+
+            var solutionPath = Path.Combine( testContext.BaseDirectory, "Solution.slnx" );
+
+            await File.WriteAllTextAsync(
+                solutionPath,
+                """
+                <Solution>
+                  <Project Path="Project/Project.csproj" />
+                </Solution>
+                """,
+                testContext.CancellationToken );
+
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+
+            using var workspace = await workspaceCollection.LoadAsync( [solutionPath], _buildProperties, cancellationToken: testContext.CancellationToken );
+
+            CheckWorkspace( workspace );
+
+            Assert.Single( workspace.Projects );
+            Assert.Single( workspace.Projects[0].Types );
+        }
+
+        [Fact]
+        public async Task NuGetAuditWarningsAreWarnings()
+        {
+            using var testContext = this.CreateTestContext();
+
+            var projectPath = Path.Combine( testContext.BaseDirectory, "Project.csproj" );
+
+            // Newtonsoft.Json 12.0.1 has a known high severity vulnerability (GHSA-5crp-9r3c-p9vr), so restore reports NU1903,
+            // which dotnet build reports as a warning.
+            await File.WriteAllTextAsync(
+                projectPath,
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <PropertyGroup>
+                        <TargetFramework>net10.0</TargetFramework>
+                        <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+                        <NuGetAudit>true</NuGetAudit>
+                        <NuGetAuditMode>direct</NuGetAuditMode>
+                    </PropertyGroup>
+                    <ItemGroup>
+                        <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+                    </ItemGroup>
+                </Project>
+                """,
+                testContext.CancellationToken );
+
+            await File.WriteAllTextAsync( Path.Combine( testContext.BaseDirectory, "Code.cs" ), "class MyClass {}", testContext.CancellationToken );
+
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties, cancellationToken: testContext.CancellationToken );
+
+            var diagnostics = workspace.WorkspaceDiagnostics.Select( d => $"{d.Severity}: {d.Message}" ).ToArray();
+
+            Assert.Contains( diagnostics, d => d.StartsWith( "Warning: ", StringComparison.Ordinal ) && d.Contains( "Newtonsoft.Json", StringComparison.Ordinal ) );
+            Assert.DoesNotContain( diagnostics, d => d.StartsWith( "Error: ", StringComparison.Ordinal ) );
+            Assert.Single( workspace.Projects );
+        }
+
         /// <summary>
         /// Asserts that the workspace loaded without a diagnostic. The assertions project the diagnostics to their
         /// messages, because the failure output of xUnit shows only the first properties of an object and the message
