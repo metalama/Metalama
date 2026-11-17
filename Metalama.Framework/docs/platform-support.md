@@ -166,8 +166,9 @@ Evaluated at general availability 2027-01-01.
 | VS 2022 17.10 LTSC and earlier | End of life 2026-01-13 or before | none | No, by rule 1 |
 | VS 2022 17.12 LTSC | End of life 2026-07-14 | none | No, by rule 1 |
 | VS 2022 17.14 Current Channel | Mainstream ends 2027-01-13; extended, security-only, to 2032-01-13 | 12 days | No, by rules 3 and 5 |
-| VS 2026 LTSC, baseline of 2026-11 | Security servicing through approximately 2027-11 | approximately 10 months | Yes |
-| VS 2027 Stable, released 2026-11 | Feature updates and servicing through approximately 2027-11 | rolling | Yes |
+| VS 2026 Stable 18.10 and earlier | Superseded; only the latest Stable release is supported | none | No, by rule 1 |
+| VS 2026 LTSC 18.11, released 2026-11-10 | Supported through 2028-11-14 | approximately 23 months | Yes, the floor |
+| VS 2026 Stable 18.12, released 2026-11-10 | Feature updates and servicing; only the latest Stable release is supported | rolling | Yes |
 
 Version 17.14 is the only Visual Studio 2022 version that reaches 2027 at all. Microsoft made it the final 2022
 baseline on the Current Channel and created no 17.14 long-term servicing channel, and every earlier long-term
@@ -175,13 +176,16 @@ servicing channel has expired. It leaves mainstream support 12 days after our ge
 excludes it, and its remaining lifetime to 2032 is security-only, which rule 5 excludes independently. Metalama
 2027.0 therefore does not support Visual Studio 2022.
 
-Visual Studio 2026 and later update in place each November. Visual Studio 2026 shipped on 2025-11-11 with .NET 10,
-and Visual Studio 2027 is expected in November 2026 with .NET 11 and C# 15. Each gets one year of feature updates
-and servicing, followed by one year of long-term servicing channel security servicing. The Visual Studio 2026
-long-term servicing channel opens in November 2026, so it is the first pinnable Visual Studio 2026 version and
-therefore our floor. Under rule 5 its second year, which is security-only, does not extend our set: the Visual
-Studio 2026 long-term servicing channel leaves our supported set when Visual Studio 2027 has itself moved to
-long-term servicing.
+Visual Studio 2026 shipped on 2025-11-11 with .NET 10. This baseline was first written on the expectation that a
+Visual Studio 2027 would ship in November 2026. Microsoft released no Visual Studio 2027. On 2026-11-10 it
+released two Visual Studio 2026 versions instead: the Stable release 18.12, which carries Roslyn 5.12 and supports
+C# 15, and the long-term servicing channel 18.11. The long-term servicing channel receives security and critical
+fixes only, and Microsoft supports it through 2028-11-14, which is two years and not the one year first
+announced. It is the first pinnable Visual Studio 2026 version, and therefore our floor. The Stable channel is
+supported only at its latest release, so 18.10 and the earlier Stable releases are not in the set.
+
+The set is therefore 18.11 to the latest Stable release, which is 18.12 when this section was revised on
+2026-11-16. The Insiders channel is a preview channel and is not in the set.
 
 ### Consequence: the Core flavour is `net10.0`
 
@@ -200,9 +204,11 @@ Core flavour becomes `net10.0`. This is the change that makes `net8.0` droppable
 
 This inference has one dependency worth watching: the upstream move off .NET 8,
 [dotnet/roslyn#84192](https://github.com/dotnet/roslyn/pull/84192), was merged in June 2026, reverted the next
-day, and relanded. Confirm the actual private runtime of the Visual Studio 2026 long-term servicing channel
-baseline once it ships, on 2026-11-10, before the 2027.0 general availability date. See the checklist below. If it
-turns out to be .NET 8, the Core flavour must stay `net8.0` for 2027.0.
+day, and relanded. Visual Studio 2026 18.12, measured on 2026-11-13, ships both `dotnet\net10.0` and
+`dotnet\net8.0` runtimes in its installation layout, so the layout alone does not decide which runtime the
+analysis process uses. Confirm the actual private runtime of the long-term servicing channel 18.11 before the
+2027.0 general availability date. See the checklist below. If it turns out to be .NET 8, the Core flavour must
+stay `net8.0` for 2027.0.
 
 ### Other design-time hosts
 
@@ -241,10 +247,9 @@ set.
 The build container installs two SDKs, and `eng/src/Program.cs` names both, so the image and the `global.json` pin
 cannot drift apart.
 
-The main one is the .NET 11 SDK, which `global.json` names and which therefore compiles the product. Its version is
-a literal in `eng/src/Program.cs`, because the .NET 11 SDK is still a preview and
-`MetalamaDependencies.V2027_0.Family.PreferredVersions` names only released feature bands. The literal moves to the
-family once the .NET 11 SDK is released. The product is therefore built with an SDK that no supported Visual Studio
+The main one is the .NET 11 SDK, which `global.json` names and which therefore compiles the product. The .NET 11
+SDK 11.0.100 was released on 2026-11-10, and `eng/src/Program.cs` takes its version from
+`MetalamaDependencies.Family.PreferredVersions.DotNetSdk.V_11_0`. The product is therefore built with an SDK that no supported Visual Studio
 installs, which is the decision that story S-09 records: the compile-time compilation caps the C# language version
 by the major version of the SDK, so a compile-time C# 15 construct requires the .NET 11 SDK to be the one that
 `global.json` names, and not merely one that is installed.
@@ -256,6 +261,13 @@ the product targets `net10.0`. It is also the SDK that Visual Studio installs th
 toolchain as a developer machine. The preferred versions belong to the family and not to a single global set,
 because a family pins its own Visual Studio baseline: the families that are still on Visual Studio 2022 keep the
 default, since Visual Studio 2022 ships no .NET 10 SDK and has no version to match.
+
+`Metalama.Framework.Workspaces` and the other consumers of `MSBuildWorkspace` impose a further floor on the SDK
+that runs them. `Microsoft.CodeAnalysis.Workspaces.MSBuild` 5.12.0 requires `Microsoft.Build.Framework` 18.7.1, and
+`Microsoft.Build.Locator` binds to the MSBuild of the SDK at run time, so these components require an SDK whose
+MSBuild is 18.7.1 or later. The .NET SDK 10.0.4xx feature band (MSBuild 18.9) and the .NET SDK 11.0.100 (MSBuild
+18.12) satisfy it. The 10.0.1xx and 10.0.3xx feature bands (MSBuild 18.0 and 18.6) do not. The build of a user
+project with `Metalama.Compiler` is not affected by this floor.
 
 Several SDKs, including several feature bands of one major version, are expected to coexist in one installation,
 and nothing in this doctrine requires the container to hold only one. A build that mixes two of them is a defect in
@@ -318,11 +330,11 @@ name the host it covers.
 Two sub-axes feed this floor, and they are settled differently.
 
 The Visual Studio sub-axis is settled by the calendar. With Visual Studio 2022 17.14, which carries Roslyn 4.14,
-out of the set, the lowest Visual Studio in the set is the Visual Studio 2026 long-term servicing channel baseline
-of November 2026. Roslyn minor versions track Visual Studio minor versions, so that baseline carries Roslyn 5.11
-or thereabouts. No Visual Studio in the set presents a Roslyn version between 5.0 and 5.9. This inference rests on
-the release cadence rather than on a measurement, which is why checklist item 1 below records the Roslyn version
-of that baseline as well as its private runtime.
+out of the set, the lowest Visual Studio in the set is the Visual Studio 2026 long-term servicing channel 18.11.
+Roslyn minor versions track Visual Studio minor versions, so 18.11 carries Roslyn 5.11, and the measurement of the
+18.11.0 preview on 2026-10-13 confirms it. Visual Studio 2026 18.12 carries Roslyn 5.12, measured on 2026-11-13.
+No Visual Studio in the set presents a Roslyn version between 5.0 and 5.9. Checklist item 1 below records the
+measurement of the released 18.11 that is still to be taken.
 
 The other-design-time-host sub-axis is not settled by a calendar, because Rider and the C# Dev Kit publish none,
 and the doctrine substitutes the current release for rules 1 to 3. Their Roslyn version is therefore a
@@ -358,8 +370,9 @@ The C# Dev Kit is not measured, because it is not installed on the machine the m
 not change the outcome unless it is below Roslyn 5.0, which `roslyn-language-server` has not been for several
 releases. Confirm it at the release candidate, together with the second Rider measurement.
 
-`RoslynApiMaxVersion` follows Visual Studio 2027 and the .NET 11 SDK, within three weeks of their stable release,
-by rule 7. The procedure for taking on a new Roslyn version is in
+`RoslynApiMaxVersion` follows the latest Stable Visual Studio and the .NET 11 SDK, within three weeks of their
+stable release, by rule 7. Both shipped on 2026-11-10 with Roslyn 5.12, and Roslyn 5.12.0 was published on
+nuget.org on 2026-11-13. Issue #2341 set `RoslynApiMaxVersion` to `5.12.0`. The procedure for taking on a new Roslyn version is in
 [`updating-roslyn.md`](updating-roslyn.md).
 
 ### Shipped assets under PB-2027.0
@@ -449,14 +462,17 @@ The companion change for PB-2027.0 in that repository is
 Rules 1 to 8 are applied against calendars. These three items are applied against machines, and no removal of
 `net8.0` should ship without them.
 
-1. The Visual Studio 2026 long-term servicing channel baseline private runtime and Roslyn version. After
-   2026-11-10, install the baseline and record both. Confirm that `ServiceHub.RoslynCodeAnalysisService` runs on
+1. The Visual Studio 2026 long-term servicing channel baseline private runtime and Roslyn version. The baseline
+   shipped on 2026-11-10 as version 18.11, and its released build 18.11.4 has not been measured yet. The Stable
+   release 18.12.0 was measured on 2026-11-13: it presents Roslyn `5.12.0-1.26502.2`, it ships both the
+   `dotnet\net10.0` and the `dotnet\net8.0` runtimes, and its ServiceHub host directory defines a `desktopClr` and
+   a `netfx` host for `RoslynCodeAnalysisService`. Install 18.11.4 and record both values. Confirm that `ServiceHub.RoslynCodeAnalysisService` runs on
    .NET 10, either from the Visual Studio installation layout, under
    `Microsoft Visual Studio\<year>\<sku>\dotnet\net10.0\runtime\`, or from Roslyn's
    `docs/contributing/target-framework-strategy.md` on the branch that shipped it. If it is .NET 8, the Core
-   flavour stays `net8.0` for 2027.0. Read the Roslyn version from the same installation: the Visual Studio floor
-   of the Roslyn axis is inferred from the release cadence until this is measured, and a baseline below Roslyn
-   5.10 puts a Visual Studio host in the 5.0 to 5.9 range and makes a Roslyn 5.0 variant mandatory. Record the
+   flavour stays `net8.0` for 2027.0. Read the Roslyn version from the same installation, and the binding
+   redirects of `devenv.exe.config`, which must admit 10.0.0.10 for the .NET 10.0 line, as recorded in
+   [`Directory.Packages.md`](../../Directory.Packages.md). Record the
    name of the analysis process as well. Metalama classifies its host by process name, in the table of
    `SharpCrafters.Backstage.ProcessClassification.ProcessKindDetector`, and Visual Studio has renamed that process once already:
    it was `ServiceHub.RoslynCodeAnalysisService` up to Visual Studio 2022 and is `DevHub` in Visual Studio 2026,

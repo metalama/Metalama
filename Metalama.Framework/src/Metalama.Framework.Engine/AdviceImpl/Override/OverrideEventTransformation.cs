@@ -54,7 +54,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
     {
         var overriddenDeclaration = this._overriddenDeclaration.GetTarget( this.InitialCompilation );
 
-        var eventName = context.InjectionNameProvider.GetOverrideName(
+        var eventName = context.InjectionNameProvider.AssertNotNull().GetOverrideName(
             overriddenDeclaration.DeclaringType,
             this.AspectLayerId,
             overriddenDeclaration );
@@ -163,7 +163,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                         null,
                         SyntaxFactoryEx.SafeIdentifier(
                             TriviaList( ElasticSpace ),
-                            context.InjectionNameProvider.GetRaiseOverrideName(
+                            context.InjectionNameProvider.AssertNotNull().GetRaiseOverrideName(
                                 overriddenDeclaration.DeclaringType,
                                 this.AspectLayerId,
                                 overriddenDeclaration ),

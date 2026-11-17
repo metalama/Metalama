@@ -40,7 +40,7 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
     {
         var overriddenDeclaration = this.OverriddenProperty.GetTarget( this.InitialCompilation );
 
-        var propertyName = context.InjectionNameProvider.GetOverrideName(
+        var propertyName = context.InjectionNameProvider.AssertNotNull().GetOverrideName(
             overriddenDeclaration.DeclaringType,
             this.AspectLayerId,
             overriddenDeclaration );
