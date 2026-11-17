@@ -19,6 +19,9 @@ Options:
 * `--output-dir <directory>`: where HTML results are written. Default: the `McpResults` directory in the temporary
   directory of Metalama, which belongs to the user. Metalama deletes each page one month after it was written.
 * `--timeout <seconds>`: the default soft timeout of a query. The worker process is stopped after twice this time.
+* `--editor-link <template>`: the link with which an HTML page opens a source location, shown as an icon. `{path}` is the
+  absolute path in URI form, such as `/C:/src/App.cs`, and `{line}` is the line. Default: `vscode://file{path}:{line}`.
+  Use `none` to show locations as text.
 
 ## Tools
 

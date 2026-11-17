@@ -26,6 +26,19 @@ public sealed class CommandLineOptionsTests
     }
 
     [Fact]
+    public void EditorLinkDefaultsToVisualStudioCode()
+    {
+        Assert.Equal( "vscode://file{path}:{line}", CommandLineOptions.Parse( [] ).EditorLink );
+    }
+
+    [Fact]
+    public void EditorLinkCanBeChangedOrDisabled()
+    {
+        Assert.Equal( "jetbrains://rider/navigate/reference?path={path}:{line}", CommandLineOptions.Parse( ["--editor-link", "jetbrains://rider/navigate/reference?path={path}:{line}"] ).EditorLink );
+        Assert.Null( CommandLineOptions.Parse( ["--editor-link", "none"] ).EditorLink );
+    }
+
+    [Fact]
     public void NetworkOptionsAreRejected()
     {
         var options = CommandLineOptions.Parse( ["--port", "8080"] );

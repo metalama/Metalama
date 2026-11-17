@@ -8,33 +8,62 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
+using System.IO.Hashing;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Mcp.Worker;
 
 /// <summary>
-/// The workspaces loaded in the worker, by key. The key is the loaded paths relative to the working directory.
+/// The workspaces loaded in the worker, by key.
 /// </summary>
 internal sealed class WorkspaceRegistry
 {
+    private static readonly StringComparer _pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
     private readonly Dictionary<string, WorkspaceEntry> _entries = new( StringComparer.Ordinal );
 
     public IReadOnlyCollection<WorkspaceEntry> Entries => this._entries.Values;
 
-    public static string GetKey( IEnumerable<string> fullPaths )
-        => string.Join( "+", fullPaths.Select( p => Path.GetRelativePath( Environment.CurrentDirectory, p ).Replace( '\\', '/' ) ) );
+    /// <summary>
+    /// Gets the key of a workspace, which is the first segment of its links: the file names of the loaded paths, joined with
+    /// <c>+</c>, such as <c>App.sln</c>. Directories are left out, so that links need no escaped separators. When the name is
+    /// already taken by other paths, a hash of the full paths is appended, such as <c>App.sln~3f9a1c</c>.
+    /// </summary>
+    /// <param name="fullPaths">The full paths to load.</param>
+    /// <param name="loaded">The full paths of the loaded workspaces, by key.</param>
+    public static string GetKey( IReadOnlyList<string> fullPaths, IReadOnlyDictionary<string, ImmutableArray<string>> loaded )
+    {
+        var key = string.Join( "+", fullPaths.Select( Path.GetFileName ) );
+
+        if ( !loaded.TryGetValue( key, out var paths ) || paths.SequenceEqual( fullPaths, _pathComparer ) )
+        {
+            return key;
+        }
+
+        var normalized = string.Join( "|", fullPaths.Select( p => OperatingSystem.IsWindows() ? p.ToUpperInvariant() : p ) );
+        var hash = XxHash64.HashToUInt64( Encoding.UTF8.GetBytes( normalized ) ).ToString( "x16", CultureInfo.InvariantCulture ).Substring( 0, 6 );
+
+        return $"{key}~{hash}";
+    }
 
     public async Task<WorkspaceEntry> LoadAsync( IReadOnlyList<string> paths, ImmutableDictionary<string, string>? properties, CancellationToken cancellationToken )
     {
         var fullPaths = paths.Select( p => Path.GetFullPath( p ) ).ToImmutableArray();
-        var key = GetKey( fullPaths );
+        var key = GetKey( fullPaths, this._entries.ToDictionary( e => e.Key, e => e.Value.Paths, StringComparer.Ordinal ) );
 
         var workspace = await WorkspaceCollection.Default.LoadAsync( fullPaths, properties, restore: true, cancellationToken );
 
-        var entry = new WorkspaceEntry( key, workspace, WorkspaceFingerprint.Compute( workspace, NewLoadGeneration() ), Path.GetDirectoryName( fullPaths[0] )! );
+        var entry = new WorkspaceEntry(
+            key,
+            fullPaths,
+            workspace,
+            WorkspaceFingerprint.Compute( workspace, NewLoadGeneration() ),
+            Path.GetDirectoryName( fullPaths[0] )! );
         this._entries[key] = entry;
 
         return entry;

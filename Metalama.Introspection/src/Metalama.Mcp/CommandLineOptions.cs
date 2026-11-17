@@ -16,12 +16,21 @@ internal sealed class CommandLineOptions
     public const string WorkerOption = "--worker";
     public const string OutputDirectoryOption = "--output-dir";
     public const string TimeoutOption = "--timeout";
+    public const string EditorLinkOption = "--editor-link";
+    public const string DefaultEditorLink = "vscode://file{path}:{line}";
 
     /// <summary>
     /// Gets the directory where HTML results are written, or <c>null</c> when the option is not given. The worker then uses
     /// a temporary directory of Metalama, which is private to the user and cleaned up by Metalama.
     /// </summary>
     public string? OutputDirectory { get; private set; }
+
+    /// <summary>
+    /// Gets the template of the link with which an HTML page opens a source location in an editor, or <c>null</c> when
+    /// locations are not links. <c>{path}</c> is the absolute path in URI form, such as <c>/C:/src/a.cs</c> or
+    /// <c>/home/me/a.cs</c>, and <c>{line}</c> is the line number.
+    /// </summary>
+    public string? EditorLink { get; private set; } = DefaultEditorLink;
 
     /// <summary>
     /// Gets the default soft timeout of a query. The hard timeout, after which the worker is killed, is twice as long.
@@ -53,6 +62,12 @@ internal sealed class CommandLineOptions
 
                     break;
 
+                case EditorLinkOption when i + 1 < args.Length:
+                    var editorLink = args[++i];
+                    options.EditorLink = editorLink == "none" ? null : editorLink;
+
+                    break;
+
                 case TimeoutOption when i + 1 < args.Length && int.TryParse( args[i + 1], NumberStyles.None, CultureInfo.InvariantCulture, out var seconds )
                                                              && seconds > 0:
                     options.DefaultTimeout = TimeSpan.FromSeconds( seconds );
@@ -62,7 +77,7 @@ internal sealed class CommandLineOptions
 
                 case "--help" or "-h":
                     options.Error =
-                        $"Usage: metalama-mcp [{OutputDirectoryOption} <directory>] [{TimeoutOption} <seconds>]\n\nA local MCP server that communicates over stdio only. Register it with an MCP client, for example:\n  claude mcp add metalama -- dnx Metalama.Mcp";
+                        $"Usage: metalama-mcp [{OutputDirectoryOption} <directory>] [{TimeoutOption} <seconds>] [{EditorLinkOption} <template>|none]\n\nA local MCP server that communicates over stdio only. Register it with an MCP client, for example:\n  claude mcp add metalama -- dnx Metalama.Mcp";
 
                     break;
 

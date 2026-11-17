@@ -17,6 +17,42 @@
     return element;
   }
 
+  // A self-contained page that has the workspace root and an editor link template turns each location into a link that opens
+  // the file at the line. The MCP App does not, because its frame cannot open other applications.
+  var editor = null;
+  var root = null;
+
+  function editorHref( location ) {
+    if ( live || !editor || !root ) { return null; }
+    var match = /^(.*):(\d+)$/.exec( location );
+    if ( !match ) { return null; }
+    var path = match[1].replace( /\\/g, '/' );
+    if ( !/^([A-Za-z]:)?\//.test( path ) ) { path = root.replace( /\\/g, '/' ).replace( /\/$/, '' ) + '/' + path; }
+    // The path in URI form: every segment is encoded, except a drive letter, and the path starts with a slash.
+    path = path.split( '/' ).map( function ( segment, i ) { return i === 0 && /^[A-Za-z]:$/.test( segment ) ? segment : encodeURIComponent( segment ); } ).join( '/' );
+    if ( path.charAt( 0 ) !== '/' ) { path = '/' + path; }
+    return editor.split( '{path}' ).join( path ).split( '{line}' ).join( match[2] );
+  }
+
+  // A location that opens in the editor is a small source icon, with the location in its tooltip. Otherwise it stays text,
+  // so that it is not lost.
+  // The icon is a template of the page, which the HTML parser puts in the SVG namespace, so the page names no URL.
+  function sourceIcon() {
+    return document.getElementById( 'source-icon' ).content.firstElementChild.cloneNode( true );
+  }
+
+  function locationElement( node, className ) {
+    var href = editorHref( node.location );
+    if ( !href ) { return el( 'span', className, node.location ); }
+    var link = el( 'a', 'source' );
+    link.href = href;
+    link.title = 'Open ' + node.location + ' in the editor';
+    link.setAttribute( 'aria-label', link.title );
+    link.appendChild( sourceIcon() );
+    link.addEventListener( 'click', function ( event ) { event.stopPropagation(); } );
+    return link;
+  }
+
   function copy( text ) {
     try {
       var result = navigator.clipboard.writeText( text );
@@ -83,7 +119,7 @@
     if ( node.location ) {
       var wrapper = el( 'span' );
       wrapper.appendChild( result );
-      wrapper.appendChild( el( 'span', 'location', node.location ) );
+      wrapper.appendChild( locationElement( node, 'location' ) );
       return wrapper;
     }
     return result;
@@ -144,7 +180,7 @@
     var element = el( 'caption' );
     element.appendChild( document.createTextNode( text ) );
     if ( extra ) { element.appendChild( el( 'span', 'count', extra ) ); }
-    if ( node.location ) { element.appendChild( el( 'span', 'count', node.location ) ); }
+    if ( node.location ) { element.appendChild( locationElement( node, 'count' ) ); }
     element.appendChild( tools( node ) );
     return element;
   }
@@ -326,6 +362,8 @@
     }
     document.getElementById( 'title' ).textContent = document_.title || '';
     document.getElementById( 'base' ).textContent = document_.base ? 'base: ' + document_.base : '';
+    editor = typeof document_.editor === 'string' ? document_.editor : null;
+    root = typeof document_.root === 'string' ? document_.root : null;
     app.replaceChildren( render( document_.result ) );
     notifySize();
   }

@@ -312,7 +312,8 @@ runtime state.
 metalama://<workspace>/<scope>/<code>/<anchor>[/<step>]*[?v=<fingerprint>]
 metalama://<workspace>/query/<base64url>[/<step>]*?v=<fingerprint>
 
-<workspace>  loaded path relative to the server's working directory, percent-encoded
+<workspace>  file names of the loaded paths, joined with +, such as App.sln; when two loaded workspaces
+             have the same name, the later one gets a hash of its full paths, such as App.sln~3f9a1c
 <scope>      <project>@<tfm>, or ~ for the whole workspace
 <code>       source | transformed
 ```
@@ -447,6 +448,13 @@ Interactions:
   and `maxItems` 500, with a size cap of 10 MB.
 - Links that point into the snapshot jump to the anchor in the page. Other links offer the two copy actions of
   section 9.2.
+- A declaration in a table cell expands in place to its properties, from the data in the page, as in a LINQPad grid.
+  This needs the agent to project the declaration itself (`Method = m`), not a string built from its name, which the
+  primer and the description of `query` ask for.
+- The file embeds the workspace root and the template of the `--editor-link` option, by default
+  `vscode://file{path}:{line}`. Each location is then a source icon that opens the file at the line in the editor,
+  with the location in its tooltip. `--editor-link none` keeps locations as text. The MCP App view keeps them as text,
+  because its frame cannot open other applications.
 - Files go to the directory given by the `--output-dir` option, or by default to `McpResults` in the temporary
   directory of Metalama, with a name built from the time and a hash of the result. The worker gets that directory from
   the `ITempFileManager` of Backstage with `CleanUpStrategy.FileOneMonthAfterCreation`, so the clean-up of Metalama

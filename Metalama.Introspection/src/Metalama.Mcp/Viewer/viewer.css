@@ -55,6 +55,10 @@ table.properties > tbody > tr > th { width: 1%; }
 .summary { font-family: var(--mono); }
 .link { color: var(--link); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; background: none; border: 0; padding: 0; font: inherit; }
 .location { color: var(--muted); margin-left: 8px; font-size: 12px; }
+a.source { display: inline-flex; vertical-align: middle; margin-left: 6px; color: var(--muted); }
+a.source:hover, a.source:focus-visible { color: var(--link); }
+a.source:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+a.source svg { width: 14px; height: 14px; }
 button.tool { font: 11px var(--sans); background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 3px; padding: 0 5px; margin-left: 4px; cursor: pointer; opacity: .85; }
 button.tool:focus-visible, .link:focus-visible, th.sortable:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .footer { color: var(--muted); font-style: italic; }

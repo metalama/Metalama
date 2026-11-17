@@ -9,6 +9,8 @@
     "schema": { "const": 1 },
     "base": { "type": [ "string", "null" ], "description": "The base against which the relative links are resolved." },
     "title": { "type": "string" },
+    "root": { "type": "string", "description": "In an HTML page only: the absolute directory against which locations are relative." },
+    "editor": { "type": "string", "description": "In an HTML page only: the template of the link that opens a location in an editor, with the {path} placeholder, the absolute path in URI form such as /C:/src/a.cs, and the {line} placeholder." },
     "result": { "$ref": "#/$defs/node" }
   },
   "$defs": {

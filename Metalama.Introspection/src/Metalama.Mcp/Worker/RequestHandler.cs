@@ -324,7 +324,17 @@ internal sealed class RequestHandler
                 break;
 
             case ResultFormat.Html:
-                htmlPath = HtmlWriter.WriteFile( outputJson!, title.Length > 80 ? title.Substring( 0, 79 ) + "…" : title, this._options.OutputDirectory ?? WorkerInitialization.GetDefaultOutputDirectory() );
+                // Locations are relative to the workspace root, so the page gets the root and the editor link template, with
+                // which it turns each location into a link. The JSON for the model and the MCP App stays without them.
+                var page = (JsonObject) outputJson!.DeepClone();
+
+                if ( entry != null && this._options.EditorLink != null )
+                {
+                    page["root"] = entry.RootDirectory;
+                    page["editor"] = this._options.EditorLink;
+                }
+
+                htmlPath = HtmlWriter.WriteFile( page, title.Length > 80 ? title.Substring( 0, 79 ) + "…" : title, this._options.OutputDirectory ?? WorkerInitialization.GetDefaultOutputDirectory() );
 
                 // The agent gets a short text summary, so that the page never enters its context.
                 var summary = new TextRenderer( linkBase ).Render( ResultTreePruner.Prune( outputTree, new ResultTreeOptions( 0, 10, entry?.RootDirectory ) ) );

@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -58,6 +60,45 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
         var json = await this.Server.QueryAsync( query, "json" );
         Assert.Contains( "M:FrogHattery.", json, StringComparison.Ordinal );
         Assert.Contains( ".cs:", json, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task HtmlPageCanLinkLocationsToTheEditor()
+    {
+        // Locations are relative to the workspace root, so the page needs the root, and the template of the editor link, to
+        // turn each location into a link that opens the file at the line.
+        var document = await this.QueryHtmlDocumentAsync( "workspace.SourceCode.Types.Take( 3 )" );
+
+        Assert.Equal( Path.GetDirectoryName( ServerProcess.FrogHatteryPath ), document.GetProperty( "root" ).GetString() );
+        Assert.Equal( CommandLineOptions.DefaultEditorLink, document.GetProperty( "editor" ).GetString() );
+    }
+
+    [Fact]
+    public async Task DeclarationInAnHtmlTableCellCanBeExpanded()
+    {
+        // The page expands a cell in place from the data it embeds, so a declaration projected into a row must carry its
+        // properties, as a method does in a LINQPad grid.
+        var document = await this.QueryHtmlDocumentAsync(
+            "workspace.SourceCode.Methods.Select( m => new { Method = m, Nodes = m.Metrics().Get<SyntaxNodesCount>().Value } ).OrderByDescending( x => x.Nodes ).Take( 5 )" );
+
+        var row = document.GetProperty( "result" ).GetProperty( "items" )[0];
+        var method = row.GetProperty( "properties" ).EnumerateArray().Single( p => p.GetProperty( "name" ).GetString() == "Method" ).GetProperty( "value" );
+
+        Assert.StartsWith( "M:FrogHattery.", method.GetProperty( "link" ).GetString(), StringComparison.Ordinal );
+        var propertyNames = method.GetProperty( "properties" ).EnumerateArray().Select( p => p.GetProperty( "name" ).GetString() ).ToList();
+        Assert.Contains( "Parameters", propertyNames );
+        Assert.Contains( "ReturnType", propertyNames );
+    }
+
+    private async Task<JsonElement> QueryHtmlDocumentAsync( string query )
+    {
+        var text = await this.Server.QueryAsync( query, "html" );
+
+        var uri = text.Split( '\n' ).Single( l => l.StartsWith( "html: ", StringComparison.Ordinal ) ).Substring( "html: ".Length );
+        var html = await File.ReadAllTextAsync( new Uri( uri ).LocalPath, TestContext.Current.CancellationToken );
+        var data = Regex.Match( html, "<script type=\"application/json\" id=\"metalama-data\">(?<json>.*?)</script>", RegexOptions.Singleline ).Groups["json"].Value;
+
+        return JsonDocument.Parse( data ).RootElement.Clone();
     }
 
     [Fact]

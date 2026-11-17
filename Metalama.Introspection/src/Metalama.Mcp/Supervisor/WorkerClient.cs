@@ -323,6 +323,9 @@ internal sealed class WorkerClient : IAsyncDisposable
             startInfo.ArgumentList.Add( this._options.OutputDirectory );
         }
 
+        startInfo.ArgumentList.Add( CommandLineOptions.EditorLinkOption );
+        startInfo.ArgumentList.Add( this._options.EditorLink ?? "none" );
+
         var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += ( _, e ) => ForwardToStandardError( e.Data );
         process.ErrorDataReceived += ( _, e ) => ForwardToStandardError( e.Data );
