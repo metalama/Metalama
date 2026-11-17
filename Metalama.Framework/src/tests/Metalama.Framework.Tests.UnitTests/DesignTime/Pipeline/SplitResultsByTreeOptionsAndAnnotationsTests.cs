@@ -237,7 +237,7 @@ public sealed class SplitResultsByTreeOptionsAndAnnotationsTests : UnitTestClass
 
         return ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Create(
             ImmutableArray.Create( annotation ),
-            a => a.TargetDeclaration.ToDurable(),
+            a => CompilationModel.GetAnnotationKey( a.TargetDeclaration ),
             RefEqualityComparer<IDeclaration>.Default );
     }
 

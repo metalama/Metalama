@@ -113,13 +113,7 @@ namespace Metalama.Framework.Engine.CodeModel
         {
             if ( declaration.BelongsToCurrentProject )
             {
-                // The durable reference to a type includes its nullable annotation, but an annotation is added to the type definition.
-                if ( declaration.DeclarationKind == DeclarationKind.NamedType && declaration is INamedType { IsNullable: true } nullableType )
-                {
-                    declaration = (IDeclaration) nullableType.ToNonNullable();
-                }
-
-                return this.Annotations[declaration.ToRef().ToDurable()].Select( i => i.Annotation as T ).WhereNotNull();
+                return this.Annotations[GetAnnotationKey( declaration.ToRef() )].Select( i => i.Annotation as T ).WhereNotNull();
             }
             else if ( this.ExternalAnnotationProvider != null )
             {
@@ -139,9 +133,7 @@ namespace Metalama.Framework.Engine.CodeModel
                          .SelectMany(
                              group => group
                                  .Where( i => i.Export )
-                                 // The identifier is taken from the target declaration and not from the key: the key of a type is a
-                                 // durable reference to the type, whose identifier is not a declaration identifier.
-                                 .Select( i => (DeclarationId: i.TargetDeclaration.ToSerializableId(), i.Annotation) ) ) )
+                                 .Select( i => (DeclarationId: group.Key.ToSerializableId(), i.Annotation) ) ) )
             {
                 builder.Add( declarationId, annotation );
             }
