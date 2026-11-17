@@ -325,6 +325,7 @@ namespace Metalama.Framework.Workspaces
 
                     case ".sln":
                     case ".slnf":
+                    case ".slnx":
                         if ( restore )
                         {
                             DotNetRestore( collection.ServiceProvider, path );
@@ -337,12 +338,14 @@ namespace Metalama.Framework.Workspaces
                         break;
 
                     default:
-                        throw new ArgumentOutOfRangeException( nameof(path), "Invalid path extension. Only '.csproj', '.sln' and '.slnf' are allowed." );
+                        throw new ArgumentOutOfRangeException( nameof(path), "Invalid path extension. Only '.csproj', '.sln', '.slnf' and '.slnx' are allowed." );
                 }
             }
 
             using var msbuildProjectCollection = new ProjectCollection( allProperties );
             msbuildProjectCollection.RegisterLogger( new MSBuildLogger( _logger ) );
+
+            var nuGetAssetsDiagnostics = new NuGetAssetsDiagnostics();
 
             // Start all tasks in parallel because even that may be expensive.
             var loadProjectTasks = roslynWorkspace.CurrentSolution.Projects.AsParallel().Select( GetOurProjectAsync ).ToArray();
@@ -352,12 +355,12 @@ namespace Metalama.Framework.Workspaces
             var projectSet = new ProjectSet( ourProjects, name ?? $"{ourProjects.Length} projects" );
 
             // Throw an exception upon failure because otherwise it's too difficult to diagnose.
-            var diagnostics = roslynWorkspace.Diagnostics.ToReadOnlyList();
+            var diagnostics = nuGetAssetsDiagnostics.Fix( roslynWorkspace.Diagnostics );
 
             if ( diagnostics.Any() )
             {
                 // Log,
-                foreach ( var diagnostic in roslynWorkspace.Diagnostics )
+                foreach ( var diagnostic in diagnostics )
                 {
                     (diagnostic.Kind == WorkspaceDiagnosticKind.Failure ? _logger.Error : _logger.Warning)?.Log( diagnostic.Message );
                 }
@@ -368,7 +371,7 @@ namespace Metalama.Framework.Workspaces
                 }
             }
 
-            return new LoadProjectSetResult( projectSet, roslynWorkspace.Diagnostics );
+            return new LoadProjectSetResult( projectSet, diagnostics );
 
             async Task<Project> GetOurProjectAsync( Microsoft.CodeAnalysis.Project roslynProject )
             {
@@ -384,6 +387,8 @@ namespace Metalama.Framework.Workspaces
 
                 // ReSharper disable once AccessToDisposedClosure
                 var msbuildProject = msbuildProjectCollection.LoadProject( roslynProject.FilePath!, projectProperties, null );
+
+                nuGetAssetsDiagnostics.AddAssetsFile( msbuildProject.GetPropertyValue( "ProjectAssetsFile" ) );
 
                 // Gets a Roslyn compilation.
                 var compilation = (await roslynProject.GetCompilationAsync( cancellationToken )).AssertNotNull();
