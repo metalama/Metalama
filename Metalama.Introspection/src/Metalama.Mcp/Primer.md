@@ -23,6 +23,12 @@ Entry points (`workspace`, or a single project from `workspace.GetProject(name, 
 - On declarations: `GetInboundReferences()`, `GetOutboundReferences()`, and on named types `GetDerivedTypes()`.
 - Metrics from `Metalama.Extensions.Metrics`, e.g. `m.Metrics().Get<SyntaxNodesCount>().Value`.
 
+Object model reference: declarations are the Metalama code model of `Metalama.Framework.Code` (`INamedType`, `IMethod`, …),
+and the rest is the introspection API of `Metalama.Framework.Introspection`. Use the Metalama skill if you have it, or read
+https://doc.postsharp.net/metalama/api/introspection-api and
+https://doc.postsharp.net/metalama/api/metalama-framework-workspaces-workspace. You can also explore with queries: `open`
+shows every public property of an object.
+
 Imported namespaces: System, System.Collections.Generic, System.Linq, System.Text, System.Threading.Tasks,
 Metalama.Framework.Workspaces, Metalama.Framework.Code, Metalama.Framework.Code.Collections, Metalama.Framework.Introspection,
 Metalama.Framework.Diagnostics, Metalama.Framework.Metrics, Metalama.Extensions.Metrics.

@@ -117,8 +117,12 @@ internal sealed class McpTools
 
     [UsedImplicitly]
     [Description(
-        "Runs a C# query: an expression, whose value is rendered, or statements ending with `return`. Globals: `workspace` (the loaded workspace), "
+        "Runs a C# query: an expression, whose value is rendered, or statements ending with `return`. Globals: `workspace`, a "
+        + "`Metalama.Framework.Workspaces.Workspace` with `SourceCode` and `TransformedCode` (`ICompilationSet`) and the introspection API, "
         + "`workspaces`, `D(id)` and `D<T>(id)` to resolve a declaration ID, `Open(link)` and `Open<T>(link)` to resolve a link, and `ct`, a cancellation token. "
+        + "Declarations are the Metalama code model of `Metalama.Framework.Code` (`INamedType`, `IMethod`, …). "
+        + "For the object model, use the Metalama skill if you have it, or read https://doc.postsharp.net/metalama/api/introspection-api "
+        + "and https://doc.postsharp.net/metalama/api/metalama-framework-workspaces-workspace. "
         + "Every rendered object starts with a link that `open` or `Open(…)` accepts. "
         + "In projections, select the declaration itself (`new { Method = m, … }`), never a string built from its name: only a declaration keeps its link and location, "
         + "which is what a person follows in an html page. This runs arbitrary code with the user's privileges." )]

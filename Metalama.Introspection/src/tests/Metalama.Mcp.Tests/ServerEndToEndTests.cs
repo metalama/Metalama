@@ -36,6 +36,11 @@ public sealed class ServerEndToEndTests
 
         var query = tools.Single( t => t.Name == "query" ).ProtocolTool;
         Assert.Equal( "ui://metalama/viewer", query.Meta?["ui"]?["resourceUri"]?.GetValue<string>() );
+
+        // The description tells the agent what `workspace` is and where the object model is documented.
+        Assert.Contains( "Metalama.Framework.Workspaces.Workspace", query.Description, StringComparison.Ordinal );
+        Assert.Contains( "https://doc.postsharp.net/metalama/api/introspection-api", query.Description, StringComparison.Ordinal );
+        Assert.Contains( "https://doc.postsharp.net/metalama/api/introspection-api", server.Client.ServerInstructions, StringComparison.Ordinal );
         Assert.NotNull( server.Client.ServerInstructions );
         Assert.Contains( "Open(link)", server.Client.ServerInstructions, StringComparison.Ordinal );
     }
