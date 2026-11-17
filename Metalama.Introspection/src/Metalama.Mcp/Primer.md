@@ -27,11 +27,16 @@ Imported namespaces: System, System.Collections.Generic, System.Linq, System.Tex
 Metalama.Framework.Workspaces, Metalama.Framework.Code, Metalama.Framework.Code.Collections, Metalama.Framework.Introspection,
 Metalama.Framework.Diagnostics, Metalama.Framework.Metrics, Metalama.Extensions.Metrics.
 
+Projections: select declarations themselves, never strings built from their names. A declaration is rendered as its link,
+with its `file:line` location in `json` and `html`, and in `html` it is what a person follows; a name is only text. Write
+`Method = m`, not `Method = m.DeclaringType.Name + "." + m.Name`, and `Type = t`, not `t.FullName`. Add a name column only
+when the table needs one besides the declaration.
+
 Example:
 ```
 workspace.SourceCode.Methods
     .Where( m => m.Accessibility == Accessibility.Public && m.Parameters.Count > 5 )
-    .Select( m => new { m.DeclaringType.Name, Method = m.Name, m.Parameters.Count } )
+    .Select( m => new { Method = m, m.Parameters.Count } )
 ```
 
 Output: `format` is `text` (default), `json`, or `html`, which writes a self-contained, LINQPad-style page and returns its path for a

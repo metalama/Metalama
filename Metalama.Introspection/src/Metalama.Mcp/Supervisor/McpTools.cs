@@ -119,7 +119,9 @@ internal sealed class McpTools
     [Description(
         "Runs a C# query: an expression, whose value is rendered, or statements ending with `return`. Globals: `workspace` (the loaded workspace), "
         + "`workspaces`, `D(id)` and `D<T>(id)` to resolve a declaration ID, `Open(link)` and `Open<T>(link)` to resolve a link, and `ct`, a cancellation token. "
-        + "Every rendered object starts with a link that `open` or `Open(…)` accepts. This runs arbitrary code with the user's privileges." )]
+        + "Every rendered object starts with a link that `open` or `Open(…)` accepts. "
+        + "In projections, select the declaration itself (`new { Method = m, … }`), never a string built from its name: only a declaration keeps its link and location, "
+        + "which is what a person follows in an html page. This runs arbitrary code with the user's privileges." )]
     public Task<CallToolResult> Query(
         McpServer server,
         [Description( "The C# expression or statements." )]

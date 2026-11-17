@@ -45,6 +45,22 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
     }
 
     [Fact]
+    public async Task DeclarationProjectedInARowKeepsItsLink()
+    {
+        // The primer tells agents to project the declaration rather than its name, so that each row links to it.
+        const string query =
+            "workspace.SourceCode.Methods.Select( m => new { Method = m, Nodes = m.Metrics().Get<SyntaxNodesCount>().Value } ).OrderByDescending( x => x.Nodes ).Take( 5 )";
+
+        var text = await this.Server.QueryAsync( query );
+        Assert.Contains( "M:FrogHattery.", text, StringComparison.Ordinal );
+
+        // The JSON, from which the html page is built, also carries the location of each declaration.
+        var json = await this.Server.QueryAsync( query, "json" );
+        Assert.Contains( "M:FrogHattery.", json, StringComparison.Ordinal );
+        Assert.Contains( ".cs:", json, StringComparison.Ordinal );
+    }
+
+    [Fact]
     public async Task EveryLinkInTheOutputOpens()
     {
         var text = await this.Server.QueryAsync( "D<INamedType>( \"T:FrogHattery.BullFrog\" )" );
