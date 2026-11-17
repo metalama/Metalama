@@ -73,26 +73,35 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
         Assert.Equal( CommandLineOptions.DefaultEditorLink, document.GetProperty( "editor" ).GetString() );
     }
 
-    [Fact]
-    public async Task DeclarationInAnHtmlTableCellCanBeExpanded()
+    [Theory]
+    [InlineData( null )]
+
+    // An agent passed maxDepth 1 with html, and the page could not expand its cells. The page never enters the context of the
+    // agent, so a lower depth has no use there.
+    [InlineData( 1 )]
+    public async Task DeclarationInAnHtmlTableCellCanBeExpanded( int? maxDepth )
     {
         // The page expands a cell in place from the data it embeds, so a declaration projected into a row must carry its
         // properties, as a method does in a LINQPad grid.
         var document = await this.QueryHtmlDocumentAsync(
-            "workspace.SourceCode.Methods.Select( m => new { Method = m, Nodes = m.Metrics().Get<SyntaxNodesCount>().Value } ).OrderByDescending( x => x.Nodes ).Take( 5 )" );
+            "workspace.SourceCode.Methods.Select( m => new { Method = m, Nodes = m.Metrics().Get<SyntaxNodesCount>().Value } ).OrderByDescending( x => x.Nodes ).Take( 5 )",
+            maxDepth );
 
         var row = document.GetProperty( "result" ).GetProperty( "items" )[0];
         var method = row.GetProperty( "properties" ).EnumerateArray().Single( p => p.GetProperty( "name" ).GetString() == "Method" ).GetProperty( "value" );
 
         Assert.StartsWith( "M:FrogHattery.", method.GetProperty( "link" ).GetString(), StringComparison.Ordinal );
-        var propertyNames = method.GetProperty( "properties" ).EnumerateArray().Select( p => p.GetProperty( "name" ).GetString() ).ToList();
+        Assert.True( method.TryGetProperty( "properties", out var properties ), "The declaration in the cell has no properties." );
+        var propertyNames = properties.EnumerateArray().Select( p => p.GetProperty( "name" ).GetString() ).ToList();
         Assert.Contains( "Parameters", propertyNames );
         Assert.Contains( "ReturnType", propertyNames );
     }
 
-    private async Task<JsonElement> QueryHtmlDocumentAsync( string query )
+    private async Task<JsonElement> QueryHtmlDocumentAsync( string query, int? maxDepth = null )
     {
-        var text = await this.Server.QueryAsync( query, "html" );
+        var text = await this.Server.CallSuccessfullyAsync(
+            "query",
+            new Dictionary<string, object?> { ["code"] = query, ["format"] = "html", ["maxDepth"] = maxDepth } );
 
         var uri = text.Split( '\n' ).Single( l => l.StartsWith( "html: ", StringComparison.Ordinal ) ).Substring( "html: ".Length );
         var html = await File.ReadAllTextAsync( new Uri( uri ).LocalPath, TestContext.Current.CancellationToken );

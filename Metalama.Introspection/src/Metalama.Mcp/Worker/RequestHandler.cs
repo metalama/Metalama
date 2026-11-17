@@ -445,6 +445,15 @@ internal sealed class RequestHandler
         var maxDepth = Math.Clamp( args["maxDepth"]?.GetValue<int>() ?? format.GetDefaultMaxDepth(), 0, 10 );
         var maxItems = Math.Clamp( args["maxItems"]?.GetValue<int>() ?? format.GetDefaultMaxItems(), 1, 10_000 );
 
+        if ( format == ResultFormat.Html )
+        {
+            // The page never enters the context of the agent, which gets a short summary, so a lower limit has no use there,
+            // and a page below the default depth cannot expand the declarations of its table cells. The limits only raise
+            // the defaults, and the size cap of the format still applies.
+            maxDepth = Math.Max( maxDepth, format.GetDefaultMaxDepth() );
+            maxItems = Math.Max( maxItems, format.GetDefaultMaxItems() );
+        }
+
         options = new RenderOptions( format, maxDepth, maxItems, includeStructured );
         error = null;
 

@@ -132,9 +132,9 @@ internal sealed class McpTools
         string code,
         [Description( "The workspace key. Optional when a single workspace is loaded." )]
         string? workspace = null,
-        [Description( "Items shown per collection. Default: 50 (500 for html)." )]
+        [Description( "Items shown per collection. Default: 50. For html, only a value above 500 has an effect; omit it." )]
         int? maxItems = null,
-        [Description( "Levels of properties expanded below the result. Default: 1 (3 for html)." )]
+        [Description( "Levels of properties expanded below the result. Default: 1. For html, only a value above 3 has an effect; omit it." )]
         int? maxDepth = null,
         [Description( "Output format: text (default), json, or html (writes a self-contained file and returns its path)." )]
         string? format = null,
@@ -163,9 +163,9 @@ internal sealed class McpTools
         [Description( "The link." )] string link,
         [Description( "The workspace key. Optional when a single workspace is loaded or the link is absolute." )]
         string? workspace = null,
-        [Description( "Items shown per collection. Default: 50 (500 for html)." )]
+        [Description( "Items shown per collection. Default: 50. For html, only a value above 500 has an effect; omit it." )]
         int? maxItems = null,
-        [Description( "Levels of properties expanded below the result. Default: 1 (3 for html)." )]
+        [Description( "Levels of properties expanded below the result. Default: 1. For html, only a value above 3 has an effect; omit it." )]
         int? maxDepth = null,
         [Description( "Output format: text (default), json, or html." )]
         string? format = null,

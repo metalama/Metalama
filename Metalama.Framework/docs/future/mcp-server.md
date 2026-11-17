@@ -444,6 +444,8 @@ Interactions:
   URI, together with the usual text summary.
 - The file contains the viewer's script and styles inline and the result as JSON in a
   `<script type="application/json">` element. It loads nothing from the network.
+- `maxDepth` and `maxItems` can only raise these values for a page, never lower them. The page never enters the
+  context of the agent, and an agent that passed `maxDepth` 1 got a page whose cells could not expand.
 - There is no round trip to the server, so the snapshot is rendered deeper than text output: by default `maxDepth` 3
   and `maxItems` 500, with a size cap of 10 MB.
 - Links that point into the snapshot jump to the anchor in the page. Other links offer the two copy actions of
