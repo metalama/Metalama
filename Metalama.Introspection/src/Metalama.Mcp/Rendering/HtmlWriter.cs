@@ -38,19 +38,21 @@ internal static partial class HtmlWriter
     private static readonly JsonSerializerOptions _embeddingOptions = new() { Encoder = JavaScriptEncoder.Default };
 
     /// <summary>
-    /// Creates the page of the MCP App, without data.
+    /// Creates the page of the MCP App, without data. It may fetch from <paramref name="connectSource"/>, the origin of the
+    /// result server, which is where it loads what its cells expand when the host does not forward its calls.
     /// </summary>
-    public static string CreateAppPage() => CreatePage( null, "Metalama" );
+    public static string CreateAppPage( string connectSource ) => CreatePage( null, "Metalama", connectSource: connectSource );
 
     /// <summary>
     /// Gets the content security policy of the page. The page loads nothing and runs only its own script, allowed by its hash.
-    /// A served page may also fetch from its own origin, which is the result server.
+    /// A served page may also fetch from its own origin, which is the result server, and the page of the MCP App from
+    /// <paramref name="connectSource"/>.
     /// </summary>
-    public static string GetContentSecurityPolicy( bool served )
+    public static string GetContentSecurityPolicy( bool served, string? connectSource = null )
     {
         // SHA-256 is what the content security policy requires for script hashes.
         var scriptHash = Convert.ToBase64String( SHA256.HashData( Encoding.UTF8.GetBytes( ReadScript() ) ) );
-        var connect = served ? "; connect-src 'self'" : "";
+        var connect = served ? "; connect-src 'self'" : connectSource != null ? "; connect-src " + connectSource : "";
 
         return $"default-src 'none'; script-src 'sha256-{scriptHash}'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'{connect}";
     }
@@ -59,14 +61,14 @@ internal static partial class HtmlWriter
     /// Creates a page. When <paramref name="document"/> is given, it is embedded. When <paramref name="served"/> is <c>true</c>,
     /// the page fetches what its cells expand from the result server; otherwise it needs nothing else.
     /// </summary>
-    public static string CreatePage( JsonObject? document, string title, bool served = false )
+    public static string CreatePage( JsonObject? document, string title, bool served = false, string? connectSource = null )
     {
         // The HTML parser normalizes line endings to LF before the browser hashes an inline script, and the resources have
         // CRLF line endings in a Windows working tree, so they are normalized before they are hashed and embedded.
         var template = EmbeddedResources.Read( "Viewer.viewer.html" ).ReplaceLineEndings( "\n" );
         var script = ReadScript();
         var css = EmbeddedResources.Read( "Viewer.viewer.css" ).ReplaceLineEndings( "\n" );
-        var csp = GetContentSecurityPolicy( served );
+        var csp = GetContentSecurityPolicy( served, connectSource );
 
         if ( document != null && served )
         {

@@ -48,10 +48,11 @@ that support MCP Apps show the same viewer next to the conversation, with live d
 The server runs arbitrary code by design, with the privileges of the user who started it. It is not a sandbox. MCP goes over
 stdio only, so only the process that started the server can run code in it.
 
-The first html result starts an HTTPS server in the supervisor process, which never runs a query: it shows stored results and
-follows links, as the MCP App view does. It listens on `127.0.0.1` and `::1` only, on a random port, and every URL starts with
-a random token that only the agent and the user receive. It accepts GET requests for `localhost` only, which defeats DNS
-rebinding, and its responses carry no CORS headers. The worker process, which runs the queries, never listens.
+The first html result, or the first result shown in the MCP App view, starts an HTTPS server in the supervisor process, which
+never runs a query: it shows stored results and follows links, for the browser and for the MCP App view. It listens on
+`127.0.0.1` and `::1` only, on a random port, and every URL starts with a random token that only the agent and the user
+receive. It accepts GET requests for `localhost` only, which defeats DNS rebinding. Only the endpoint that follows links
+answers other origins, because the MCP App view runs on the origin of the host. The worker process, which runs the queries, never listens.
 
 Loading a workspace runs the repository's MSBuild targets and its Metalama aspects and fabrics at compile time. Only load code
 you trust.

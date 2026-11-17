@@ -1,7 +1,8 @@
 // Metalama result viewer. Renders the JSON form of a result (result.schema.json) as LINQPad-style property tables and grids.
 // It runs in three ways:
 // - served by the result server of metalama-mcp on localhost, with the data embedded; drill-down fetches ../open;
-// - as an MCP App inside the host, which sends the data and forwards drill-down calls to the server;
+// - as an MCP App inside the host, which sends the data; drill-down fetches the open endpoint of the result server, whose
+//   address comes with the data as pageUrl, or else calls the open tool through the host;
 // - as a saved snapshot, with the data embedded and no drill-down beyond it.
 // Every value comes from the analysed code, so the DOM is built with textContent and attribute setters only.
 ( function () {
@@ -15,6 +16,10 @@
   // host forwards tools/call to the server; openLinks lets the view open the served page in the browser instead.
   var hostCapabilities = {};
   var toolCallsRefused = false;
+
+  // In the MCP App, the served page of the current result, next to which the result server follows links. Null when the
+  // server does not run, or when the view cannot reach it.
+  var pageUrl = null;
   var nextRequestId = 1;
   var pending = {};
 
@@ -96,7 +101,7 @@
   }
 
   // In the MCP App and on a served page, a collapsed value with a link can be opened in place through the server.
-  function canOpen() { return served || ( live && !!hostCapabilities.serverTools && !toolCallsRefused ); }
+  function canOpen() { return served || ( live && ( !!pageUrl || ( !!hostCapabilities.serverTools && !toolCallsRefused ) ) ); }
 
   function openable( element, node ) {
     if ( !canOpen() || !node.href ) {
@@ -375,6 +380,7 @@
     editor = typeof document_.editor === 'string' ? document_.editor : null;
     root = typeof document_.root === 'string' ? document_.root : null;
     served = !live && document_.served === true;
+    pageUrl = live && typeof document_.pageUrl === 'string' ? document_.pageUrl : null;
 
     var toolbar = document.getElementById( 'toolbar' );
     toolbar.querySelectorAll( '.action' ).forEach( function ( action ) { action.remove(); } );
@@ -422,19 +428,28 @@
   }
 
   function openLink( href, maxItems ) {
-    if ( served ) {
+    if ( served || pageUrl ) {
       // The page is at <token>/r/<id>, and the server follows links at <token>/open.
-      var url = '../open?link=' + encodeURIComponent( href ) + ( maxItems ? '&maxItems=' + encodeURIComponent( String( maxItems ) ) : '' );
-      return fetch( url, { credentials: 'same-origin', cache: 'no-store' } ).then( function ( response ) {
+      var query = 'open?link=' + encodeURIComponent( href ) + ( maxItems ? '&maxItems=' + encodeURIComponent( String( maxItems ) ) : '' );
+      var url = served ? '../' + query : new URL( '../' + query, pageUrl ).toString();
+      return fetch( url, { credentials: served ? 'same-origin' : 'omit', cache: 'no-store' } ).then( function ( response ) {
         if ( !response.ok ) {
           return response.text().then( function ( text ) { throw new Error( text || 'The server returned ' + response.status + '.' ); } );
         }
         return response.json().then( function ( document_ ) { return document_.result; } );
       }, function () {
-        throw new Error( 'The server is not running any more. Ask the agent to run the query again.' );
+        if ( served ) { throw new Error( 'The server is not running any more. Ask the agent to run the query again.' ); }
+        // The host blocked the request, or the server stopped: fall back to the host, if it forwards calls.
+        pageUrl = null;
+        if ( hostCapabilities.serverTools && !toolCallsRefused ) { return callOpen( href, maxItems ); }
+        throw new Error( 'This view cannot reach the result server. Use "Open in browser", or ask the agent for the html format.' );
       } );
     }
 
+    return callOpen( href, maxItems );
+  }
+
+  function callOpen( href, maxItems ) {
     var args = { link: href, format: 'json' };
     if ( maxItems ) { args.maxItems = maxItems; }
     return request( 'tools/call', { name: 'open', arguments: args } ).then( function ( result ) {

@@ -10,7 +10,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -140,27 +143,61 @@ public sealed class ServerEndToEndTests
     }
 
     [Fact]
-    public async Task AppResultLinksToTheServedPageOnceTheServerRuns()
+    public async Task AppResultLinksToTheServedPage()
     {
         // A host may render the MCP App view without forwarding its tools/call to the server, as Claude desktop does. The view
-        // then offers to open the served page in the browser, where every value expands on demand.
+        // then loads what its cells expand from the result server, and offers to open the served page in the browser.
         await using var server = await ServerProcess.StartAsync( withAppsCapability: true );
 
-        // Until an html result starts the server, results have no page.
-        var (_, _, before) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "1" } );
-        Assert.False( before!.Value.TryGetProperty( "pageUrl", out _ ) );
-
-        var (_, htmlText, html) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "2", ["format"] = "html" } );
-        var htmlPageUrl = html!.Value.GetProperty( "pageUrl" ).GetString();
-        Assert.Contains( "html: " + htmlPageUrl, htmlText, StringComparison.Ordinal );
-
-        // Once it runs, every result shown in the view gets a page.
-        var (_, _, after) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "3" } );
-        var pageUrl = new Uri( after!.Value.GetProperty( "pageUrl" ).GetString()! );
+        var (_, _, structured) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "3" } );
+        var pageUrl = new Uri( structured!.Value.GetProperty( "pageUrl" ).GetString()! );
 
         using var client = ServerProcess.CreateHttpClient();
         var page = ServerProcess.GetEmbeddedDocument( await client.GetStringAsync( pageUrl, TestContext.Current.CancellationToken ) );
         Assert.Equal( "3", page.GetProperty( "result" ).GetProperty( "value" ).GetString() );
+
+        var (_, htmlText, html) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "2", ["format"] = "html" } );
+        Assert.Contains( "html: " + html!.Value.GetProperty( "pageUrl" ).GetString(), htmlText, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task AppViewCanFetchLinksFromAnotherOrigin()
+    {
+        // The view runs in a frame of the host, on the origin of the host, and fetches the open endpoint of the result server.
+        await using var server = await ServerProcess.StartAsync( withAppsCapability: true );
+        var (_, _, structured) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "3" } );
+        var openUrl = new Uri( new Uri( structured!.Value.GetProperty( "pageUrl" ).GetString()! ), "../open?link=" + Uri.EscapeDataString( "T:System.Object" ) );
+
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var preflight = new HttpRequestMessage( HttpMethod.Options, openUrl );
+        preflight.Headers.Add( "Origin", "https://host.example" );
+        preflight.Headers.Add( "Access-Control-Request-Method", "GET" );
+        preflight.Headers.Add( "Access-Control-Request-Private-Network", "true" );
+        using var preflightResponse = await client.SendAsync( preflight, TestContext.Current.CancellationToken );
+        Assert.Equal( HttpStatusCode.NoContent, preflightResponse.StatusCode );
+        Assert.Equal( "*", Assert.Single( preflightResponse.Headers.GetValues( "Access-Control-Allow-Origin" ) ) );
+        Assert.Equal( "true", Assert.Single( preflightResponse.Headers.GetValues( "Access-Control-Allow-Private-Network" ) ) );
+
+        using var get = new HttpRequestMessage( HttpMethod.Get, openUrl );
+        get.Headers.Add( "Origin", "https://host.example" );
+        using var response = await client.SendAsync( get, TestContext.Current.CancellationToken );
+        Assert.Equal( "*", Assert.Single( response.Headers.GetValues( "Access-Control-Allow-Origin" ) ) );
+
+        // Pages are not readable from another origin: only the open endpoint is.
+        using var pageRequest = new HttpRequestMessage( HttpMethod.Get, structured.Value.GetProperty( "pageUrl" ).GetString() );
+        pageRequest.Headers.Add( "Origin", "https://host.example" );
+        using var pageResponse = await client.SendAsync( pageRequest, TestContext.Current.CancellationToken );
+        Assert.False( pageResponse.Headers.Contains( "Access-Control-Allow-Origin" ) );
+    }
+
+    [Fact]
+    public async Task AppResultHasNoPageWithNoHttp()
+    {
+        await using var server = await ServerProcess.StartAsync( withAppsCapability: true, noHttp: true );
+        var (_, _, structured) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "3" } );
+
+        Assert.False( structured!.Value.TryGetProperty( "pageUrl", out _ ) );
     }
 
     [Fact]
@@ -197,7 +234,11 @@ public sealed class ServerEndToEndTests
         Assert.Equal( "text/html;profile=mcp-app", contents.MimeType );
         Assert.Contains( "default-src &#39;none&#39;", contents.Text, StringComparison.Ordinal );
         Assert.DoesNotContain( "metalama-data\">", contents.Text, StringComparison.Ordinal );
-        Assert.DoesNotContain( "https://", contents.Text, StringComparison.Ordinal );
+
+        // The only address in the page is where it may connect: the result server, on any port until it runs.
+        Assert.Contains( "connect-src https://localhost:*", contents.Text, StringComparison.Ordinal );
+        Assert.Single( Regex.Matches( contents.Text, "https://" ) );
+        Assert.Equal( "https://localhost:*", contents.Meta!["ui"]!["csp"]!["connectDomains"]![0]!.GetValue<string>() );
     }
 
     [Fact]

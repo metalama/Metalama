@@ -46,7 +46,7 @@ internal static class SupervisorHost
 
         serverOptions.ResourceCollection.Add(
             McpServerResource.Create(
-                () => new TextResourceContents { Uri = McpTools.ViewerResourceUri, MimeType = HtmlWriter.AppMimeType, Text = HtmlWriter.CreateAppPage() },
+                () => tools.CreateViewerResource(),
                 new McpServerResourceCreateOptions
                 {
                     UriTemplate = McpTools.ViewerResourceUri,
