@@ -54,6 +54,11 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
     private const string _dependency = "dependency";
 
     /// <summary>
+    /// A dependency on which no item of the test depends.
+    /// </summary>
+    private const string _otherDependency = "other-dependency";
+
+    /// <summary>
     /// The key of an item that depends on the key of the item of the test.
     /// </summary>
     private const string _outerKey = "outer-key";
@@ -105,9 +110,9 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
     /// </summary>
     /// <remarks>
     /// The synchronous read requests the item from the second layer without its dependencies, and it stores the item in
-    /// the first layer without registering the dependency there. The local invalidation therefore does not find the item
-    /// in the first layer. The second layer removes the item and raises its events with its own identifier. The enhancer
-    /// ignores these events, because it treats them as the events of an operation of its own node.
+    /// the first layer without registering the dependency there. The dependency index of the first layer therefore does
+    /// not list the item. The invalidation removes it nevertheless, because the first layer removes every copy whose
+    /// dependencies are unknown when a dependency is invalidated through the layered backend.
     /// </remarks>
     [Fact]
     public async Task InvalidateDependency_AfterSynchronousReadThrough_RemovesItemFromL1()
@@ -130,8 +135,8 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
     /// <see cref="InvalidateDependency_AfterSynchronousReadThrough_RemovesItemFromL1"/>.
     /// </summary>
     /// <remarks>
-    /// The asynchronous read always requests the dependencies from the second layer, so the first layer registers the
-    /// dependency and the local invalidation removes the item.
+    /// The asynchronous read requests the item from the second layer without its dependencies, as the synchronous read
+    /// does, and the invalidation removes the copy for the same reason.
     /// </remarks>
     [Fact]
     public async Task InvalidateDependency_AfterAsynchronousReadThrough_RemovesItemFromL1()
@@ -145,7 +150,7 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
 
         Assert.True(
             finalItem == null,
-            $"GetItem returned {DescribeItem( finalItem )} after the invalidation of the dependency, although the asynchronous read requested the dependencies." );
+            $"GetItem returned {DescribeItem( finalItem )} after the invalidation of the dependency. The first layer serves the invalidated value." );
     }
 
     /// <summary>
@@ -155,9 +160,8 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
     /// </summary>
     /// <remarks>
     /// The schedule is the same as in the synchronous test, but the second layer raises its events with a foreign source
-    /// identifier. The enhancer then removes the item from the first layer when it receives the item-removed event. This
-    /// shows that the synchronous test fails because the item is not registered in the first layer and the event of the
-    /// own node is ignored, and not because the events are not delivered.
+    /// identifier, as it does for an invalidation that another node has requested. The enhancer then removes the item
+    /// from the first layer when it receives the item-removed event.
     /// </remarks>
     [Fact]
     public async Task InvalidateDependency_AfterSynchronousReadThroughWithForeignSourceEvents_RemovesItemFromL1()
@@ -819,6 +823,126 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
         Assert.True(
             readAfterInvalidation == null,
             $"GetItem returned {DescribeItem( readAfterInvalidation )} for the intermediate item after the invalidation of the second layer had completed. The first layer stored the invalidated value." );
+    }
+
+    /// <summary>
+    /// Verifies that a read that copies an item from the second layer into the first layer does not request the
+    /// dependencies of the item when its caller does not request them.
+    /// </summary>
+    /// <remarks>
+    /// A second layer such as the Redis backend stores the dependencies of an item separately and needs additional round
+    /// trips to read them. The layered backend must therefore not request them on behalf of a caller that does not need
+    /// them.
+    /// </remarks>
+    /// <param name="readAsynchronously">
+    /// <see langword="true"/> to read with <see cref="CachingBackend.GetItemAsync"/>, <see langword="false"/> to read with
+    /// <see cref="CachingBackend.GetItem"/>.
+    /// </param>
+    [Theory]
+    [InlineData( false )]
+    [InlineData( true )]
+    public async Task ReadThrough_WithoutRequestedDependencies_DoesNotRequestDependenciesFromL2( bool readAsynchronously )
+    {
+        using var cancellation = new CancellationTokenSource( _timeout );
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value", [_dependency] ) );
+
+        // Remove the item from the first layer only, as an eviction would.
+        layered.LocalCache.RemoveItem( _key );
+
+        var readCountBeforeRead = remote.Reads.Count;
+
+        var item = readAsynchronously
+            ? await layered.GetItemAsync( _key, cancellationToken: cancellation.Token )
+            : layered.GetItem( _key );
+
+        var reads = remote.Reads.Skip( readCountBeforeRead ).ToList();
+        this._output.WriteLine( "Reads of the second layer: " + string.Join( " | ", reads ) );
+
+        Assert.True( item is { Value: "value" }, $"Precondition: the read returned {DescribeItem( item )} instead of the value of the second layer." );
+
+        Assert.True(
+            reads.Count == 1 && reads[0].Contains( "includeDependencies: False", StringComparison.Ordinal ),
+            "The read requested the dependencies of the item from the second layer, although its caller did not request them: "
+            + string.Join( " | ", reads ) );
+    }
+
+    /// <summary>
+    /// Verifies that the invalidation of a dependency removes, from the first layer, a copy whose dependencies are
+    /// unknown, and that the item is still available afterwards when it does not depend on the invalidated dependency.
+    /// </summary>
+    /// <remarks>
+    /// The first layer cannot tell whether a copy that was read without its dependencies depends on the invalidated
+    /// dependency, so it removes every such copy. An item that the second layer keeps is read again from the second
+    /// layer.
+    /// </remarks>
+    [Fact]
+    public void InvalidateDependency_OfUnrelatedDependency_RemovesCopyWithUnknownDependenciesFromL1Only()
+    {
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value", [_dependency] ) );
+
+        // Remove the item from the first layer only, as an eviction would.
+        layered.LocalCache.RemoveItem( _key );
+
+        Assert.True(
+            layered.GetItem( _key ) is { Value: "value" } && layered.LocalCache.ContainsItem( _key ),
+            "Precondition: the read did not copy the item of the second layer into the first layer." );
+
+        layered.InvalidateDependency( _otherDependency );
+
+        Assert.False(
+            layered.LocalCache.ContainsItem( _key ),
+            "The first layer kept a copy whose dependencies are unknown after the invalidation of a dependency." );
+
+        Assert.True(
+            layered.GetItem( _key ) is { Value: "value" },
+            "The item is no longer available, although it does not depend on the invalidated dependency." );
+    }
+
+    /// <summary>
+    /// Verifies that the first layer drops a copy whose dependencies are unknown when the second layer reports, with its
+    /// own identifier, that it has removed the item.
+    /// </summary>
+    /// <remarks>
+    /// The Redis backend removes an item when an item on which it depends is replaced, and raises the item-removed event
+    /// with its own identifier on the node that replaced the item. The first layer of that node does not know the
+    /// dependencies of the copy, so this event is the only signal that the copy is no longer valid.
+    /// </remarks>
+    [Fact]
+    public async Task ItemRemovedByL2_WithOwnSourceIdentifier_RemovesCopyWithUnknownDependenciesFromL1()
+    {
+        using var cancellation = new CancellationTokenSource( _timeout );
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider, raisesEvents: true );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value" ) );
+
+        // Remove the item from the first layer only, as an eviction would.
+        layered.LocalCache.RemoveItem( _key );
+
+        Assert.True(
+            layered.GetItem( _key ) is { Value: "value" } && layered.LocalCache.ContainsItem( _key ),
+            "Precondition: the read did not copy the item of the second layer into the first layer." );
+
+        // The second layer removes the item without a call through the layered backend.
+        remote.RemoveItem( _key );
+
+        await fakes.WhenPendingWorkItemsCompletedAsync( cancellation.Token );
+
+        Assert.False(
+            layered.LocalCache.ContainsItem( _key ),
+            "The first layer kept the copy after the second layer had reported the removal of the item." );
     }
 
     /// <summary>

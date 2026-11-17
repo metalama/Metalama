@@ -770,7 +770,10 @@ namespace Metalama.Patterns.Caching.Tests
             var call3 = c.OuterMethod();
 
             Assert.NotEqual( call1, call2 );
-            Assert.NotEqual( call2, call3 );
+
+            // The refresh of the inner method replaces its cached value, which invalidates the outer method. The outer
+            // method is therefore evaluated again, and it gets the new cached value of the inner method.
+            Assert.Equal( call2, call3 );
         }
 
         #endregion TestRecachingOfInnerMethod
@@ -809,7 +812,10 @@ namespace Metalama.Patterns.Caching.Tests
             var call3 = await c.OuterMethodAsync();
 
             Assert.NotEqual( call1, call2 );
-            Assert.NotEqual( call2, call3 );
+
+            // The refresh of the inner method replaces its cached value, which invalidates the outer method. The outer
+            // method is therefore evaluated again, and it gets the new cached value of the inner method.
+            Assert.Equal( call2, call3 );
         }
 
         #endregion TestRecachingOfInnerMethodAsync

@@ -38,6 +38,14 @@ namespace Metalama.Patterns.Caching.Backends;
 /// machine. The remarks of <see cref="CachingBackendFeatures.Blocking"/> document the resulting assumption and its failure
 /// modes.
 /// </para>
+/// <para>
+/// A read requests the dependencies of an item from the remote cache only when its caller requests them, because the
+/// remote cache may need additional round trips to read them. The local cache therefore cannot register the
+/// dependencies of an item that it has copied without them. When a dependency is invalidated through this backend, the
+/// local cache removes every such copy, because any of them can depend on the invalidated dependency. The other nodes
+/// do not do so: they rely on the <see cref="CachingBackend.ItemRemoved"/> event that the remote cache must raise for
+/// each item that it removes during an invalidation.
+/// </para>
 /// </remarks>
 [PublicAPI]
 internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnhancer
@@ -147,6 +155,13 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
         {
             this.LocalCache.RemoveItem( args.Key );
         }
+        else
+        {
+            // The operation of this node that removed the item from the remote cache has already updated the local
+            // cache, except for a copy whose dependencies are unknown: the remote cache removes such an item when an
+            // item on which it depends is replaced, which the local cache cannot know.
+            this.LocalCache.RemoveItemWithUnknownDependencies( args.Key );
+        }
 
         base.OnBackendItemRemoved( sender, args );
     }
@@ -239,12 +254,12 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
 
         if ( localCacheItem == null || (includeDependencies && localCacheItem.Dependencies.IsDefault) )
         {
-            return this.ReadThroughRemote( key, null );
+            return this.ReadThroughRemote( key, null, includeDependencies );
         }
         else if ( localCacheItem is RemovedValue removedValue )
         {
             // The local cache holds the replacement value that means that the item has been removed.
-            return this.ReadThroughRemote( key, removedValue );
+            return this.ReadThroughRemote( key, removedValue, includeDependencies );
         }
         else
         {
@@ -258,14 +273,14 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
         var localCacheItem = this.LocalCache.GetItem( key, includeDependencies );
 
-        if ( localCacheItem == null )
+        if ( localCacheItem == null || (includeDependencies && localCacheItem.Dependencies.IsDefault) )
         {
-            return await this.ReadThroughRemoteAsync( key, null, cancellationToken );
+            return await this.ReadThroughRemoteAsync( key, null, includeDependencies, cancellationToken );
         }
         else if ( localCacheItem is RemovedValue removedValue )
         {
             // The local cache holds the replacement value that means that the item has been removed.
-            return await this.ReadThroughRemoteAsync( key, removedValue, cancellationToken );
+            return await this.ReadThroughRemoteAsync( key, removedValue, includeDependencies, cancellationToken );
         }
         else
         {
@@ -278,19 +293,20 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     /// </summary>
     /// <param name="key">The key of the item.</param>
     /// <param name="removedValue">The replacement value that the local cache holds for the key, or <see langword="null"/>.</param>
+    /// <param name="includeDependencies"><see langword="true"/> when the caller requests the dependencies of the item.</param>
     /// <returns>
     /// The item of the remote cache, or <see langword="null"/> when the remote cache has no item or when its item is not
     /// newer than <paramref name="removedValue"/>.
     /// </returns>
-    private MaterializedCacheItem? ReadThroughRemote( string key, RemovedValue? removedValue )
+    private MaterializedCacheItem? ReadThroughRemote( string key, RemovedValue? removedValue, bool includeDependencies )
     {
         var readThrough = this.BeginReadThrough( key );
 
         try
         {
-            // The dependencies are always requested, because the item is stored in the local cache, which must register
-            // them so that a local invalidation removes it.
-            var remoteCacheItem = (MaterializedCacheItem?) this.UnderlyingBackend.GetItem( key, true );
+            // The dependencies are requested only when the caller requests them. A copy that is stored without its
+            // dependencies is removed by the next invalidation of any dependency.
+            var remoteCacheItem = (MaterializedCacheItem?) this.UnderlyingBackend.GetItem( key, includeDependencies );
 
             return this.CompleteReadThrough( readThrough, remoteCacheItem, removedValue );
         }
@@ -305,18 +321,23 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     /// </summary>
     /// <param name="key">The key of the item.</param>
     /// <param name="removedValue">The replacement value that the local cache holds for the key, or <see langword="null"/>.</param>
+    /// <param name="includeDependencies"><see langword="true"/> when the caller requests the dependencies of the item.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>
     /// The item of the remote cache, or <see langword="null"/> when the remote cache has no item or when its item is not
     /// newer than <paramref name="removedValue"/>.
     /// </returns>
-    private async ValueTask<MaterializedCacheItem?> ReadThroughRemoteAsync( string key, RemovedValue? removedValue, CancellationToken cancellationToken )
+    private async ValueTask<MaterializedCacheItem?> ReadThroughRemoteAsync(
+        string key,
+        RemovedValue? removedValue,
+        bool includeDependencies,
+        CancellationToken cancellationToken )
     {
         var readThrough = this.BeginReadThrough( key );
 
         try
         {
-            var remoteCacheItem = (MaterializedCacheItem?) await this.UnderlyingBackend.GetItemAsync( key, true, cancellationToken );
+            var remoteCacheItem = (MaterializedCacheItem?) await this.UnderlyingBackend.GetItemAsync( key, includeDependencies, cancellationToken );
 
             return this.CompleteReadThrough( readThrough, remoteCacheItem, removedValue );
         }
@@ -367,7 +388,8 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
         var storedItem = this.LocalCache.SetItemImpl(
             readThrough.Key,
             remoteCacheItem,
-            replacementValue => replacementValue is RemovedValue currentRemovedValue && remoteCacheItem.Timestamp <= currentRemovedValue.Timestamp );
+            replacementValue => replacementValue is RemovedValue currentRemovedValue && remoteCacheItem.Timestamp <= currentRemovedValue.Timestamp,
+            isCopy: true );
 
         if ( storedItem != null && readThrough.IsInvalidated )
         {
@@ -439,8 +461,9 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     }
 
     /// <summary>
-    /// Marks every pending read, then invalidates a dependency in the local cache. When the remote cache is not blocking,
-    /// each removed item is replaced with a replacement value for the transition period.
+    /// Marks every pending read, then invalidates a dependency in the local cache and removes the copies whose
+    /// dependencies are unknown. When the remote cache is not blocking, each item removed for its dependency is replaced
+    /// with a replacement value for the transition period.
     /// </summary>
     private void InvalidateLocalDependency( string key )
     {
@@ -454,6 +477,9 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
         {
             this.LocalCache.InvalidateDependencyImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
         }
+
+        // The copies whose dependencies are unknown are not in the dependency index of the local cache.
+        this.LocalCache.RemoveItemsWithUnknownDependencies();
     }
 
     /// <summary>
@@ -467,6 +493,7 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
         {
             this.InvalidateReadThroughs( null );
             this.LocalCache.InvalidateDependency( key );
+            this.LocalCache.RemoveItemsWithUnknownDependencies();
         }
     }
 
