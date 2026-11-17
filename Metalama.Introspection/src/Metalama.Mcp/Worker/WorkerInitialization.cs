@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
 using SharpCrafters.Backstage.Extensibility;
-using SharpCrafters.Backstage.Maintenance;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -51,15 +50,6 @@ internal static class WorkerInitialization
             }
         };
     }
-
-    /// <summary>
-    /// Gets the directory where HTML results are written when no output directory is given. It is a temporary directory of
-    /// Metalama: on Unix it is under the application data directory of the user, not under the shared <c>/tmp</c>, and
-    /// Metalama deletes each page one month after it was written.
-    /// </summary>
-    public static string GetDefaultOutputDirectory()
-        => BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<ITempFileManager>()
-            .GetTempDirectory( "McpResults", CleanUpStrategy.FileOneMonthAfterCreation, versionScope: TempFileVersionScope.None );
 
     /// <summary>
     /// Gets and clears the diagnostics that queries reported through <see cref="DiagnosticReporter"/>, and resets its counters.

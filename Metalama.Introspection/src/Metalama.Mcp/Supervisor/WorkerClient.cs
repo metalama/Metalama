@@ -317,12 +317,6 @@ internal sealed class WorkerClient : IAsyncDisposable
         startInfo.ArgumentList.Add( CommandLineOptions.WorkerOption );
         startInfo.ArgumentList.Add( toWorker.GetClientHandleAsString() );
         startInfo.ArgumentList.Add( fromWorker.GetClientHandleAsString() );
-        if ( this._options.OutputDirectory != null )
-        {
-            startInfo.ArgumentList.Add( CommandLineOptions.OutputDirectoryOption );
-            startInfo.ArgumentList.Add( this._options.OutputDirectory );
-        }
-
         startInfo.ArgumentList.Add( CommandLineOptions.EditorLinkOption );
         startInfo.ArgumentList.Add( this._options.EditorLink ?? "none" );
 

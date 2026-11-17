@@ -2,7 +2,8 @@
 
 This document proposes a local MCP server that lets coding agents explore C# code with LINQ queries against the
 Metalama code model, the way the `Metalama.LinqPad` driver does for people. The server runs arbitrary C# on purpose,
-so it talks only over stdio and never opens a listening socket. It is a design proposal. A first implementation of v1
+so it speaks MCP only over stdio. The only port it opens is a loopback HTTPS server that shows results to the user and never
+runs code (section 4.1). It is a design proposal. A first implementation of v1
 and of the MCP App exists in `Metalama.Introspection/src/Metalama.Mcp`; section 14 records where it settled or changed this
 design.
 
@@ -14,7 +15,8 @@ design.
   `TransformedCode`, aspect instances, diagnostics and metrics.
 - Return results in a compact text form that fits in an agent's context, with explicit truncation.
 - Make every printed object navigable through a link that the server can resolve again with no memory table.
-- Expose the transport to the local client process only: stdio, no listening ports, enforced by the build.
+- Expose code execution to the local client process only: MCP over stdio, enforced by the build. The HTTPS server that
+  shows results to the user cannot run code.
 - Run on Windows and Linux, including the Linux containers used for unattended agent work. The LINQPad driver is
   Windows-only because of WPF.
 - Share the object walker and the link builder with `Metalama.LinqPad`, so both show the same properties and links.
@@ -25,7 +27,8 @@ design.
 
 - **Sandboxing.** The server runs code with the user's privileges, as the agent's shell does. It does not try to
   limit what a query can do.
-- **Remote access.** There is no HTTP, SSE or WebSocket transport, not even behind an opt-in flag.
+- **Remote access.** There is no HTTP, SSE or WebSocket transport for MCP, not even behind an opt-in flag. The result
+  server of section 9.3 listens on loopback only and is not an MCP transport.
 - **Editing code.** The agent edits files with its own tools and calls `reload_workspace`.
 - **Pre-built analysis tools** such as `find_type`. C# is the query language. We add sugar only after watching agents
   struggle without it.
@@ -47,13 +50,15 @@ design.
 
 ```mermaid
 flowchart LR
-  C["Agent client<br/>(Claude Code, IDE…)"] -- "stdio · JSON-RPC" --> S["metalama-mcp<br/>supervisor"]
+  C["Agent client<br/>(Claude Code, IDE…)"] -- "stdio · JSON-RPC" --> S["metalama-mcp<br/>supervisor<br/>result server"]
+  U["User's browser"] -- "https://localhost:random/token/…<br/>GET only" --> S
   S -- "anonymous pipes" --> W["worker process<br/>workspace cache · compiler<br/>renderer · link resolver"]
   W -- "local named pipe" --> B["MSBuild build host<br/>(Roslyn MSBuildWorkspace)"]
   W -. "outbound HTTPS" .-> N["NuGet feeds<br/>(restore)"]
 ```
 
-No component listens on a TCP port. The dotted edge is an outbound connection made by restore, not a listener.
+The only listener is the result server in the supervisor, started by the first html result and bound to loopback (section
+4.1). The worker, which runs code, never listens. The dotted edge is an outbound connection made by restore.
 
 ### 3.1. Supervisor and worker
 
@@ -88,19 +93,33 @@ The split solves two problems that an in-process design cannot:
 
 ## 4. Security model
 
-The server executes arbitrary code, by design, with the same privileges as the agent's shell. The only protection is
-that nothing but the local client process can reach it. The documentation says so plainly and never calls it a
-sandbox.
+The server executes arbitrary code, by design, with the same privileges as the agent's shell. The protection is that
+only the local client process can make it run code: MCP goes over stdio, and the one HTTP endpoint runs none. The
+documentation says so plainly and never calls it a sandbox.
 
-### 4.1. No listening sockets, enforced
+### 4.1. Code runs only on stdio requests, enforced
 
-- The only transport is stdio. The server has no `--port`, `--http` or similar option.
-- It references the `ModelContextProtocol` core package only, never `ModelContextProtocol.AspNetCore`.
-- `Microsoft.CodeAnalysis.BannedApiAnalyzers` runs on both projects with a `BannedSymbols.txt` that bans
-  `HttpListener`, `TcpListener`, `UdpClient`, `Socket.Bind`, `Socket.Listen`, `WebApplication` and `KestrelServer`.
-- A test fails if any `Microsoft.AspNetCore.*` assembly appears in the dependency closure of the tool package.
-- An integration test starts the server, loads the sample workspace, runs a query, and checks that the process tree
-  owns no listening TCP or UDP socket.
+- MCP goes over stdio only. The server has no `--port` or similar option, and references the `ModelContextProtocol` core
+  package only, never `ModelContextProtocol.AspNetCore`.
+- `Microsoft.CodeAnalysis.BannedApiAnalyzers` bans `HttpListener`, `TcpListener`, `UdpClient`, `Socket.Bind`,
+  `Socket.Listen`, `WebApplication` and `KestrelServer`. One file, `Supervisor/ResultServer.cs`, suppresses the ban to host
+  the result server.
+- **The result server never runs a query.** It serves documents that a query already produced, and follows links with the
+  worker's `open` method, as the MCP App view does. Query anchors, the only links that would run code, are rejected.
+- It is reachable from the local machine only, and only by whoever has a link:
+  - It listens on `127.0.0.1` and `::1` on a random port, started by the first html result. `--no-http` disables it.
+  - Every URL starts with a 256-bit random token, compared in constant time; anything else is 404. The token reaches only
+    the agent, in the tool result, and the user.
+  - The `Host` header must be `localhost:<port>`, which defeats DNS rebinding; only GET is accepted; responses carry no
+    CORS headers, `Referrer-Policy: no-referrer` (the token is in the URL), `Cache-Control: no-store`, `nosniff`, and the
+    page's CSP with `connect-src 'self'`.
+  - It is built with `WebApplication.CreateEmptyBuilder`, so no `appsettings.json` or `ASPNETCORE_*` variable can change
+    where it listens, and it has no logging, so nothing reaches standard output, which carries MCP.
+  - It serves `https://localhost` with the ASP.NET Core development certificate, so that the browser shows no warning.
+    Without a trusted one, html results fail with a message to run `dotnet dev-certs https --trust`.
+- Tests check that nothing listens before an html result, that the supervisor then listens on loopback only, that the
+  worker never listens and never loads `Microsoft.AspNetCore*`, that `--no-http` means no listener at all, and the token,
+  host, method and query-anchor rules.
 
 The guarantee covers the server's own code. A query can open a socket, as any program the user runs can.
 
@@ -399,20 +418,21 @@ every drill-down. It is an optimization only. With the cache empty, every link s
 The text format is for the agent. The viewer is for the person working with it: it shows a result the way LINQPad
 does, so that a query the agent ran can be checked, browsed and shared.
 
-### 9.1. One viewer, two ways to deliver it
+### 9.1. One viewer, three ways to deliver it
 
 The viewer is a single JavaScript page that renders the JSON format of section 7.6. The server never builds HTML
-markup itself. The same page is delivered in two ways:
+markup itself. The same page is delivered in three ways:
 
-| | Static file (section 9.3) | MCP App (section 9.4) |
-|---|---|---|
-| Where it opens | Any browser, from `file://` | Inside the agent's host, next to the conversation |
-| Data | A snapshot embedded in the file | The tool result, then more through `tools/call` |
-| Drill-down beyond the data | Copy the link or the C# expression | Live, through the server |
-| Needs | Nothing | A host that supports MCP Apps |
+| | Served page (section 9.3) | MCP App (section 9.4) | Saved snapshot |
+|---|---|---|---|
+| Where it opens | The user's browser, from an `https://localhost` link | Inside the agent's host | Any browser, from a file |
+| Data | The result, then more through `GET ../open` | The tool result, then more through `tools/call` | What the page had loaded |
+| Drill-down beyond the data | Live, through the server | Live, through the server | Copy the link or the C# expression |
+| Needs | A trusted ASP.NET Core development certificate | A host that supports MCP Apps | Nothing |
 
-Neither way opens a socket. A local HTTP server and a custom `metalama:` protocol handler were both rejected: each
-would need a listening endpoint that reaches the worker, which section 4 rules out.
+An earlier version wrote static files only, because a local HTTP server was ruled out. Pages were then cut at a fixed
+depth, and cells below it could not expand. The served page renders on demand instead; section 4.1 explains why its
+server cannot run code. A custom `metalama:` protocol handler remains rejected: it would reach the worker from any page.
 
 ### 9.2. Layouts
 
@@ -438,32 +458,30 @@ Interactions:
   into LINQPad, whose `Open(…)` uses the same resolver).
 - Light and dark themes follow the browser setting.
 
-### 9.3. Static file
+### 9.3. Served page
 
-- `query` or `open` with `format: "html"` writes one self-contained HTML file and returns its path as a `file://`
-  URI, together with the usual text summary.
-- The file contains the viewer's script and styles inline and the result as JSON in a
-  `<script type="application/json">` element. It loads nothing from the network.
-- `maxDepth` and `maxItems` can only raise these values for a page, never lower them. The page never enters the
-  context of the agent, and an agent that passed `maxDepth` 1 got a page whose cells could not expand.
-- There is no round trip to the server, so the snapshot is rendered deeper than text output: by default `maxDepth` 3
-  and `maxItems` 500, with a size cap of 10 MB.
-- Links that point into the snapshot jump to the anchor in the page. Other links offer the two copy actions of
-  section 9.2.
-- A declaration in a table cell expands in place to its properties, from the data in the page, as in a LINQPad grid.
-  This needs the agent to project the declaration itself (`Method = m`), not a string built from its name, which the
-  primer and the description of `query` ask for.
-- The file embeds the workspace root and the template of the `--editor-link` option, by default
+- `query` or `open` with `format: "html"` stores the JSON document in the supervisor, in a cache of the last 100 results,
+  and returns `html: https://localhost:<port>/<token>/r/<id>` with the usual short text summary. The agent gives the link
+  to the user. Nothing is written to disk.
+- `GET <token>/r/<id>` returns the viewer page with the document embedded and the marker `"served": true`. Its CSP
+  allows the script by hash and `connect-src 'self'`; it loads nothing else.
+- A value that the page does not hold, such as a declaration below the embedded depth, is a link; a click calls
+  `GET <token>/open?link=<href>`, which runs the worker's `open` with `format: "json"`, and renders the answer in place.
+  A truncated grid's "Show more" uses the same route with `maxItems`. There is no depth limit beyond the user's clicks.
+- The embedded document is rendered with `maxDepth` 3 and `maxItems` 500. `maxDepth` and `maxItems` can only raise these
+  values for a page, never lower them: the page never enters the context of the agent, and an agent once passed
+  `maxDepth` 1 and got a page whose cells could not expand.
+- A declaration in a table cell expands in place to its properties, as in a LINQPad grid. This needs the agent to
+  project the declaration itself (`Method = m`), not a string built from its name, which the primer and the description
+  of `query` ask for.
+- The page embeds the workspace root and the template of the `--editor-link` option, by default
   `vscode://file{path}:{line}`. Each location is then a source icon that opens the file at the line in the editor,
   with the location in its tooltip. `--editor-link none` keeps locations as text. The MCP App view keeps them as text,
   because its frame cannot open other applications.
-- Files go to the directory given by the `--output-dir` option, or by default to `McpResults` in the temporary
-  directory of Metalama, with a name built from the time and a hash of the result. The worker gets that directory from
-  the `ITempFileManager` of Backstage with `CleanUpStrategy.FileOneMonthAfterCreation`, so the clean-up of Metalama
-  deletes each page one month after it was written. The temporary directory of Metalama belongs to the user: on Unix it
-  is under the application data directory, not under the shared `/tmp`. A directory given with `--output-dir` is
-  created readable by the user only on Unix, and is never cleaned up.
-- The server does not start a browser. The agent or the person opens the file.
+- The Save button gets `<token>/r/<id>?download=1`, the same page as an attachment without the served marker: a
+  snapshot that works from a file and expands only what it holds.
+- A link to a result that was evicted, or whose server stopped with the session, says to run the query again.
+- The server does not start a browser. The user opens the link.
 
 ### 9.4. MCP App
 
@@ -472,7 +490,7 @@ a sandboxed frame. The view and the server talk through the host with JSON-RPC o
 transport rules of section 4.
 
 - The server declares the resource `ui://metalama/viewer`, with MIME type `text/html;profile=mcp-app`. It is the same
-  page as the static file, without embedded data.
+  page as the served page, without embedded data.
 - `query` and `open` declare `_meta.ui.resourceUri: "ui://metalama/viewer"`. Their results carry the JSON in
   `structuredContent` for the view and the text format in `content` for the model.
 - The host passes the result to the view with `ui/notifications/tool-result`.
@@ -496,11 +514,13 @@ Values come from the analysed code: string constants, attribute arguments, diagn
 not be able to run script in the viewer or send data anywhere.
 
 - The viewer builds its DOM with `textContent` and attribute setters only, never `innerHTML`, and runs no `eval`.
-- Links are rendered as in-page anchors or copy buttons, never as `href` values built from data.
-- In the static file, the embedded JSON escapes `<` as `<`, so a value containing `</script>` cannot close the
-  element.
-- The static file sets a content security policy in a `<meta>` element: `default-src 'none'`, the viewer's script
-  allowed by its hash, inline styles, and `data:` images.
+- Links are rendered as in-page anchors, buttons or copy actions. The only `href` built from data is the editor link,
+  whose scheme comes from the `--editor-link` template and whose path segments are percent-encoded.
+- In the served page and the snapshot, the embedded JSON escapes `<` as `<`, so a value containing `</script>` cannot
+  close the element.
+- The page sets a content security policy in a `<meta>` element, and the served page also in the response header:
+  `default-src 'none'`, the viewer's script allowed by its hash, inline styles, `data:` images, and for the served page
+  `connect-src 'self'`.
 
 ### 9.6. Building the viewer
 
@@ -610,8 +630,8 @@ Tests use the existing `FrogHattery` sample from the LINQPad tests.
 - **Error list:** a query that makes Metalama report a diagnostic returns it under `error list`, and the next query
   starts with empty counters.
 - **Viewer injection:** a sample whose string constants and attribute arguments contain `</script>`, HTML tags and
-  event-handler attributes renders as plain text in the static file, and the page makes no network request.
-- **Viewer smoke test:** a headless browser opens a static file of the sample, expands a nested table, sorts a grid,
+  event-handler attributes renders as plain text in the page, and the page requests nothing but its own `open` route.
+- **Viewer smoke test:** a headless browser opens a served page of the sample, expands a nested table, sorts a grid,
   and reports no script error.
 
 ## 12. Phasing
@@ -660,8 +680,13 @@ The first implementation follows this design, with these differences.
   adds hosting and dependency injection, and the `ModelContextProtocol.Extensions.Apps` helpers are experimental; the
   `_meta.ui` metadata is written directly instead. 2.4.0 was skipped because it was released six days earlier.
 - **One executable.** The supervisor and the worker are the same `metalama-mcp` assembly, started with or without
-  `--worker`. The supervisor's code path touches no type of the code model, Roslyn or MSBuild, and a test checks the
-  assemblies it loads.
+  `--worker`. The supervisor's code path touches no type of the code model, Roslyn or MSBuild, and the worker's touches
+  no ASP.NET Core type; tests check the assemblies each one loads.
+- **Result server.** Kestrel comes from a `FrameworkReference` to `Microsoft.AspNetCore.App`, the shared framework that
+  every .NET SDK installs, so the package does not grow. Kestrel cannot listen on one random port for both loopback
+  addresses, so the server draws a port from the dynamic range and draws again when it is taken. The certificate is
+  found in `CurrentUser\My` by the development-certificate extension `1.3.6.1.4.1.311.84.1.1`; on Windows it must also
+  be in `CurrentUser\Root`. Tests use a self-signed certificate passed through `METALAMA_MCP_TEST_CERTIFICATE`.
 - **Collection anchors.** Besides `projects` and `diagnostics`, the anchors `project` and `workspace` name a project
   and the workspace themselves, and `aspect-classes`, `aspect-instances`, `aspect-layers`, `advice` and `transformations`
   name the collections of the same names.

@@ -3,9 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Globalization;
-using System.IO;
-using System.IO.Hashing;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,8 +14,8 @@ using System.Text.RegularExpressions;
 namespace Metalama.Mcp.Rendering;
 
 /// <summary>
-/// Builds the HTML viewer page: either a self-contained file with the result embedded, or the page of the MCP App, which
-/// receives its data from the host.
+/// Builds the HTML viewer page: a page with the result embedded, served by the result server or saved as a snapshot, or the
+/// page of the MCP App, which receives its data from the host.
 /// </summary>
 /// <remarks>
 /// This class works on JSON only, so the supervisor can use it without loading the code model.
@@ -31,6 +28,12 @@ internal static partial class HtmlWriter
     public const string AppMimeType = "text/html;profile=mcp-app";
     public const string DataElementId = "metalama-data";
 
+    /// <summary>
+    /// The property of the embedded document that tells the viewer that the result server serves it, so that it fetches what
+    /// its cells expand from <c>../open</c>.
+    /// </summary>
+    public const string ServedProperty = "served";
+
     // The default encoder escapes <, >, & and quotes as \uXXXX, so a value that contains </script> cannot close the element.
     private static readonly JsonSerializerOptions _embeddingOptions = new() { Encoder = JavaScriptEncoder.Default };
 
@@ -40,21 +43,36 @@ internal static partial class HtmlWriter
     public static string CreateAppPage() => CreatePage( null, "Metalama" );
 
     /// <summary>
-    /// Creates a page. When <paramref name="document"/> is given, it is embedded and the page needs nothing else.
+    /// Gets the content security policy of the page. The page loads nothing and runs only its own script, allowed by its hash.
+    /// A served page may also fetch from its own origin, which is the result server.
     /// </summary>
-    public static string CreatePage( JsonObject? document, string title )
+    public static string GetContentSecurityPolicy( bool served )
+    {
+        // SHA-256 is what the content security policy requires for script hashes.
+        var scriptHash = Convert.ToBase64String( SHA256.HashData( Encoding.UTF8.GetBytes( ReadScript() ) ) );
+        var connect = served ? "; connect-src 'self'" : "";
+
+        return $"default-src 'none'; script-src 'sha256-{scriptHash}'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'{connect}";
+    }
+
+    /// <summary>
+    /// Creates a page. When <paramref name="document"/> is given, it is embedded. When <paramref name="served"/> is <c>true</c>,
+    /// the page fetches what its cells expand from the result server; otherwise it needs nothing else.
+    /// </summary>
+    public static string CreatePage( JsonObject? document, string title, bool served = false )
     {
         // The HTML parser normalizes line endings to LF before the browser hashes an inline script, and the resources have
         // CRLF line endings in a Windows working tree, so they are normalized before they are hashed and embedded.
         var template = EmbeddedResources.Read( "Viewer.viewer.html" ).ReplaceLineEndings( "\n" );
-        var script = EmbeddedResources.Read( "Viewer.viewer.js" ).ReplaceLineEndings( "\n" );
+        var script = ReadScript();
         var css = EmbeddedResources.Read( "Viewer.viewer.css" ).ReplaceLineEndings( "\n" );
+        var csp = GetContentSecurityPolicy( served );
 
-        // SHA-256 is what the content security policy requires for script hashes.
-        var scriptHash = Convert.ToBase64String( SHA256.HashData( Encoding.UTF8.GetBytes( script ) ) );
-
-        // The page loads nothing: no network, no frames, and only its own script, allowed by its hash.
-        var csp = $"default-src 'none'; script-src 'sha256-{scriptHash}'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
+        if ( document != null && served )
+        {
+            document = (JsonObject) document.DeepClone();
+            document[ServedProperty] = true;
+        }
 
         var data = document != null
             ? $"<script type=\"application/json\" id=\"{DataElementId}\">{document.ToJsonString( _embeddingOptions )}</script>"
@@ -75,27 +93,5 @@ internal static partial class HtmlWriter
                 } );
     }
 
-    /// <summary>
-    /// Writes a self-contained page to the output directory and returns its path.
-    /// </summary>
-    public static string WriteFile( JsonObject document, string title, string outputDirectory )
-    {
-        // The pages contain declarations and string constants of the analysed code, so only the user may read them.
-        if ( OperatingSystem.IsWindows() )
-        {
-            Directory.CreateDirectory( outputDirectory );
-        }
-        else
-        {
-            Directory.CreateDirectory( outputDirectory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute );
-        }
-
-        var hash = XxHash64.HashToUInt64( Encoding.UTF8.GetBytes( document.ToJsonString() ) ).ToString( "x16", CultureInfo.InvariantCulture ).Substring( 0, 8 );
-        var fileName = $"result-{DateTime.Now.ToString( "yyyyMMdd-HHmmss", CultureInfo.InvariantCulture )}-{hash}.html";
-        var path = Path.Combine( outputDirectory, fileName );
-
-        File.WriteAllText( path, CreatePage( document, title ), new UTF8Encoding( false ) );
-
-        return path;
-    }
+    private static string ReadScript() => EmbeddedResources.Read( "Viewer.viewer.js" ).ReplaceLineEndings( "\n" );
 }

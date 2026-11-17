@@ -22,7 +22,9 @@ internal static class SupervisorHost
     public static async Task<int> RunAsync( CommandLineOptions options )
     {
         await using var worker = new WorkerClient( options );
-        var tools = new McpTools( worker );
+
+        // Disposed before the worker, because the result server forwards requests to it.
+        await using var tools = new McpTools( worker, options );
 
         var serverOptions = new McpServerOptions
         {

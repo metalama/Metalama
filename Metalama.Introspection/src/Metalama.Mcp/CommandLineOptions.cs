@@ -4,26 +4,26 @@
 
 using System;
 using System.Globalization;
-using System.IO;
 
 namespace Metalama.Mcp;
 
 /// <summary>
-/// The command line of <c>metalama-mcp</c>. There is deliberately no option for a network transport.
+/// The command line of <c>metalama-mcp</c>. There is deliberately no option for a network transport of MCP, and no option to
+/// choose the address of the HTTPS server that shows html results, which is always a random port on loopback.
 /// </summary>
 internal sealed class CommandLineOptions
 {
     public const string WorkerOption = "--worker";
-    public const string OutputDirectoryOption = "--output-dir";
     public const string TimeoutOption = "--timeout";
     public const string EditorLinkOption = "--editor-link";
+    public const string NoHttpOption = "--no-http";
     public const string DefaultEditorLink = "vscode://file{path}:{line}";
 
     /// <summary>
-    /// Gets the directory where HTML results are written, or <c>null</c> when the option is not given. The worker then uses
-    /// a temporary directory of Metalama, which is private to the user and cleaned up by Metalama.
+    /// Gets a value indicating whether the HTTPS server that shows html results is disabled. With it, the server never
+    /// listens on any port.
     /// </summary>
-    public string? OutputDirectory { get; private set; }
+    public bool NoHttp { get; private set; }
 
     /// <summary>
     /// Gets the template of the link with which an HTML page opens a source location in an editor, or <c>null</c> when
@@ -57,8 +57,8 @@ internal sealed class CommandLineOptions
 
                     break;
 
-                case OutputDirectoryOption when i + 1 < args.Length:
-                    options.OutputDirectory = Path.GetFullPath( args[++i] );
+                case NoHttpOption:
+                    options.NoHttp = true;
 
                     break;
 
@@ -77,7 +77,7 @@ internal sealed class CommandLineOptions
 
                 case "--help" or "-h":
                     options.Error =
-                        $"Usage: metalama-mcp [{OutputDirectoryOption} <directory>] [{TimeoutOption} <seconds>] [{EditorLinkOption} <template>|none]\n\nA local MCP server that communicates over stdio only. Register it with an MCP client, for example:\n  claude mcp add metalama -- dnx Metalama.Mcp";
+                        $"Usage: metalama-mcp [{TimeoutOption} <seconds>] [{EditorLinkOption} <template>|none] [{NoHttpOption}]\n\nA local MCP server that communicates over stdio only. Results in the html format are served on a random loopback port, unless {NoHttpOption} is given. Register it with an MCP client, for example:\n  claude mcp add metalama -- dnx Metalama.Mcp";
 
                     break;
 

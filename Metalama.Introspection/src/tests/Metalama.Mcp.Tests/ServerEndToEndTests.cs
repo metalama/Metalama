@@ -4,10 +4,10 @@
 
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
-using SharpCrafters.Backstage.Maintenance;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -100,25 +100,43 @@ public sealed class ServerEndToEndTests
     }
 
     [Fact]
-    public async Task HtmlGoesToTheTemporaryDirectoryOfMetalama()
+    public async Task HtmlReturnsAnHttpsLinkAndWritesNoFile()
     {
-        // Without --output-dir, the page goes to a temporary directory managed by Backstage, which is private to the user and
-        // cleaned up. The test redirects the temporary directory of Metalama with METALAMA_TEMP.
-        await using var server = await ServerProcess.StartAsync( defaultOutputDirectory: true );
+        await using var server = await ServerProcess.StartAsync();
 
-        var text = await server.QueryAsync( "42", "html" );
+        var link = await server.QueryHtmlLinkAsync( "42" );
 
-        var uri = text.Split( '\n' ).Single( l => l.StartsWith( "html: ", StringComparison.Ordinal ) ).Substring( "html: ".Length );
-        var path = new Uri( uri ).LocalPath;
+        Assert.Equal( "https", link.Scheme );
+        Assert.Equal( "localhost", link.Host );
 
-        Assert.True( File.Exists( path ), path );
-        Assert.StartsWith( Path.GetFullPath( server.OutputDirectory ), path, StringComparison.OrdinalIgnoreCase );
-        Assert.Contains( "McpResults", path, StringComparison.Ordinal );
+        using var client = ServerProcess.CreateHttpClient();
+        var html = await client.GetStringAsync( link, TestContext.Current.CancellationToken );
+        Assert.Equal( "42", ServerProcess.GetEmbeddedDocument( html ).GetProperty( "result" ).GetProperty( "value" ).GetString() );
+    }
 
-        // Backstage records the clean-up policy of the directory, which deletes each page a month after it was written.
-        var policies = Directory.EnumerateFiles( server.OutputDirectory, "cleanup.json", SearchOption.AllDirectories ).Select( File.ReadAllText ).ToArray();
-        var strategy = (int) CleanUpStrategy.FileOneMonthAfterCreation;
-        Assert.Contains( policies, p => JsonDocument.Parse( p ).RootElement.GetProperty( "Strategy" ).GetInt32() == strategy );
+    [Fact]
+    public async Task HtmlWithoutHttpExplainsWhy()
+    {
+        await using var server = await ServerProcess.StartAsync( noHttp: true );
+
+        var (isError, text, _) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "42", ["format"] = "html" } );
+
+        Assert.True( isError );
+        Assert.Contains( "--no-http", text, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task HtmlWithoutADevelopmentCertificateExplainsHowToGetOne()
+    {
+        await using var server = await ServerProcess.StartAsync( testCertificate: "missing" );
+
+        var (isError, text, _) = await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "42", ["format"] = "html" } );
+
+        Assert.True( isError );
+        Assert.Contains( "dotnet dev-certs https --trust", text, StringComparison.Ordinal );
+
+        // Text results still work.
+        Assert.Equal( "42", (await server.QueryAsync( "42" )).Split( '\n' )[0] );
     }
 
     [Fact]
@@ -203,14 +221,39 @@ public sealed class ServerEndToEndTests
     }
 
     [Fact]
-    public async Task NoProcessListensOnASocket()
+    public async Task OnlyTheSupervisorListensAndOnlyOnLoopbackAfterAnHtmlResult()
     {
         await using var server = await ServerProcess.StartAsync();
         var worker = await GetWorkerAsync( server );
         var supervisor = server.ProcessIds!.Value.Supervisor;
 
-        var listeners = ListeningSockets.GetOwningProcessIds();
+        // Until a result is requested in the html format, nothing listens.
+        var before = ListeningSockets.GetOwningProcessIds();
+        Assert.DoesNotContain( supervisor, before );
+        Assert.DoesNotContain( worker, before );
 
+        var link = await server.QueryHtmlLinkAsync( "42" );
+
+        // The worker, which runs the queries, never listens. The supervisor listens on the port of the link, on loopback only.
+        var after = ListeningSockets.GetListeners();
+        Assert.DoesNotContain( after, l => l.ProcessId == worker );
+
+        var supervisorListeners = after.Where( l => l.ProcessId == supervisor ).ToList();
+        Assert.NotEmpty( supervisorListeners );
+        Assert.All( supervisorListeners, l => Assert.True( l.IsLoopback, l.LocalAddress ) );
+        Assert.All( supervisorListeners, l => Assert.EndsWith( ":" + link.Port.ToString( CultureInfo.InvariantCulture ), l.LocalAddress, StringComparison.Ordinal ) );
+    }
+
+    [Fact]
+    public async Task NoProcessListensWithNoHttp()
+    {
+        await using var server = await ServerProcess.StartAsync( noHttp: true );
+        var worker = await GetWorkerAsync( server );
+        var supervisor = server.ProcessIds!.Value.Supervisor;
+
+        await server.CallAsync( "query", new Dictionary<string, object?> { ["code"] = "42", ["format"] = "html" } );
+
+        var listeners = ListeningSockets.GetOwningProcessIds();
         Assert.DoesNotContain( supervisor, listeners );
         Assert.DoesNotContain( worker, listeners );
     }
@@ -234,14 +277,40 @@ public sealed class ServerEndToEndTests
     }
 
     [Fact]
-    public void ServerHasNoHttpDependency()
+    public async Task WorkerDoesNotLoadTheHttpServer()
     {
+        await using var server = await ServerProcess.StartAsync( reportAssemblies: true );
+
+        // The html result starts the HTTP server in the supervisor, and the next query runs in the worker.
+        await server.QueryHtmlLinkAsync( "42" );
+        await server.QueryAsync( "1" );
+
+        // The supervisor forwards the standard error of the worker asynchronously, with a "worker: " prefix.
+        const string marker = "metalama-mcp: worker assemblies=";
+        string? line = null;
+
+        for ( var i = 0; i < 50 && line == null; i++ )
+        {
+            line = server.StandardError.LastOrDefault( l => l.Contains( marker, StringComparison.Ordinal ) );
+            await Task.Delay( line == null ? 100 : 0, TestContext.Current.CancellationToken );
+        }
+
+        Assert.NotNull( line );
+        var assemblies = line.Substring( line.IndexOf( marker, StringComparison.Ordinal ) + marker.Length ).Split( ';' );
+
+        Assert.Contains( "Microsoft.CodeAnalysis", assemblies );
+        Assert.DoesNotContain( assemblies, a => a.StartsWith( "Microsoft.AspNetCore", StringComparison.Ordinal ) );
+    }
+
+    [Fact]
+    public void ServerHasNoHttpTransportForMcp()
+    {
+        // The HTTP server only serves results to the browser; MCP itself stays on stdio.
         var depsJson = File.ReadAllText( Path.ChangeExtension( ServerProcess.ServerPath, ".deps.json" ) );
         using var document = JsonDocument.Parse( depsJson );
         var libraries = document.RootElement.GetProperty( "libraries" ).EnumerateObject().Select( p => p.Name ).ToList();
 
         Assert.Contains( libraries, l => l.StartsWith( "ModelContextProtocol.Core/", StringComparison.Ordinal ) );
-        Assert.DoesNotContain( libraries, l => l.StartsWith( "Microsoft.AspNetCore", StringComparison.OrdinalIgnoreCase ) );
         Assert.DoesNotContain( libraries, l => l.StartsWith( "ModelContextProtocol.AspNetCore", StringComparison.OrdinalIgnoreCase ) );
     }
 

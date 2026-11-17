@@ -27,6 +27,8 @@ namespace Metalama.Mcp.Worker;
 /// </summary>
 internal sealed class RequestHandler
 {
+    private static readonly bool _reportAssemblies = Environment.GetEnvironmentVariable( "METALAMA_MCP_REPORT_ASSEMBLIES" ) == "1";
+
     private readonly CommandLineOptions _options;
     private readonly WorkspaceRegistry _registry = new();
     private readonly QueryCompiler _compiler = new();
@@ -43,7 +45,7 @@ internal sealed class RequestHandler
 
         try
         {
-            return method switch
+            var response = method switch
             {
                 WorkerMethods.Load => await this.LoadAsync( args, cancellationToken ),
                 WorkerMethods.Reload => await this.ReloadAsync( args, cancellationToken ),
@@ -52,6 +54,15 @@ internal sealed class RequestHandler
                 WorkerMethods.Open => this.Open( args ),
                 _ => Failure( $"Unknown method '{method}'." )
             };
+
+            if ( _reportAssemblies )
+            {
+                // Lets tests check that the worker, which runs the queries, never loads the HTTP server of the supervisor.
+                await Console.Error.WriteLineAsync(
+                    "metalama-mcp: worker assemblies=" + string.Join( ";", AppDomain.CurrentDomain.GetAssemblies().Select( a => a.GetName().Name ) ) );
+            }
+
+            return response;
         }
         catch ( OperationCanceledException ) when ( cancellationToken.IsCancellationRequested )
         {
@@ -314,7 +325,7 @@ internal sealed class RequestHandler
         var structuredJson = structuredLimits != null ? jsonRenderer.RenderDocument( tree, title ) : null;
 
         string text;
-        string? htmlPath = null;
+        JsonObject? page = null;
 
         switch ( options.Format )
         {
@@ -324,9 +335,10 @@ internal sealed class RequestHandler
                 break;
 
             case ResultFormat.Html:
-                // Locations are relative to the workspace root, so the page gets the root and the editor link template, with
-                // which it turns each location into a link. The JSON for the model and the MCP App stays without them.
-                var page = (JsonObject) outputJson!.DeepClone();
+                // The supervisor serves the page and gives its link to the agent. Locations are relative to the workspace
+                // root, so the page gets the root and the editor link template, with which it turns each location into a link.
+                // The JSON for the model and the MCP App stays without them.
+                page = (JsonObject) outputJson!.DeepClone();
 
                 if ( entry != null && this._options.EditorLink != null )
                 {
@@ -334,11 +346,8 @@ internal sealed class RequestHandler
                     page["editor"] = this._options.EditorLink;
                 }
 
-                htmlPath = HtmlWriter.WriteFile( page, title.Length > 80 ? title.Substring( 0, 79 ) + "…" : title, this._options.OutputDirectory ?? WorkerInitialization.GetDefaultOutputDirectory() );
-
                 // The agent gets a short text summary, so that the page never enters its context.
-                var summary = new TextRenderer( linkBase ).Render( ResultTreePruner.Prune( outputTree, new ResultTreeOptions( 0, 10, entry?.RootDirectory ) ) );
-                text = $"html: {new Uri( htmlPath ).AbsoluteUri}\n{summary}";
+                text = new TextRenderer( linkBase ).Render( ResultTreePruner.Prune( outputTree, new ResultTreeOptions( 0, 10, entry?.RootDirectory ) ) );
 
                 break;
 
@@ -348,7 +357,7 @@ internal sealed class RequestHandler
                 break;
         }
 
-        return new RenderedResult( text, structuredJson ?? outputJson, htmlPath, linkBase );
+        return new RenderedResult( text, structuredJson ?? outputJson, page, linkBase );
     }
 
     private static JsonObject CreateResponse(
@@ -425,6 +434,11 @@ internal sealed class RequestHandler
         if ( args[WorkerMethods.IncludeStructured]?.GetValue<bool>() == true && rendered.Json != null )
         {
             response[WorkerMethods.Structured] = rendered.Json;
+        }
+
+        if ( rendered.Page != null )
+        {
+            response[WorkerMethods.Page] = rendered.Page;
         }
 
         return response;

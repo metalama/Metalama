@@ -22,7 +22,7 @@
         <!-- The translated resources of Roslyn and its dependencies are a sixth of the package, and the server only
              returns compiler messages to agents, so English is enough. -->
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-        <PackageDescription>A local Model Context Protocol server that lets coding agents load C# projects and run C# queries over the Metalama code model and introspection API. It communicates only over stdio and never opens a listening socket, because it runs arbitrary code by design.</PackageDescription>
+        <PackageDescription>A local Model Context Protocol server that lets coding agents load C# projects and run C# queries over the Metalama code model and introspection API. It speaks MCP only over stdio. Results in the html format are served to the user's browser on https://localhost, on a random port, behind a secret token; that server never runs code.</PackageDescription>
 
         <!-- Uses Metalama internals, as Metalama.LinqPad does. -->
         <NoWarn>$(NoWarn);LAMA0820</NoWarn>
@@ -46,7 +46,11 @@
         <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
 
-        <!-- Bans the APIs that open a listening endpoint. See BannedSymbols.txt. -->
+        <!-- Kestrel, for the server that shows html results. It comes from the ASP.NET Core shared framework, which every
+             .NET SDK installs, so it adds nothing to the package. Only the supervisor uses it. -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+        <!-- Bans the APIs that open a listening endpoint outside Supervisor/ResultServer.cs. See BannedSymbols.txt. -->
         <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
         <AdditionalFiles Include="BannedSymbols.txt" />
 

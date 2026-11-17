@@ -4,10 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -99,15 +101,117 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
 
     private async Task<JsonElement> QueryHtmlDocumentAsync( string query, int? maxDepth = null )
     {
-        var text = await this.Server.CallSuccessfullyAsync(
-            "query",
-            new Dictionary<string, object?> { ["code"] = query, ["format"] = "html", ["maxDepth"] = maxDepth } );
+        var link = await this.Server.QueryHtmlLinkAsync( query, maxDepth );
+        using var client = ServerProcess.CreateHttpClient();
 
-        var uri = text.Split( '\n' ).Single( l => l.StartsWith( "html: ", StringComparison.Ordinal ) ).Substring( "html: ".Length );
-        var html = await File.ReadAllTextAsync( new Uri( uri ).LocalPath, TestContext.Current.CancellationToken );
-        var data = Regex.Match( html, "<script type=\"application/json\" id=\"metalama-data\">(?<json>.*?)</script>", RegexOptions.Singleline ).Groups["json"].Value;
+        return ServerProcess.GetEmbeddedDocument( await client.GetStringAsync( link, TestContext.Current.CancellationToken ) );
+    }
 
-        return JsonDocument.Parse( data ).RootElement.Clone();
+    [Fact]
+    public async Task ServedPageIsMarkedAndHasSecurityHeaders()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "D<INamedType>( \"T:FrogHattery.BullFrog\" )" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var response = await client.GetAsync( link, TestContext.Current.CancellationToken );
+        Assert.Equal( HttpStatusCode.OK, response.StatusCode );
+        Assert.Equal( "text/html", response.Content.Headers.ContentType?.MediaType );
+
+        var csp = string.Join( ";", response.Headers.GetValues( "Content-Security-Policy" ) );
+        Assert.Contains( "default-src 'none'", csp, StringComparison.Ordinal );
+        Assert.Contains( "connect-src 'self'", csp, StringComparison.Ordinal );
+        Assert.Equal( "nosniff", response.Headers.GetValues( "X-Content-Type-Options" ).Single() );
+        Assert.Equal( "no-referrer", response.Headers.GetValues( "Referrer-Policy" ).Single() );
+        Assert.True( response.Headers.CacheControl?.NoStore );
+        Assert.False( response.Headers.Contains( "Access-Control-Allow-Origin" ) );
+
+        // The page knows it is served, so that its cells fetch what they expand from the server.
+        var document = ServerProcess.GetEmbeddedDocument( await response.Content.ReadAsStringAsync( TestContext.Current.CancellationToken ) );
+        Assert.True( document.GetProperty( "served" ).GetBoolean() );
+        Assert.Equal( "T:FrogHattery.BullFrog", document.GetProperty( "result" ).GetProperty( "link" ).GetString() );
+    }
+
+    [Fact]
+    public async Task OpenEndpointRendersALinkOnDemand()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        var json = await client.GetStringAsync( new Uri( link, "../open?link=" + Uri.EscapeDataString( "T:FrogHattery.BullFrog/Methods" ) ), TestContext.Current.CancellationToken );
+
+        var document = JsonDocument.Parse( json ).RootElement;
+        Assert.Equal( 1, document.GetProperty( "schema" ).GetInt32() );
+        Assert.Equal( "collection", document.GetProperty( "result" ).GetProperty( "kind" ).GetString() );
+        Assert.Contains(
+            document.GetProperty( "result" ).GetProperty( "items" ).EnumerateArray(),
+            i => i.GetProperty( "link" ).GetString()!.StartsWith( "M:FrogHattery.BullFrog.", StringComparison.Ordinal ) );
+    }
+
+    [Fact]
+    public async Task OpenEndpointNeverRunsAQuery()
+    {
+        // A query anchor would run code. The HTTP server only follows links, as the MCP App view does.
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var response = await client.GetAsync(
+            new Uri( link, "../open?link=" + Uri.EscapeDataString( "metalama://FrogHattery.csproj/FrogHattery@net10.0/source/query/d29ya3NwYWNl" ) ),
+            TestContext.Current.CancellationToken );
+
+        Assert.Equal( HttpStatusCode.BadRequest, response.StatusCode );
+        Assert.Contains( "not supported", await response.Content.ReadAsStringAsync( TestContext.Current.CancellationToken ), StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task RequestsWithoutTheTokenAreNotFound()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+        var origin = new Uri( link.GetLeftPart( UriPartial.Authority ) );
+        var token = link.Segments[1].TrimEnd( '/' );
+
+        foreach ( var path in new[] { "/", "/r/" + link.Segments[^1], "/" + new string( 'A', token.Length ) + "/r/" + link.Segments[^1], "/open?link=T:FrogHattery.BullFrog" } )
+        {
+            using var response = await client.GetAsync( new Uri( origin, path ), TestContext.Current.CancellationToken );
+            Assert.Equal( HttpStatusCode.NotFound, response.StatusCode );
+        }
+    }
+
+    [Fact]
+    public async Task RequestsForAnotherHostAreRejected()
+    {
+        // A page of another site that rebinds its DNS name to 127.0.0.1 sends its own name as Host.
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var request = new HttpRequestMessage( HttpMethod.Get, link );
+        request.Headers.Host = "attacker.example:" + link.Port.ToString( CultureInfo.InvariantCulture );
+        using var response = await client.SendAsync( request, TestContext.Current.CancellationToken );
+
+        Assert.Equal( HttpStatusCode.BadRequest, response.StatusCode );
+    }
+
+    [Fact]
+    public async Task OnlyGetIsAccepted()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var response = await client.PostAsync( link, new StringContent( "" ), TestContext.Current.CancellationToken );
+
+        Assert.False( response.IsSuccessStatusCode );
+    }
+
+    [Fact]
+    public async Task UnknownResultExplainsWhatToDo()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var response = await client.GetAsync( new Uri( link, "unknown" ), TestContext.Current.CancellationToken );
+
+        Assert.Equal( HttpStatusCode.NotFound, response.StatusCode );
+        Assert.Contains( "no longer available", await response.Content.ReadAsStringAsync( TestContext.Current.CancellationToken ), StringComparison.Ordinal );
     }
 
     [Fact]
@@ -213,15 +317,19 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
     }
 
     [Fact]
-    public async Task HtmlFormatWritesASelfContainedFile()
+    public async Task DownloadIsASelfContainedSnapshot()
     {
-        var text = await this.Server.QueryAsync( "D<INamedType>( \"T:FrogHattery.BullFrog\" )", "html" );
+        var link = await this.Server.QueryHtmlLinkAsync( "D<INamedType>( \"T:FrogHattery.BullFrog\" )" );
+        using var client = ServerProcess.CreateHttpClient();
 
-        var line = text.Split( '\n' ).Single( l => l.StartsWith( "html: ", StringComparison.Ordinal ) );
-        var path = new Uri( line.Substring( "html: ".Length ).Trim() ).LocalPath;
-        Assert.True( File.Exists( path ), path );
+        using var response = await client.GetAsync( new Uri( link + "?download=1" ), TestContext.Current.CancellationToken );
+        Assert.Equal( "attachment", response.Content.Headers.ContentDisposition?.DispositionType );
+        Assert.EndsWith( ".html", response.Content.Headers.ContentDisposition?.FileName?.Trim( '"' ), StringComparison.Ordinal );
 
-        var html = await File.ReadAllTextAsync( path, TestContext.Current.CancellationToken );
+        var html = await response.Content.ReadAsStringAsync( TestContext.Current.CancellationToken );
+
+        // The snapshot does not call the server, which is gone when the file is opened later.
+        Assert.False( ServerProcess.GetEmbeddedDocument( html ).TryGetProperty( "served", out _ ) );
         Assert.Contains( "Content-Security-Policy", html, StringComparison.Ordinal );
         Assert.Contains( "id=\"metalama-data\"", html, StringComparison.Ordinal );
         Assert.Contains( "T:FrogHattery.BullFrog", html, StringComparison.Ordinal );

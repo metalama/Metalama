@@ -12,15 +12,20 @@ using System.Linq;
 namespace Metalama.Mcp.Tests;
 
 /// <summary>
-/// Lists the processes that own a listening TCP socket or a bound UDP socket.
+/// Lists the listening TCP sockets and the bound UDP sockets, with their owning process and whether they are bound to a
+/// loopback address only.
 /// </summary>
 internal static class ListeningSockets
 {
-    public static ISet<int> GetOwningProcessIds() => OperatingSystem.IsWindows() ? GetOnWindows() : GetOnLinux();
+    internal sealed record Listener( int ProcessId, string LocalAddress, bool IsLoopback );
 
-    private static HashSet<int> GetOnWindows()
+    public static IReadOnlyList<Listener> GetListeners() => OperatingSystem.IsWindows() ? GetOnWindows() : GetOnLinux();
+
+    public static ISet<int> GetOwningProcessIds() => GetListeners().Select( l => l.ProcessId ).ToHashSet();
+
+    private static List<Listener> GetOnWindows()
     {
-        var result = new HashSet<int>();
+        var result = new List<Listener>();
 
         foreach ( var protocol in new[] { "TCP", "TCPv6", "UDP", "UDPv6" } )
         {
@@ -28,7 +33,9 @@ internal static class ListeningSockets
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
 
-            foreach ( var line in output.Split( '\n' ) )
+            // The lines end with \r\n. Before this was trimmed, no process identifier parsed, and the check that nothing
+            // listens passed whatever the processes did.
+            foreach ( var line in output.Split( '\n', StringSplitOptions.TrimEntries ) )
             {
                 var columns = line.Split( ' ', StringSplitOptions.RemoveEmptyEntries );
 
@@ -39,7 +46,9 @@ internal static class ListeningSockets
 
                 if ( isListening && int.TryParse( columns[^1], NumberStyles.None, CultureInfo.InvariantCulture, out var pid ) )
                 {
-                    result.Add( pid );
+                    var address = columns[1];
+                    var isLoopback = address.StartsWith( "127.", StringComparison.Ordinal ) || address.StartsWith( "[::1]", StringComparison.Ordinal );
+                    result.Add( new Listener( pid, address, isLoopback ) );
                 }
             }
         }
@@ -47,10 +56,10 @@ internal static class ListeningSockets
         return result;
     }
 
-    private static HashSet<int> GetOnLinux()
+    private static List<Listener> GetOnLinux()
     {
-        // The inodes of listening TCP sockets (state 0A) and of all UDP sockets.
-        var inodes = new HashSet<string>();
+        // The local addresses of listening TCP sockets (state 0A) and of all UDP sockets, by inode.
+        var addresses = new Dictionary<string, (string Address, bool IsLoopback)>();
 
         foreach ( var file in new[] { "tcp", "tcp6", "udp", "udp6" } )
         {
@@ -67,12 +76,15 @@ internal static class ListeningSockets
 
                 if ( columns.Length > 9 && (file.StartsWith( "udp", StringComparison.Ordinal ) || columns[3] == "0A") )
                 {
-                    inodes.Add( columns[9] );
+                    // The address is hexadecimal: 0100007F is 127.0.0.1, and the IPv6 loopback ends with 01000000.
+                    var address = columns[1].Split( ':' )[0];
+                    var isLoopback = address.EndsWith( "7F", StringComparison.Ordinal ) || address == "00000000000000000000000001000000";
+                    addresses[columns[9]] = (columns[1], isLoopback);
                 }
             }
         }
 
-        var result = new HashSet<int>();
+        var result = new List<Listener>();
 
         foreach ( var directory in Directory.EnumerateDirectories( "/proc" ) )
         {
@@ -87,9 +99,9 @@ internal static class ListeningSockets
                 {
                     var target = new FileInfo( fd ).LinkTarget;
 
-                    if ( target != null && target.StartsWith( "socket:[", StringComparison.Ordinal ) && inodes.Contains( target[8..^1] ) )
+                    if ( target != null && target.StartsWith( "socket:[", StringComparison.Ordinal ) && addresses.TryGetValue( target[8..^1], out var socket ) )
                     {
-                        result.Add( pid );
+                        result.Add( new Listener( pid, socket.Address, socket.IsLoopback ) );
                     }
                 }
             }

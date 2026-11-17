@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Mcp.Protocol;
+using Metalama.Mcp.Rendering;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System;
@@ -20,7 +21,7 @@ namespace Metalama.Mcp.Supervisor;
 /// <summary>
 /// The MCP tools. Each forwards its call to the worker and converts the response to a tool result.
 /// </summary>
-internal sealed class McpTools
+internal sealed class McpTools : IAsyncDisposable
 {
     public const string ViewerResourceUri = "ui://metalama/viewer";
 
@@ -32,10 +33,58 @@ internal sealed class McpTools
     private static readonly bool _reportAssemblies = Environment.GetEnvironmentVariable( "METALAMA_MCP_REPORT_ASSEMBLIES" ) == "1";
 
     private readonly WorkerClient _worker;
+    private readonly CommandLineOptions _options;
+    private readonly ResultCache _results = new();
+    private readonly SemaphoreSlim _serverLock = new( 1, 1 );
+    private ResultServer? _server;
 
-    public McpTools( WorkerClient worker )
+    public McpTools( WorkerClient worker, CommandLineOptions options )
     {
         this._worker = worker;
+        this._options = options;
+    }
+
+    /// <summary>
+    /// Gets the result server, which is started by the first html result, so that a session that never asks for html never
+    /// listens on a port. A missing certificate is not remembered, so that the user can install one and retry.
+    /// </summary>
+    private async Task<(ResultServer? Server, string? Error)> GetServerAsync( CancellationToken cancellationToken )
+    {
+        if ( this._options.NoHttp )
+        {
+            return (null, $"The html format is disabled by the {CommandLineOptions.NoHttpOption} option of the server. Use the text or json format.");
+        }
+
+        await this._serverLock.WaitAsync( cancellationToken );
+
+        try
+        {
+            if ( this._server == null )
+            {
+                if ( !DevelopmentCertificate.TryGet( out var certificate, out var error ) )
+                {
+                    return (null, error);
+                }
+
+                this._server = await ResultServer.StartAsync( this._worker, this._results, certificate, cancellationToken );
+            }
+
+            return (this._server, null);
+        }
+        finally
+        {
+            this._serverLock.Release();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if ( this._server != null )
+        {
+            await this._server.DisposeAsync();
+        }
+
+        this._serverLock.Dispose();
     }
 
     public IEnumerable<McpServerTool> CreateTools()
@@ -136,7 +185,7 @@ internal sealed class McpTools
         int? maxItems = null,
         [Description( "Levels of properties expanded below the result. Default: 1. For html, only a value above 3 has an effect; omit it." )]
         int? maxDepth = null,
-        [Description( "Output format: text (default), json, or html (writes a self-contained file and returns its path)." )]
+        [Description( "Output format: text (default), json, or html (returns an https://localhost link to a LINQPad-style page for the user to open; you get a short summary)." )]
         string? format = null,
         [Description( "Soft timeout in seconds; the worker is stopped after twice this time. Default: 60." )]
         int? timeoutSeconds = null,
@@ -167,7 +216,7 @@ internal sealed class McpTools
         int? maxItems = null,
         [Description( "Levels of properties expanded below the result. Default: 1. For html, only a value above 3 has an effect; omit it." )]
         int? maxDepth = null,
-        [Description( "Output format: text (default), json, or html." )]
+        [Description( "Output format: text (default), json, or html (returns an https://localhost link for the user to open)." )]
         string? format = null,
         CancellationToken cancellationToken = default )
     {
@@ -190,13 +239,29 @@ internal sealed class McpTools
         var includeStructured = server?.ClientCapabilities?.Extensions?.ContainsKey( AppsExtensionId ) == true;
         args[WorkerMethods.IncludeStructured] = includeStructured;
 
-        var response = await this._worker.CallAsync( method, args, timeout, cancellationToken );
+        // An html result is served, so the server must be able to serve it before the query runs.
+        ResultServer? resultServer = null;
 
-        var result = new CallToolResult
+        if ( ResultFormatExtensions.TryParse( args["format"]?.GetValue<string>(), out var format ) && format == ResultFormat.Html )
         {
-            Content = [new TextContentBlock { Text = response[WorkerMethods.Text]?.GetValue<string>() ?? response[WorkerMethods.Error]?.GetValue<string>() ?? "" }],
-            IsError = response[WorkerMethods.Ok]?.GetValue<bool>() != true
-        };
+            (resultServer, var error) = await this.GetServerAsync( cancellationToken );
+
+            if ( resultServer == null )
+            {
+                return new CallToolResult { Content = [new TextContentBlock { Text = error! }], IsError = true };
+            }
+        }
+
+        var response = await this._worker.CallAsync( method, args, timeout, cancellationToken );
+        var text = response[WorkerMethods.Text]?.GetValue<string>() ?? response[WorkerMethods.Error]?.GetValue<string>() ?? "";
+
+        if ( resultServer != null && response[WorkerMethods.Page] is JsonObject page )
+        {
+            // The agent gets the link and a short summary; the person opens the link.
+            text = $"html: {resultServer.GetResultUri( this._results.Add( page ) )}\n{text}";
+        }
+
+        var result = new CallToolResult { Content = [new TextContentBlock { Text = text }], IsError = response[WorkerMethods.Ok]?.GetValue<bool>() != true };
 
         if ( includeStructured && response[WorkerMethods.Structured] is { } structured )
         {

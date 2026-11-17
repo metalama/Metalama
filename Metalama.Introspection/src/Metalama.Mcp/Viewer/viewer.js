@@ -1,12 +1,15 @@
 // Metalama result viewer. Renders the JSON form of a result (result.schema.json) as LINQPad-style property tables and grids.
-// It runs either from a self-contained file, with the data embedded, or as an MCP App inside the host, which sends the data
-// and forwards drill-down calls to the server. Every value comes from the analysed code, so the DOM is built with textContent
-// and attribute setters only.
+// It runs in three ways:
+// - served by the result server of metalama-mcp on localhost, with the data embedded; drill-down fetches ../open;
+// - as an MCP App inside the host, which sends the data and forwards drill-down calls to the server;
+// - as a saved snapshot, with the data embedded and no drill-down beyond it.
+// Every value comes from the analysed code, so the DOM is built with textContent and attribute setters only.
 ( function () {
   'use strict';
 
   var app = document.getElementById( 'app' );
   var live = false;
+  var served = false;
   var nextRequestId = 1;
   var pending = {};
 
@@ -87,9 +90,11 @@
     caption.addEventListener( 'keydown', function ( event ) { if ( event.key === 'Enter' || event.key === ' ' ) { event.preventDefault(); toggle(); } } );
   }
 
-  // In the MCP App, a collapsed value with a link can be opened in place through the server.
+  // In the MCP App and on a served page, a collapsed value with a link can be opened in place through the server.
+  function canOpen() { return live || served; }
+
   function openable( element, node ) {
-    if ( !live || !node.href ) {
+    if ( !canOpen() || !node.href ) {
       if ( node.link ) { element.title = node.link; }
       return element;
     }
@@ -301,7 +306,7 @@
       var footRow = el( 'tr' );
       var footCell = el( 'td', 'footer', items.length + ' of ' + ( node.count === null || node.count === undefined ? '?' : node.count ) + ' shown' );
       footCell.colSpan = Math.max( columns.length, 1 );
-      if ( live && node.href ) {
+      if ( canOpen() && node.href ) {
         footCell.appendChild( toolButton( 'Show more', 'Open the collection with more items', function () {
           openLink( node.href, items.length * 4 ).then( function ( result ) { table.replaceWith( render( result ) ); } );
         } ) );
@@ -364,6 +369,16 @@
     document.getElementById( 'base' ).textContent = document_.base ? 'base: ' + document_.base : '';
     editor = typeof document_.editor === 'string' ? document_.editor : null;
     root = typeof document_.root === 'string' ? document_.root : null;
+    served = !live && document_.served === true;
+
+    if ( served ) {
+      // The server sends the same page without the served marker as an attachment, which works without the server.
+      var save = el( 'a', 'tool save', 'Save' );
+      save.href = '?download=1';
+      save.title = 'Save a snapshot of this page. Values that were not loaded cannot be expanded in the snapshot.';
+      document.getElementById( 'toolbar' ).appendChild( save );
+    }
+
     app.replaceChildren( render( document_.result ) );
     notifySize();
   }
@@ -378,6 +393,19 @@
   }
 
   function openLink( href, maxItems ) {
+    if ( served ) {
+      // The page is at <token>/r/<id>, and the server follows links at <token>/open.
+      var url = '../open?link=' + encodeURIComponent( href ) + ( maxItems ? '&maxItems=' + encodeURIComponent( String( maxItems ) ) : '' );
+      return fetch( url, { credentials: 'same-origin', cache: 'no-store' } ).then( function ( response ) {
+        if ( !response.ok ) {
+          return response.text().then( function ( text ) { throw new Error( text || 'The server returned ' + response.status + '.' ); } );
+        }
+        return response.json().then( function ( document_ ) { return document_.result; } );
+      }, function () {
+        throw new Error( 'The server is not running any more. Ask the agent to run the query again.' );
+      } );
+    }
+
     var args = { link: href, format: 'json' };
     if ( maxItems ) { args.maxItems = maxItems; }
     return request( 'tools/call', { name: 'open', arguments: args } ).then( function ( result ) {
@@ -440,6 +468,6 @@
       .then( function () { send( { jsonrpc: '2.0', method: 'ui/notifications/initialized', params: {} } ); } );
     if ( window.ResizeObserver ) { new ResizeObserver( notifySize ).observe( document.body ); }
   } else {
-    app.replaceChildren( el( 'p', 'muted', 'This page shows Metalama query results. Open a file written by the html format of the query tool.' ) );
+    app.replaceChildren( el( 'p', 'muted', 'This page shows Metalama query results. Open the link returned by the html format of the query tool.' ) );
   }
 } )();

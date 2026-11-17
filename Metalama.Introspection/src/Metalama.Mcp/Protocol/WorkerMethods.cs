@@ -8,7 +8,7 @@ namespace Metalama.Mcp.Protocol;
 /// The methods of the supervisor-to-worker protocol, and the property names of its messages.
 /// </summary>
 /// <remarks>
-/// A request is <c>{ "id", "method", "args" }</c>. A response is <c>{ "id", "ok", "text", "error", "structured", "workspace" }</c>.
+/// A request is <c>{ "id", "method", "args" }</c>. A response is <c>{ "id", "ok", "text", "error", "structured", "page", "workspace" }</c>.
 /// <see cref="Cancel"/> has no response: it cancels the request in progress.
 /// </remarks>
 internal static class WorkerMethods
@@ -27,6 +27,11 @@ internal static class WorkerMethods
     public const string Text = "text";
     public const string Error = "error";
     public const string Structured = "structured";
+
+    /// <summary>
+    /// For the html format, the JSON document of the page that the supervisor serves.
+    /// </summary>
+    public const string Page = "page";
     public const string Workspace = "workspace";
 
     /// <summary>

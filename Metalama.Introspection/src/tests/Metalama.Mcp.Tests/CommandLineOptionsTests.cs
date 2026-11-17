@@ -2,8 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
-using System.IO;
 using Xunit;
 
 namespace Metalama.Mcp.Tests;
@@ -11,18 +9,17 @@ namespace Metalama.Mcp.Tests;
 public sealed class CommandLineOptionsTests
 {
     [Fact]
-    public void OutputDirectoryIsLeftToTheWorkerByDefault()
+    public void HttpIsEnabledByDefaultAndCanBeDisabled()
     {
-        // The worker then takes a temporary directory of Metalama; see ServerEndToEndTests.HtmlGoesToTheTemporaryDirectoryOfMetalama.
-        Assert.Null( CommandLineOptions.Parse( [] ).OutputDirectory );
+        Assert.False( CommandLineOptions.Parse( [] ).NoHttp );
+        Assert.True( CommandLineOptions.Parse( ["--no-http"] ).NoHttp );
     }
 
     [Fact]
-    public void OutputDirectoryOptionIsMadeAbsolute()
+    public void OutputDirectoryIsNoLongerAnOption()
     {
-        var options = CommandLineOptions.Parse( ["--output-dir", "results"] );
-
-        Assert.Equal( Path.GetFullPath( "results" ), options.OutputDirectory );
+        // HTML results are served, not written to files.
+        Assert.NotNull( CommandLineOptions.Parse( ["--output-dir", "results"] ).Error );
     }
 
     [Fact]
