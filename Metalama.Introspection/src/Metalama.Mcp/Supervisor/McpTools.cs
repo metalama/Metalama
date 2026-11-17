@@ -134,7 +134,7 @@ internal sealed class McpTools : IAsyncDisposable
 
     [UsedImplicitly]
     [Description(
-        "Loads C# projects or solutions (.csproj, .sln, .slnx) into a workspace and keeps them loaded for the session. Returns the workspace key, "
+        "Loads C# projects, solutions or solution filters (.csproj, .sln, .slnf) into a workspace and keeps them loaded for the session. Returns the workspace key, "
         + "its projects with target frameworks, the default link base, and load diagnostics. Loading builds the projects' compile-time code, "
         + "which runs MSBuild targets and Metalama aspects of the target repository: only load code you trust." )]
     public Task<CallToolResult> LoadWorkspace(

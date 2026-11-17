@@ -1,7 +1,7 @@
 Metalama MCP server: explore C# code by running C# queries over the Metalama code model, as with the Metalama LINQPad driver.
 
 Workflow:
-1. `load_workspace` with a .csproj, .sln or .slnx. It returns the projects (as `Project@tfm` scopes) and the link base.
+1. `load_workspace` with a .csproj, .sln or .slnf (.slnx is not supported yet). It returns the projects (as `Project@tfm` scopes) and the link base.
 2. `query` with a C# expression, or statements ending with `return`. The value is rendered as an outline.
 3. Every rendered object starts with a link, such as `T:MyApp.Customer` or `T:MyApp.Customer/Methods`. Pass it to `open`, or to
    `Open(…)` / `D<T>(…)` in a query, to continue from it. Follow `file:line` locations with your own file tools.
