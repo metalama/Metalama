@@ -93,6 +93,13 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// </summary>
     private readonly ConcurrentDictionary<string, bool> _storedKeys = new( StringComparer.Ordinal );
 
+    /// <summary>
+    /// The keys of the entries that are copies of items of another layer and that were read without their dependencies
+    /// (<see cref="EntryState.HasUnknownDependencies"/>). An invalidation cannot find these entries in the dependency
+    /// index, so <see cref="RemoveItemsWithUnknownDependencies"/> removes them all.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, bool> _keysWithUnknownDependencies = new( StringComparer.Ordinal );
+
     private volatile bool _isDisposed;
 
     /// <summary>
@@ -614,6 +621,7 @@ internal partial class MemoryCachingBackend : CachingBackend
             if ( currentItem == null )
             {
                 this._storedKeys.TryRemove( key, out _ );
+                this.TrackUnknownDependencies( key, null );
             }
 
             if ( entryState.IsReplacement )
@@ -690,16 +698,27 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// while the lock of the key is held, so it must not call the backend. <see langword="null"/> to store the item
     /// in any case.
     /// </param>
+    /// <param name="isCopy">
+    /// <see langword="true"/> when the item is a copy of an item of another layer, which a layered backend stores when
+    /// it reads that layer. A copy does not replace a value in the sense of the cache, so the items that depend on the
+    /// key are kept. When the dependencies of a copy are not known (<see cref="CacheItem.Dependencies"/> has its default
+    /// value), the entry is removed by <see cref="RemoveItemsWithUnknownDependencies"/>.
+    /// </param>
     /// <returns>
     /// The stored entry, or <see langword="null"/> when the item has not been stored, because a replacement value masks
     /// it or because the <see cref="IMemoryCache"/> did not keep it.
     /// </returns>
-    internal MemoryCacheItem? SetItemImpl( string key, PSCacheItem item, Func<MemoryCacheItem, bool>? isMaskedBy = null )
+    /// <remarks>
+    /// When the item replaces a value, the items that depend on the key are removed, directly and transitively, because
+    /// they were computed from the replaced value.
+    /// </remarks>
+    internal MemoryCacheItem? SetItemImpl( string key, PSCacheItem item, Func<MemoryCacheItem, bool>? isMaskedBy = null, bool isCopy = false )
     {
         // The serializer and the size calculator are foreign code. They run before any lock is acquired and before any
         // state is changed, so that an exception leaves the backend unchanged and a callback that uses the backend cannot
         // deadlock with it.
-        var cacheValue = this.Serialize( new MemoryCacheItem( item.Value, item.Dependencies, new EntryState() ) );
+        var entryState = new EntryState { HasUnknownDependencies = isCopy && item.Dependencies.IsDefault };
+        var cacheValue = this.Serialize( new MemoryCacheItem( item.Value, item.Dependencies, entryState ) );
         var policy = this.CreatePolicy( item, cacheValue.Value );
         var newDependencies = cacheValue.Dependencies.IsDefaultOrEmpty ? ImmutableArray<string>.Empty : cacheValue.Dependencies;
 
@@ -707,6 +726,7 @@ internal partial class MemoryCachingBackend : CachingBackend
         List<string>? releaseCandidates = null;
         bool isStored;
         bool isPreviousValueLost;
+        bool isValueReplaced;
 
         try
         {
@@ -753,6 +773,8 @@ internal partial class MemoryCachingBackend : CachingBackend
                     newDependencies,
                     ref releaseCandidates,
                     out isPreviousValueLost );
+
+                isValueReplaced = isStored && !isCopy && IsLive( previousItem );
             }
             finally
             {
@@ -767,6 +789,13 @@ internal partial class MemoryCachingBackend : CachingBackend
         if ( isPreviousValueLost )
         {
             this.OnItemRemoved( key, CacheItemRemovedReason.Evicted, this.Id );
+        }
+
+        if ( isValueReplaced )
+        {
+            // The items that depend on the key were computed from the replaced value. The key itself is excluded, so that
+            // a new value that depends on its own key, directly or through a dependency cycle, is kept.
+            this.InvalidateDependents( key, null, null, new HashSet<string>( StringComparer.Ordinal ) { key }, key );
         }
 
         return isStored ? cacheValue : null;
@@ -800,6 +829,8 @@ internal partial class MemoryCachingBackend : CachingBackend
 
         var storedItem = this.GetStoredItem( itemKey );
         var previousDependencies = this.GetRegisteredDependencies( key, previousItem );
+
+        this.TrackUnknownDependencies( key, storedItem );
 
         if ( ReferenceEquals( storedItem, newItem ) )
         {
@@ -919,7 +950,7 @@ internal partial class MemoryCachingBackend : CachingBackend
     {
         ValidateReplacement( replacementValue, replacementValueExpiration );
 
-        this.InvalidateDependents( key, replacementValue, replacementValueExpiration, new HashSet<string>( StringComparer.Ordinal ) );
+        this.InvalidateDependents( key, replacementValue, replacementValueExpiration, new HashSet<string>( StringComparer.Ordinal ), null );
 
         this.OnDependencyInvalidated( key, this.Id );
     }
@@ -940,7 +971,20 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// of its item. The set of visited keys stops the recursion on a cyclic dependency graph.
     /// </para>
     /// </remarks>
-    private void InvalidateDependents( string dependencyKey, MemoryCacheItem? replacementValue, DateTimeOffset? replacementValueExpiration, HashSet<string> visitedKeys )
+    /// <param name="dependencyKey">The key whose dependents are removed.</param>
+    /// <param name="replacementValue">A value that replaces each removed item for a limited time, or <see langword="null"/>.</param>
+    /// <param name="replacementValueExpiration">The instant at which the replacement values expire.</param>
+    /// <param name="visitedKeys">The keys whose dependents have been processed or are being processed.</param>
+    /// <param name="excludedKey">
+    /// A key whose item is never removed, or <see langword="null"/>. It is the key of an item that has just been stored,
+    /// when the dependents of that key are removed because the item replaced a value.
+    /// </param>
+    private void InvalidateDependents(
+        string dependencyKey,
+        MemoryCacheItem? replacementValue,
+        DateTimeOffset? replacementValueExpiration,
+        HashSet<string> visitedKeys,
+        string? excludedKey )
     {
         var dependents = this.GetDependents( dependencyKey );
 
@@ -948,11 +992,16 @@ internal partial class MemoryCachingBackend : CachingBackend
 
         foreach ( var key in dependents )
         {
+            if ( excludedKey != null && string.Equals( key, excludedKey, StringComparison.Ordinal ) )
+            {
+                continue;
+            }
+
             var outcome = this.InvalidateItem( key, dependencyKey, replacementValue, replacementValueExpiration );
 
             if ( outcome.MustInvalidateDependents && visitedKeys.Add( key ) )
             {
-                this.InvalidateDependents( key, replacementValue, replacementValueExpiration, visitedKeys );
+                this.InvalidateDependents( key, replacementValue, replacementValueExpiration, visitedKeys, excludedKey );
             }
 
             if ( outcome.IsRemoved )
@@ -1141,10 +1190,89 @@ internal partial class MemoryCachingBackend : CachingBackend
             this._storedKeys.TryRemove( key, out _ );
         }
 
+        // Neither a removed entry nor a replacement value is a copy with unknown dependencies.
+        this.TrackUnknownDependencies( key, null );
+
         if ( IsLive( currentItem ) )
         {
             this.UnregisterRemovedItem( key, currentItem!, retainForDependents, ref releaseCandidates );
         }
+    }
+
+    /// <summary>
+    /// Records whether the entry stored for a key is a copy with unknown dependencies. Must be called while the lock of
+    /// the key is held.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="storedItem">The entry that is stored for the key, or <see langword="null"/>.</param>
+    private void TrackUnknownDependencies( string key, MemoryCacheItem? storedItem )
+    {
+        if ( storedItem?.State is EntryState { HasUnknownDependencies: true } )
+        {
+            this._keysWithUnknownDependencies[key] = true;
+        }
+        else if ( this._keysWithUnknownDependencies.ContainsKey( key ) )
+        {
+            this._keysWithUnknownDependencies.TryRemove( key, out _ );
+        }
+    }
+
+    /// <summary>
+    /// Removes every entry that is a copy of an item of another layer and whose dependencies are unknown.
+    /// </summary>
+    /// <remarks>
+    /// A layered backend calls this method when a dependency is invalidated, because the dependency index cannot tell
+    /// which of these entries depend on the invalidated dependency. The removed entries are read again from the other
+    /// layer when they are needed. No event is raised, because the items are still valid in the other layer unless that
+    /// layer removes them.
+    /// </remarks>
+    internal void RemoveItemsWithUnknownDependencies()
+    {
+        foreach ( var pair in this._keysWithUnknownDependencies )
+        {
+            this.RemoveItemWithUnknownDependencies( pair.Key );
+        }
+    }
+
+    /// <summary>
+    /// Removes the entry of a key when it is a copy of an item of another layer and its dependencies are unknown.
+    /// </summary>
+    /// <param name="key">The key of the item.</param>
+    /// <returns><see langword="true"/> when the entry has been removed.</returns>
+    internal bool RemoveItemWithUnknownDependencies( string key )
+    {
+        if ( !this._keysWithUnknownDependencies.ContainsKey( key ) )
+        {
+            return false;
+        }
+
+        var itemKey = this.GetItemKey( key );
+        List<string>? releaseCandidates = null;
+        bool isRemoved;
+        var keyLock = this.EnterKeyLock( key );
+
+        try
+        {
+            var currentItem = this.GetStoredItem( itemKey );
+            isRemoved = currentItem?.State is EntryState { HasUnknownDependencies: true };
+
+            if ( isRemoved )
+            {
+                this.RemoveCurrentItem( key, itemKey, currentItem, null, null, true, ref releaseCandidates );
+            }
+            else
+            {
+                this.TrackUnknownDependencies( key, currentItem );
+            }
+        }
+        finally
+        {
+            this.ExitKeyLock( key, keyLock );
+        }
+
+        this.ReleaseRegistrationsOfRemovedItems( releaseCandidates );
+
+        return isRemoved;
     }
 
     /// <summary>
@@ -1240,6 +1368,7 @@ internal partial class MemoryCachingBackend : CachingBackend
                 }
 
                 this._storedKeys.TryRemove( key, out _ );
+                this.TrackUnknownDependencies( key, null );
 
                 var registeredDependencies = this.GetRegisteredDependencies( key, currentItem );
                 this._forwardDependenciesOfRemovedItems.TryRemove( key, out _ );
@@ -1310,6 +1439,7 @@ internal partial class MemoryCachingBackend : CachingBackend
         }
 
         this._storedKeys.Clear();
+        this._keysWithUnknownDependencies.Clear();
         this._backwardDependencies.Clear();
         this._forwardDependenciesOfRemovedItems.Clear();
     }

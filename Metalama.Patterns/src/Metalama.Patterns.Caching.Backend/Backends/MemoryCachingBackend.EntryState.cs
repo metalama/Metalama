@@ -20,6 +20,12 @@ namespace Metalama.Patterns.Caching.Backends
             /// Gets or sets a value indicating whether the entry is the replacement value (tombstone) of a removed item.
             /// </summary>
             public bool IsReplacement { get; init; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether the entry is a copy of an item of another layer that was read
+            /// without its dependencies. The dependencies of such an entry are not registered in the dependency index.
+            /// </summary>
+            public bool HasUnknownDependencies { get; init; }
         }
     }
 }
