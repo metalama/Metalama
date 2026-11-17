@@ -148,7 +148,7 @@ internal sealed class TextRenderer
             return false;
         }
 
-        var cells = objects.Select( o => o.Properties!.Value.Select( p => Truncate( this.Inline( p.Value ), _maxCellWidth ) ).ToList() ).ToList();
+        var cells = objects.Select( o => o.Properties!.Value.Select( p => this.Cell( p.Value ) ).ToList() ).ToList();
         var widths = columns.Select( ( c, i ) => Math.Max( c.Length, cells.Max( r => r[i].Length ) ) ).ToList();
 
         builder.Append( indent ).AppendLine( string.Join( "  ", columns.Select( ( c, i ) => c.PadRight( widths[i] ) ) ).TrimEnd() );
@@ -160,6 +160,18 @@ internal sealed class TextRenderer
 
         return true;
     }
+
+    /// <summary>
+    /// Formats a value in a table cell. Long display text is cut, but a link never is, because a cut link cannot be opened.
+    /// </summary>
+    private string Cell( ResultNode node )
+        => node switch
+        {
+            ObjectNode { IsDeclaration: true, Link: not null } => this.Inline( node ),
+            ObjectNode { Link: { } link } obj => $"{Truncate( obj.Display, _maxCellWidth )}  → {this.FormatLink( link )}",
+            CollectionNode { Link: not null } => this.Inline( node ),
+            _ => Truncate( this.Inline( node ), _maxCellWidth )
+        };
 
     /// <summary>
     /// Formats a value on one line.

@@ -49,6 +49,27 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
     }
 
     [Fact]
+    public async Task LongLinksInATableAreNotCut()
+    {
+        // Table cells are cut at a width, but a cut link cannot be opened. These method links are longer than that width.
+        var text = await this.Server.QueryAsync(
+            "workspace.SourceCode.Methods.Where( m => m.Parameters.Count > 1 ).Select( m => new { Method = m, Parameters = m.Parameters.Count } )" );
+
+        var rows = text.Split( '\n' ).Where( l => l.StartsWith( "M:", StringComparison.Ordinal ) ).ToList();
+        Assert.NotEmpty( rows );
+        Assert.Contains( rows, r => r.Split( "  " )[0].Length > 60 );
+
+        foreach ( var row in rows )
+        {
+            var link = row.Split( "  " )[0];
+            Assert.DoesNotContain( "…", link, StringComparison.Ordinal );
+
+            var (isError, opened, _) = await this.Server.CallAsync( "open", new Dictionary<string, object?> { ["link"] = link } );
+            Assert.False( isError, $"{link}: {opened}" );
+        }
+    }
+
+    [Fact]
     public async Task DeclarationProjectedInARowKeepsItsLink()
     {
         // The primer tells agents to project the declaration rather than its name, so that each row links to it.
