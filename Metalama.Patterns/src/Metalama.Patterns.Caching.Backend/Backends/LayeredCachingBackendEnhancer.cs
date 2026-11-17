@@ -4,7 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Implementation;
-using Metalama.Testing.Hooks;
+using SharpCrafters.Common.Testing.Hooks;
 using System.Collections.Concurrent;
 using System.Globalization;
 using static Flashtrace.Messages.FormattedMessageBuilder;

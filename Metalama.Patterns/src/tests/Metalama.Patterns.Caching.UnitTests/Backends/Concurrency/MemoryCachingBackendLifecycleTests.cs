@@ -295,7 +295,7 @@ public sealed partial class MemoryCachingBackendLifecycleTests
 
         second.SetItem( _key, new CacheItem( "second-value", [_dependency] ) );
 
-        first.Dispose();
+        first.Dispose( TestContext.Current.CancellationToken );
 
         var exception = Record.Exception( () => second.SetItem( _otherKey, new CacheItem( "other-value" ) ) );
 
@@ -324,7 +324,7 @@ public sealed partial class MemoryCachingBackendLifecycleTests
         backend.Initialize();
         backend.SetItem( _key, new CacheItem( "value" ) );
 
-        backend.Dispose();
+        backend.Dispose( TestContext.Current.CancellationToken );
 
         var exception = Record.Exception( () => applicationCache.TryGetValue( _applicationKey, out _ ) );
 
@@ -459,7 +459,7 @@ public sealed partial class MemoryCachingBackendLifecycleTests
             capturedCallback.Reason is EvictionReason.Capacity,
             $"The item was evicted for the reason {capturedCallback.Reason} instead of the reason Capacity." );
 
-        backend.Dispose();
+        backend.Dispose( TestContext.Current.CancellationToken );
 
         var exception = Record.Exception( () => cache.RunCapturedCallbacks() );
 

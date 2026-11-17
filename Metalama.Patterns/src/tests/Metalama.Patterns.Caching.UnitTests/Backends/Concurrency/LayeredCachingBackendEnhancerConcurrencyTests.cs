@@ -10,7 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using Xunit;
-using ITestSynchronizationProvider = Metalama.Testing.Hooks.ITestSynchronizationProvider;
+using ITestSynchronizationProvider = SharpCrafters.Common.Testing.Hooks.ITestSynchronizationProvider;
 
 // ReSharper disable MethodHasAsyncOverload
 // ReSharper disable MethodHasAsyncOverloadWithCancellation

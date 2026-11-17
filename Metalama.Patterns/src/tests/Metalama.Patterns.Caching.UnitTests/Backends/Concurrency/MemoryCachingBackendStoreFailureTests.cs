@@ -9,7 +9,6 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 

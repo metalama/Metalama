@@ -6,7 +6,7 @@ using Flashtrace;
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Building;
 using Metalama.Patterns.Caching.Implementation;
-using Metalama.Testing.Hooks;
+using SharpCrafters.Common.Testing.Hooks;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 using static Flashtrace.Messages.FormattedMessageBuilder;

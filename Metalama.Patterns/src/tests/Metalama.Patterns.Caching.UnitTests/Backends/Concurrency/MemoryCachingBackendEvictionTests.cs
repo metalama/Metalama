@@ -303,7 +303,8 @@ public sealed partial class MemoryCachingBackendEvictionTests
                 Interlocked.Increment( ref invocationCount );
 
                 return ComputeReloadedValue();
-            } );
+            },
+            cancellationToken: TestContext.Current.CancellationToken );
 
         Assert.True(
             cache.WaitUntilCallbacksCaptured( 1, _timeout ),
