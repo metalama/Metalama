@@ -136,4 +136,27 @@ public sealed class FrameworkCompileTimeProjectFactoryTests : UnitTestClass
 
         Assert.NotSame( manifest, CreateManifest() );
     }
+
+    /// <summary>
+    /// Verifies that the framework compile-time project is identified by the <c>Metalama.Framework</c> that the compilation
+    /// references, not by the one of the engine, when the two versions differ.
+    /// </summary>
+    /// <remarks>
+    /// The symbols of the compilation belong to the referenced assembly, and the repository finds the manifest of a symbol by
+    /// the identity of its containing assembly. Identified by the engine's version, the project was never found, so the
+    /// templates declared only in the framework, such as <see cref="OverrideFieldOrPropertyAspect.OverrideEnumerableProperty"/>,
+    /// had no template information, and an aspect that did not override them failed with LAMA0033.
+    /// </remarks>
+    [Fact]
+    public void ProjectIsIdentifiedByTheReferencedVersion()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = OlderFrameworkAssembly.ReferenceFrom( testContext.CreateCSharpCompilation( "" ), testContext.BaseDirectory );
+
+        var project = CreateFrameworkProject( testContext, compilation );
+
+        Assert.Equal( OlderFrameworkAssembly.Version, project.RunTimeIdentity.Version );
+        Assert.Equal( typeof(IAspect).Assembly.GetName().Version, project.CompileTimeIdentity.Version );
+    }
 }
