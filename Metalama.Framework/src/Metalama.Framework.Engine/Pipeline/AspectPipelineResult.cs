@@ -53,7 +53,7 @@ namespace Metalama.Framework.Engine.Pipeline
 
         public ImmutableArray<IAspectInstance> ExternallyInheritableAspects { get; }
 
-        public ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; }
+        public ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance> Annotations { get; }
 
         public ImmutableArray<ITransitivePipelineContributor> TransitiveContributors { get; }
 
@@ -106,7 +106,7 @@ namespace Metalama.Framework.Engine.Pipeline
             this.AdditionalSyntaxTrees = ImmutableArray<IntroducedSyntaxTree>.Empty;
             this.AdditionalCompilationOutputFiles = ImmutableArray<AdditionalCompilationOutputFile>.Empty;
             this.Transformations = ImmutableArray<ITransformationBase>.Empty;
-            this.Annotations = ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty;
+            this.Annotations = ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Empty;
         }
 
         internal AspectPipelineResult(
@@ -119,7 +119,7 @@ namespace Metalama.Framework.Engine.Pipeline
             ImmutableUserDiagnosticList? diagnostics = null,
             PipelineContributorSources? sources = null,
             ImmutableArray<IAspectInstance> inheritableAspectInstances = default,
-            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations = null,
+            ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>? annotations = null,
             ImmutableArray<ITransitivePipelineContributor> transitiveContributors = default,
             ImmutableArray<IntroducedSyntaxTree> additionalSyntaxTrees = default,
             ImmutableArray<AspectInstanceResult> aspectInstanceResults = default,
@@ -142,7 +142,7 @@ namespace Metalama.Framework.Engine.Pipeline
             this.ExternallyInheritableAspects = inheritableAspectInstances.IsDefault ? ImmutableArray<IAspectInstance>.Empty : inheritableAspectInstances;
 
             this.Annotations = annotations
-                               ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Create( RefEqualityComparer<IDeclaration>.Default );
+                               ?? ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Create( RefEqualityComparer<IDeclaration>.Default );
 
             this.TransitiveContributors =
                 transitiveContributors.IsDefault ? ImmutableArray<ITransitivePipelineContributor>.Empty : transitiveContributors;

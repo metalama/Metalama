@@ -95,7 +95,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
             extensions.ToImmutableArray(),
             ImmutableArray<IAspectInstance>.Empty,
             ImmutableArray<ITransformationBase>.Empty,
-            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty );
+            ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Empty );
 
         // No project references: this fixture is about what the producer puts in its own manifests.
         var projectVersion = new DesignTimeProjectVersion(

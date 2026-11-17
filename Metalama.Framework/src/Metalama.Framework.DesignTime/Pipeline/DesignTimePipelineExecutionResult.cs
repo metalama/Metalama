@@ -33,5 +33,5 @@ namespace Metalama.Framework.DesignTime.Pipeline
         ImmutableArray<ITransitivePipelineContributor> Extensions,
         ImmutableArray<IAspectInstance> AspectInstances,
         IReadOnlyCollection<ITransformationBase> Transformations,
-        ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations );
+        ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance> Annotations );
 }

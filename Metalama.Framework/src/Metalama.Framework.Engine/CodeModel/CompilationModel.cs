@@ -60,7 +60,7 @@ namespace Metalama.Framework.Engine.CodeModel
             PartialCompilation compilation,
             AspectRepository? aspectRepository = null,
             HierarchicalOptionsManager? hierarchicalOptionsManager = null,
-            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations = null,
+            ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>? annotations = null,
             IExternalAnnotationProvider? externalAnnotationProvider = null,
             string? debugLabel = null )
             => new(
@@ -79,7 +79,7 @@ namespace Metalama.Framework.Engine.CodeModel
             ImmutableArray<ManagedResource> resources = default,
             AspectRepository? aspectRepository = null,
             HierarchicalOptionsManager? hierarchicalOptionsManager = null,
-            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations = null,
+            ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>? annotations = null,
             IExternalAnnotationProvider? externalAnnotationProvider = null,
             string? debugLabel = null )
             => new(
@@ -113,7 +113,7 @@ namespace Metalama.Framework.Engine.CodeModel
         {
             if ( declaration.BelongsToCurrentProject )
             {
-                return this.Annotations[declaration.ToRef()].Select( i => i.Annotation as T ).WhereNotNull();
+                return this.Annotations[GetAnnotationKey( declaration.ToRef() )].Select( i => i.Annotation as T ).WhereNotNull();
             }
             else if ( this.ExternalAnnotationProvider != null )
             {
@@ -184,7 +184,7 @@ namespace Metalama.Framework.Engine.CodeModel
             PartialCompilation partialCompilation,
             AspectRepository? aspectRepository,
             HierarchicalOptionsManager? hierarchicalOptionsManager,
-            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations,
+            ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>? annotations,
             IExternalAnnotationProvider? externalAnnotationProvider,
             CompilationModelOptions? options,
             string? debugLabel ) : base( null )
@@ -202,7 +202,7 @@ namespace Metalama.Framework.Engine.CodeModel
             this._finalizers = ImmutableDictionary<IFullRef<INamedType>, MethodBuilderData>.Empty.WithComparers( RefEqualityComparer<INamedType>.Default );
 
             this.Annotations = annotations
-                               ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty.WithKeyComparer(
+                               ?? ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Empty.WithKeyComparer(
                                    RefEqualityComparer<IDeclaration>.Default );
 
             this.AspectRepository = aspectRepository ?? new IncrementalAspectRepository( this );
