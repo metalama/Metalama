@@ -433,6 +433,67 @@ class MyClass {}" );
             Assert.Single( workspace.Projects );
         }
 
+        [Fact]
+        public void NuGetAssetsDiagnosticsAreScopedToTheirProject()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string message = "Package 'P' 1.0.0 has a known high severity vulnerability.";
+
+            // The same message is a warning in Project1 and an error in Project2.
+            var project1 = CreateProjectWithAssetsFile( testContext, "Project1", "obj/project.assets.json", message, "Warning" );
+            var project2 = CreateProjectWithAssetsFile( testContext, "Project2", "obj/project.assets.json", message, "Error" );
+
+            var diagnostics = new NuGetAssetsDiagnostics();
+            diagnostics.AddAssetsFile( project1, "obj/project.assets.json" );
+            diagnostics.AddAssetsFile( project2, "obj/project.assets.json" );
+
+            var fixedDiagnostics = diagnostics.Fix( [CreateRoslynDiagnostic( project1, message ), CreateRoslynDiagnostic( project2, message )] );
+
+            Assert.Equal( new[] { WorkspaceDiagnosticKind.Warning, WorkspaceDiagnosticKind.Failure }, fixedDiagnostics.Select( d => d.Kind ) );
+        }
+
+        [Fact]
+        public void NuGetAssetsDiagnosticsResolveRelativeAssetsFileAgainstProject()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string message = "Package 'P' 1.0.0 has a known moderate severity vulnerability.";
+
+            var project = CreateProjectWithAssetsFile( testContext, "Project", "custom/assets.json", message, "Warning" );
+
+            var diagnostics = new NuGetAssetsDiagnostics();
+            diagnostics.AddAssetsFile( project, "custom/assets.json" );
+
+            var fixedDiagnostics = diagnostics.Fix( [CreateRoslynDiagnostic( project, message )] );
+
+            Assert.Equal( WorkspaceDiagnosticKind.Warning, Assert.Single( fixedDiagnostics ).Kind );
+        }
+
+        private static string CreateProjectWithAssetsFile( MetalamaTestContext testContext, string name, string assetsFile, string message, string level )
+        {
+            var projectDirectory = Path.Combine( testContext.BaseDirectory, name );
+            var assetsPath = Path.Combine( projectDirectory, assetsFile );
+            Directory.CreateDirectory( Path.GetDirectoryName( assetsPath )! );
+
+            File.WriteAllText(
+                assetsPath,
+                $$"""
+                  { "version": 3, "logs": [ { "code": "NU1903", "level": "{{level}}", "message": "{{message}}" } ] }
+                  """ );
+
+            var projectPath = Path.Combine( projectDirectory, $"{name}.csproj" );
+            File.WriteAllText( projectPath, "<Project />" );
+
+            return projectPath;
+        }
+
+        // Formats the message as MSBuildWorkspace does.
+        private static WorkspaceDiagnostic CreateRoslynDiagnostic( string projectPath, string message )
+            => new(
+                WorkspaceDiagnosticKind.Failure,
+                $"Msbuild failed when processing the file '{projectPath}' with message: {projectPath}: (0, 0): {message}" );
+
         /// <summary>
         /// Asserts that the workspace loaded without a diagnostic. The assertions project the diagnostics to their
         /// messages, because the failure output of xUnit shows only the first properties of an object and the message

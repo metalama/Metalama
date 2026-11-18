@@ -388,7 +388,7 @@ namespace Metalama.Framework.Workspaces
                 // ReSharper disable once AccessToDisposedClosure
                 var msbuildProject = msbuildProjectCollection.LoadProject( roslynProject.FilePath!, projectProperties, null );
 
-                nuGetAssetsDiagnostics.AddAssetsFile( msbuildProject.GetPropertyValue( "ProjectAssetsFile" ) );
+                nuGetAssetsDiagnostics.AddAssetsFile( msbuildProject.FullPath, msbuildProject.GetPropertyValue( "ProjectAssetsFile" ) );
 
                 // Gets a Roslyn compilation.
                 var compilation = (await roslynProject.GetCompilationAsync( cancellationToken )).AssertNotNull();
