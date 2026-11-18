@@ -416,7 +416,7 @@
     text.value = code;
     text.spellcheck = false;
     text.setAttribute( 'aria-label', 'Query' );
-    text.rows = 1;
+    text.rows = 3;
 
     // The box grows with its text, up to the height that the style sheet allows.
     function fit() { text.style.height = 'auto'; text.style.height = text.scrollHeight + 2 + 'px'; }
@@ -546,7 +546,9 @@
     // The editor grows with its content, up to half the window, as the plain box did.
     function fit() {
       // The container has a 1-pixel border, which its height includes.
-      var height = Math.min( Math.max( editor.getContentHeight(), 20 ) + 2, Math.round( window.innerHeight / 2 ) );
+      // At least three lines, so that the box reads as an editor.
+      var minimum = 3 * editor.getOption( monaco.editor.EditorOption.lineHeight );
+      var height = Math.min( Math.max( editor.getContentHeight(), minimum ) + 2, Math.round( window.innerHeight / 2 ) );
       container.style.height = height + 'px';
       editor.layout();
     }

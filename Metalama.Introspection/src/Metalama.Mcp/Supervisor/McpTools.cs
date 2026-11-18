@@ -187,6 +187,7 @@ internal sealed class McpTools : IAsyncDisposable
         + "For the object model, use the Metalama skill if you have it, or read https://doc.postsharp.net/metalama/api/introspection-api "
         + "and https://doc.postsharp.net/metalama/api/metalama-framework-workspaces-workspace. "
         + "Every rendered object starts with a link that `open` or `Open(…)` accepts. "
+        + "Write the code on several lines, one fluent call per line indented by four spaces (`workspace.SourceCode.Types\\n    .Where( … )\\n    .Select( … )`): in html, the user reads and edits it. "
         + "In projections, select the declaration itself (`new { Method = m, … }`), never a string built from its name: only a declaration keeps its link and location, "
         + "which is what a person follows in an html page. This runs arbitrary code with the user's privileges." )]
     public Task<CallToolResult> Query(

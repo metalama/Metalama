@@ -82,7 +82,8 @@ internal sealed class ResultServer : IAsyncDisposable
     {
         if ( query != null )
         {
-            page[QueryProperty] = query;
+            // The worker already gives the page its query, laid out on several lines.
+            page[QueryProperty] ??= query;
         }
 
         return this.GetResultUri( this._cache.Add( page ) );

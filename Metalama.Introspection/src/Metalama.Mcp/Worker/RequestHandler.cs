@@ -261,6 +261,12 @@ internal sealed class RequestHandler : IDisposable
 
         var warnings = compiled.Diagnostics.Where( d => d.Severity == "warning" && d.Line != null ).ToList();
 
+        // The page shows the query in an editor, laid out on several lines.
+        if ( rendered.Page != null )
+        {
+            rendered.Page["query"] = QueryFormatter.Format( code );
+        }
+
         return CreateResponse( rendered, console.ToString(), warnings, stopwatch.Elapsed, entry, renderOptions, args );
     }
 

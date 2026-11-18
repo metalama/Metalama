@@ -38,6 +38,9 @@ with its `file:line` location in `json` and `html`, and in `html` it is what a p
 `Method = m`, not `Method = m.DeclaringType.Name + "." + m.Name`, and `Type = t`, not `t.FullName`. Add a name column only
 when the table needs one besides the declaration.
 
+Layout: write queries on several lines, as in the example: the source on the first line, then one fluent call per line,
+indented by four spaces. In `html`, the user reads and edits the query in the page.
+
 Example:
 ```
 workspace.SourceCode.Methods
