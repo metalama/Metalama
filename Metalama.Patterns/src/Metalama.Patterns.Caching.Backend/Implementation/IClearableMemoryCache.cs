@@ -10,10 +10,16 @@ namespace Metalama.Patterns.Caching.Implementation;
 /// An <see cref="IMemoryCache"/> that can remove all of its entries.
 /// </summary>
 /// <remarks>
+/// <para>
 /// <see cref="Microsoft.Extensions.Caching.Memory.MemoryCache"/> exposes these two operations, but
-/// <see cref="IMemoryCache"/> does not declare them. An implementation of <see cref="IMemoryCache"/> that also
-/// implements this interface supports the <c>Clear</c> feature of
-/// <see cref="Metalama.Patterns.Caching.Backends.MemoryCachingBackend"/>.
+/// <see cref="IMemoryCache"/> does not declare them.
+/// </para>
+/// <para>
+/// <see cref="Metalama.Patterns.Caching.Backends.MemoryCachingBackend"/> calls <see cref="Compact"/> when a cache that it
+/// owns is cleared with <see cref="Metalama.Patterns.Caching.Backends.ClearCacheOptions.Compact"/>. It does not call
+/// <see cref="Clear"/>: it clears its own items one key at a time, on any <see cref="IMemoryCache"/>, so that the
+/// other entries of a shared cache are kept.
+/// </para>
 /// </remarks>
 public interface IClearableMemoryCache : IMemoryCache
 {

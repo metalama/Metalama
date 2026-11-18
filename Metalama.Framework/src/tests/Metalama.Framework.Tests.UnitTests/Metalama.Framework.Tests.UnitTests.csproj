@@ -37,6 +37,11 @@
             <_Parameter1>CompilerExtensionsAssemblyPath</_Parameter1>
             <_Parameter2>$(MSBuildThisFileDirectory)../../Metalama.Framework.CompilerExtensions/bin/$(Configuration)/netstandard2.0/Metalama.Framework.CompilerExtensions.dll</_Parameter2>
         </AssemblyAttribute>
+        <!-- Metalama.Framework.CompilerExtensions is built before this project, but its output is not referenced.
+             ProcessKindTests loads the assembly from the output directory of that project, which locks the file for the
+             lifetime of the test process. Without this build order, a build of the solution can start the tests before
+             it has copied the assembly to that directory, and the copy then fails with MSB3027. -->
+        <ProjectReference Include="../../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj" ReferenceOutputAssembly="false" />
         <!-- CompilerVisiblePropertiesTests compares the properties that MSBuildProjectOptions reads with the properties
              that this file exports to the compiler. -->
         <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">

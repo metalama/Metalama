@@ -20,7 +20,8 @@ namespace Metalama.Patterns.Caching.Backends
             public HashSet<string> DependentKeys { get; } = new( StringComparer.Ordinal );
 
             /// <summary>
-            /// Gets or sets a value indicating whether the set has been removed from the index. A removed set is never used again.
+            /// Gets or sets a value indicating whether the set has been removed from the index. A removed set is never used
+            /// again.
             /// </summary>
             public bool IsRemoved { get; set; }
         }
