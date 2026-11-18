@@ -192,6 +192,11 @@ internal sealed class ResultServer : IAsyncDisposable
 
                 break;
 
+            case "view" when segments.Length == 2:
+                await this.ServeViewAsync( context );
+
+                break;
+
             default:
                 await WriteTextAsync( context, StatusCodes.Status404NotFound, "Not found." );
 
@@ -275,6 +280,37 @@ internal sealed class ResultServer : IAsyncDisposable
 
         context.Response.ContentType = "application/json; charset=utf-8";
         await context.Response.WriteAsync( document.ToJsonString(), Encoding.UTF8, context.RequestAborted );
+    }
+
+    /// <summary>
+    /// Opens a link on a page of its own: the worker renders it with the html format, as the <c>open</c> tool does, and the
+    /// browser is sent to the stored page. A page uses it to open a declaration in a new window. Query anchors, which would
+    /// run code, are rejected by the worker.
+    /// </summary>
+    private async Task ServeViewAsync( HttpContext context )
+    {
+        var link = context.Request.Query["link"].ToString();
+
+        if ( link.Length == 0 )
+        {
+            await WriteTextAsync( context, StatusCodes.Status400BadRequest, "The link parameter is missing." );
+
+            return;
+        }
+
+        var args = new JsonObject { ["link"] = link, ["format"] = "html", [WorkerMethods.IncludeStructured] = false };
+        var result = await this._worker.CallAsync( WorkerMethods.Open, args, null, context.RequestAborted );
+
+        if ( result[WorkerMethods.Ok]?.GetValue<bool>() != true || result[WorkerMethods.Page] is not JsonObject page )
+        {
+            await WriteTextAsync( context, StatusCodes.Status400BadRequest, result[WorkerMethods.Error]?.GetValue<string>() ?? "The link cannot be opened." );
+
+            return;
+        }
+
+        // A relative redirect, from <token>/view to <token>/r/<id>, so that the Host checked above is kept.
+        context.Response.StatusCode = StatusCodes.Status303SeeOther;
+        context.Response.Headers.Location = "r/" + this.Store( page, null ).Segments[^1];
     }
 
     /// <summary>

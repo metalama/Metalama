@@ -86,8 +86,22 @@
     return button;
   }
 
+  // On a served page, every value with a link can open on a page of its own, in a new browser window.
+  function newWindowLink( node ) {
+    var link = el( 'a', 'new-window' );
+    link.href = '../view?link=' + encodeURIComponent( node.href );
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.title = 'Open ' + ( node.link || node.href ) + ' in a new window';
+    link.setAttribute( 'aria-label', link.title );
+    link.appendChild( icon( 'new-window-icon' ) );
+    link.addEventListener( 'click', function ( event ) { event.stopPropagation(); } );
+    return link;
+  }
+
   function tools( node ) {
     var span = el( 'span', 'tools' );
+    if ( served && node.href ) { span.appendChild( newWindowLink( node ) ); }
     if ( node.link ) { span.appendChild( toolButton( 'link', 'Copy the link: ' + node.link, function () { copy( node.link ); } ) ); }
     if ( node.expression ) { span.appendChild( toolButton( 'C#', 'Copy the C# expression: ' + node.expression, function () { copy( node.expression ); } ) ); }
     return span;
@@ -131,10 +145,12 @@
       if ( node.transformed ) { span.appendChild( el( 'span', 'muted', ' [transformed]' ) ); }
     }
     var result = openable( span, node );
-    if ( node.location ) {
+    var newWindow = served && node.href;
+    if ( node.location || newWindow ) {
       var wrapper = el( 'span' );
       wrapper.appendChild( result );
-      wrapper.appendChild( locationElement( node, 'location' ) );
+      if ( newWindow ) { wrapper.appendChild( newWindowLink( node ) ); }
+      if ( node.location ) { wrapper.appendChild( locationElement( node, 'location' ) ); }
       return wrapper;
     }
     return result;
@@ -383,6 +399,14 @@
     served = !live && document_.served === true;
 
     var toolbar = document.getElementById( 'toolbar' );
+    var brand = document.getElementById( 'brand' );
+    if ( !brand && !live ) {
+      brand = el( 'span', null );
+      brand.id = 'brand';
+      brand.title = 'Metalama MCP server';
+      brand.appendChild( icon( 'brand-logo' ) );
+      toolbar.insertBefore( brand, toolbar.firstChild );
+    }
     toolbar.querySelectorAll( '.action' ).forEach( function ( action ) { action.remove(); } );
 
     if ( served && typeof document_.query === 'string' ) {
@@ -399,7 +423,9 @@
       save.setAttribute( 'aria-label', 'Save' );
       save.href = '?download=1';
       save.title = 'Save a snapshot of this page. Values that were not loaded cannot be expanded in the snapshot.';
-      toolbar.appendChild( save );
+      // Beside the query editor, aligned with its bottom edge, or in the toolbar when the page has no query.
+      var queryActions = toolbar.querySelector( '.query-actions' );
+      ( queryActions || toolbar ).appendChild( save );
     } else if ( live && typeof document_.pageUrl === 'string' ) {
       // The same result on the result server, where every value expands on demand.
       toolbar.appendChild( pageAction( document_.pageUrl ) );
@@ -467,8 +493,10 @@
     text.addEventListener( 'keydown', function ( event ) {
       if ( event.key === 'Enter' && ( event.ctrlKey || event.metaKey ) ) { event.preventDefault(); submit(); }
     } );
+    var actions = el( 'span', 'query-actions' );
+    actions.appendChild( run );
     form.appendChild( text );
-    form.appendChild( run );
+    form.appendChild( actions );
     form.appendChild( error );
 
     if ( editorAssets ) {

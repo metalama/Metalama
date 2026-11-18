@@ -498,6 +498,11 @@ Interactions:
 - The box becomes a Monaco editor with completion, quick info, signature help and diagnostics computed by Roslyn in the
   worker, without running the query. The plan and its outcome are in `mcp-server-query-editor.md`. A saved snapshot keeps
   no editor.
+- After each value with a link, a new-window icon opens `GET <token>/view?link=<href>` in a new browser window. The
+  server renders the link with the worker's `open` and the html format (query anchors are rejected, as for `open`),
+  stores the page, and answers `303 See Other` to `r/<id>`, a relative location that keeps the checked `Host`.
+- Pages carry light Metalama branding: the official logo, with `.mcp` added, in the toolbar, and the official favicon,
+  both embedded in the page so that a snapshot keeps them and nothing is loaded from the network.
 - A link to a result that was evicted, or whose server stopped with the session, says to run the query again.
 - The server does not start a browser. The user opens the link.
 

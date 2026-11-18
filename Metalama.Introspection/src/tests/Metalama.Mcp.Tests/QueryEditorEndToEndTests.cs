@@ -232,6 +232,50 @@ public sealed class QueryEditorEndToEndTests : IClassFixture<FrogHatteryFixture>
     }
 
     [Fact]
+    public async Task DeclarationOpensOnAPageOfItsOwn()
+    {
+        // The new-window icon after each link points to <token>/view, which renders the link and redirects to its page.
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        var viewUri = new Uri( link, "../view?link=" + Uri.EscapeDataString( "T:FrogHattery.BullFrog" ) );
+        using var response = await client.GetAsync( viewUri, TestContext.Current.CancellationToken );
+
+        Assert.Equal( HttpStatusCode.SeeOther, response.StatusCode );
+        var pageUri = new Uri( viewUri, response.Headers.Location! );
+        Assert.Equal( new Uri( link, "." ), new Uri( pageUri, "." ) );
+        Assert.NotEqual( link, pageUri );
+
+        var page = ServerProcess.GetEmbeddedDocument( await client.GetStringAsync( pageUri, TestContext.Current.CancellationToken ) );
+        Assert.Equal( "T:FrogHattery.BullFrog", page.GetProperty( "result" ).GetProperty( "link" ).GetString() );
+        Assert.False( page.TryGetProperty( "query", out _ ) );
+    }
+
+    [Fact]
+    public async Task ViewNeverRunsAQuery()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var response = await client.GetAsync(
+            new Uri( link, "../view?link=" + Uri.EscapeDataString( "metalama://FrogHattery.csproj/FrogHattery@net10.0/source/query/d29ya3NwYWNl" ) ),
+            TestContext.Current.CancellationToken );
+
+        Assert.Equal( HttpStatusCode.BadRequest, response.StatusCode );
+    }
+
+    [Fact]
+    public async Task ServedPageHasTheBrandAndTheFavicon()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+        var html = await client.GetStringAsync( link, TestContext.Current.CancellationToken );
+
+        Assert.Contains( "<link rel=\"icon\" type=\"image/png\" href=\"data:image/png;base64,", html, StringComparison.Ordinal );
+        Assert.Contains( "aria-label=\"metalama.mcp\"", html, StringComparison.Ordinal );
+    }
+
+    [Fact]
     public async Task SnapshotHasNoEditor()
     {
         var link = await this.Server.QueryHtmlLinkAsync( "42" );

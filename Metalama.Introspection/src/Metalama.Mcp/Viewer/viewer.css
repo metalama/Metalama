@@ -29,7 +29,17 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 var(-
 #toolbar { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; padding: 8px 16px; border-bottom: 1px solid var(--rule); }
 #title { font-weight: 600; font-family: var(--mono); overflow-wrap: anywhere; }
 #title:has(form.query) { flex: 1 1 100%; }
-form.query { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: flex-start; }
+form.query { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: stretch; }
+/* Run at the top of the editor, Save at its bottom. */
+form.query .query-actions { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; }
+form.query .query-actions .action { margin-left: 0; }
+#title:has(form.query) { order: -1; }
+#brand { display: inline-flex; align-items: center; color: var(--fg); }
+#brand .brand-logo { height: 15px; width: auto; display: block; }
+a.new-window { display: inline-flex; vertical-align: middle; margin-left: 4px; color: var(--muted); opacity: .7; }
+a.new-window:hover, a.new-window:focus-visible { color: var(--link); opacity: 1; }
+a.new-window svg { width: 12px; height: 12px; }
+caption a.new-window { color: inherit; }
 form.query textarea { flex: 1 1 400px; min-height: 4.8em; max-height: 50vh; resize: vertical; font: 600 13px/1.45 var(--mono); color: var(--fg); background: var(--cell); border: 1px solid var(--rule); border-radius: 3px; padding: 4px 6px; }
 form.query textarea:focus-visible { outline: 2px solid var(--link); outline-offset: 0; }
 form.query .query-monaco { flex: 1 1 400px; min-width: 0; height: 24px; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
