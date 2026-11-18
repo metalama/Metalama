@@ -1,6 +1,7 @@
 // Metalama result viewer. Renders the JSON form of a result (result.schema.json) as LINQPad-style property tables and grids.
 // It runs in three ways:
-// - served by the result server of metalama-mcp on localhost, with the data embedded; drill-down fetches ../open;
+// - served by the result server of metalama-mcp on localhost, with the data embedded; drill-down fetches ../open, and the
+//   query of the page can be edited and run again with ../query;
 // - as an MCP App inside the host, which sends the data and forwards drill-down calls to the server;
 // - as a saved snapshot, with the data embedded and no drill-down beyond it.
 // Every value comes from the analysed code, so the DOM is built with textContent and attribute setters only.
@@ -370,7 +371,8 @@
       app.replaceChildren( el( 'p', 'error', 'This result has an unknown format.' ) );
       return;
     }
-    document.getElementById( 'title' ).textContent = document_.title || '';
+    var titleElement = document.getElementById( 'title' );
+    titleElement.textContent = document_.title || '';
     document.getElementById( 'base' ).textContent = document_.base ? 'base: ' + document_.base : '';
     editor = typeof document_.editor === 'string' ? document_.editor : null;
     root = typeof document_.root === 'string' ? document_.root : null;
@@ -378,6 +380,10 @@
 
     var toolbar = document.getElementById( 'toolbar' );
     toolbar.querySelectorAll( '.action' ).forEach( function ( action ) { action.remove(); } );
+
+    if ( served && typeof document_.query === 'string' ) {
+      titleElement.replaceChildren( queryEditor( document_.query, typeof document_.workspace === 'string' ? document_.workspace : null ) );
+    }
 
     if ( served ) {
       // The server sends the same page without the served marker as an attachment, which works without the server.
@@ -392,6 +398,62 @@
 
     app.replaceChildren( render( document_.result ) );
     notifySize();
+  }
+
+  // On a served page, the query can be edited and run again. The result has its own page, so the browser history keeps both.
+  function queryEditor( code, workspace ) {
+    var form = el( 'form', 'query' );
+    var text = el( 'textarea', 'query-code' );
+    text.value = code;
+    text.spellcheck = false;
+    text.setAttribute( 'aria-label', 'Query' );
+    text.rows = 1;
+
+    // The box grows with its text, up to the height that the style sheet allows.
+    function fit() { text.style.height = 'auto'; text.style.height = text.scrollHeight + 2 + 'px'; }
+    text.addEventListener( 'input', fit );
+    window.addEventListener( 'resize', fit );
+    window.requestAnimationFrame( fit );
+    var run = el( 'button', 'action run', 'Run' );
+    run.type = 'submit';
+    run.title = 'Run the query (Ctrl+Enter)';
+    var error = el( 'pre', 'error query-error' );
+    error.hidden = true;
+
+    function submit() {
+      if ( run.disabled ) { return; }
+      run.disabled = true;
+      run.textContent = 'Running…';
+      error.hidden = true;
+      fetch( '../query', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify( { code: text.value, workspace: workspace } )
+      } ).then( function ( response ) {
+        if ( !response.ok ) {
+          return response.text().then( function ( message ) { throw new Error( message || 'The server returned ' + response.status + '.' ); } );
+        }
+        return response.json().then( function ( result ) { window.location.assign( result.url ); } );
+      }, function () {
+        throw new Error( 'The server is not running any more. Ask the agent to run the query again.' );
+      } ).catch( function ( e ) {
+        error.textContent = e && e.message ? e.message : String( e );
+        error.hidden = false;
+        run.disabled = false;
+        run.textContent = 'Run';
+      } );
+    }
+
+    form.addEventListener( 'submit', function ( event ) { event.preventDefault(); submit(); } );
+    text.addEventListener( 'keydown', function ( event ) {
+      if ( event.key === 'Enter' && ( event.ctrlKey || event.metaKey ) ) { event.preventDefault(); submit(); }
+    } );
+    form.appendChild( text );
+    form.appendChild( run );
+    form.appendChild( error );
+    return form;
   }
 
   function pageAction( url ) {

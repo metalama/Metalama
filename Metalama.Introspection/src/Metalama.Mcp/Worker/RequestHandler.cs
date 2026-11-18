@@ -346,6 +346,12 @@ internal sealed class RequestHandler
                     page["editor"] = this._options.EditorLink;
                 }
 
+                // The page can run its query again, edited, in the same workspace.
+                if ( entry != null )
+                {
+                    page["workspace"] = entry.Key;
+                }
+
                 // The agent gets a short text summary, so that the page never enters its context.
                 text = new TextRenderer( linkBase ).Render( ResultTreePruner.Prune( outputTree, new ResultTreeOptions( 0, 10, entry?.RootDirectory ) ) );
 

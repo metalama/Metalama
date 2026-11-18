@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
@@ -219,8 +220,117 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
         using var client = ServerProcess.CreateHttpClient();
 
         using var response = await client.PostAsync( link, new StringContent( "" ), TestContext.Current.CancellationToken );
+        Assert.Equal( HttpStatusCode.MethodNotAllowed, response.StatusCode );
 
-        Assert.False( response.IsSuccessStatusCode );
+        // The query endpoint is the only one that accepts POST, and only POST.
+        using var get = await client.GetAsync( new Uri( link, "../query" ), TestContext.Current.CancellationToken );
+        Assert.Equal( HttpStatusCode.MethodNotAllowed, get.StatusCode );
+    }
+
+    [Fact]
+    public async Task PageKeepsItsQueryAndWorkspace()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "workspace.SourceCode.Types.Count()" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        var page = ServerProcess.GetEmbeddedDocument( await client.GetStringAsync( link, TestContext.Current.CancellationToken ) );
+
+        Assert.Equal( "workspace.SourceCode.Types.Count()", page.GetProperty( "query" ).GetString() );
+        Assert.Equal( "FrogHattery.csproj", page.GetProperty( "workspace" ).GetString() );
+    }
+
+    [Fact]
+    public async Task EditedQueryRunsAndGetsItsOwnPage()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var response = await PostQueryAsync( client, link, "{\"code\":\"workspace.SourceCode.Types.Count() * 0 + 6 * 7\",\"workspace\":\"FrogHattery.csproj\"}" );
+        Assert.Equal( HttpStatusCode.OK, response.StatusCode );
+
+        var url = new Uri( JsonDocument.Parse( await response.Content.ReadAsStringAsync( TestContext.Current.CancellationToken ) ).RootElement.GetProperty( "url" ).GetString()! );
+        Assert.NotEqual( link, url );
+
+        var page = ServerProcess.GetEmbeddedDocument( await client.GetStringAsync( url, TestContext.Current.CancellationToken ) );
+        Assert.Equal( "42", page.GetProperty( "result" ).GetProperty( "value" ).GetString() );
+        Assert.Equal( "workspace.SourceCode.Types.Count() * 0 + 6 * 7", page.GetProperty( "query" ).GetString() );
+    }
+
+    [Fact]
+    public async Task EditedQueryReportsItsErrors()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var response = await PostQueryAsync( client, link, "{\"code\":\"undefinedName\"}" );
+
+        Assert.Equal( HttpStatusCode.BadRequest, response.StatusCode );
+        Assert.Contains( "undefinedName", await response.Content.ReadAsStringAsync( TestContext.Current.CancellationToken ), StringComparison.Ordinal );
+    }
+
+    [Theory]
+    [InlineData( null, null, "application/json", HttpStatusCode.Forbidden )]
+    [InlineData( "https://evil.example", null, "application/json", HttpStatusCode.Forbidden )]
+    [InlineData( "self", "cross-site", "application/json", HttpStatusCode.Forbidden )]
+    [InlineData( "self", "same-site", "application/json", HttpStatusCode.Forbidden )]
+    [InlineData( "self", "same-origin", "text/plain", HttpStatusCode.UnsupportedMediaType )]
+    [InlineData( "self", "same-origin", "application/x-www-form-urlencoded", HttpStatusCode.UnsupportedMediaType )]
+    public async Task QueryIsAcceptedOnlyFromThePagesOfTheServer( string? origin, string? fetchSite, string contentType, HttpStatusCode expected )
+    {
+        // A query runs code: beyond the token, the request must come from a page of the server, as JSON, which another origin
+        // cannot send without a CORS preflight that the server never answers.
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+
+        using var request = new HttpRequestMessage( HttpMethod.Post, new Uri( link, "../query" ) )
+        {
+            Content = new StringContent( "{\"code\":\"System.IO.File.WriteAllText(\\\"x\\\", \\\"\\\")\"}", Encoding.UTF8, contentType )
+        };
+
+        if ( origin != null )
+        {
+            request.Headers.Add( "Origin", origin == "self" ? link.GetLeftPart( UriPartial.Authority ) : origin );
+        }
+
+        if ( fetchSite != null )
+        {
+            request.Headers.Add( "Sec-Fetch-Site", fetchSite );
+        }
+
+        using var response = await client.SendAsync( request, TestContext.Current.CancellationToken );
+
+        Assert.Equal( expected, response.StatusCode );
+    }
+
+    [Fact]
+    public async Task QueryRequiresTheToken()
+    {
+        var link = await this.Server.QueryHtmlLinkAsync( "42" );
+        using var client = ServerProcess.CreateHttpClient();
+        var origin = link.GetLeftPart( UriPartial.Authority );
+
+        using var request = new HttpRequestMessage( HttpMethod.Post, new Uri( origin + "/" + new string( 'A', link.Segments[1].TrimEnd( '/' ).Length ) + "/query" ) )
+        {
+            Content = new StringContent( "{\"code\":\"1\"}", Encoding.UTF8, "application/json" )
+        };
+
+        request.Headers.Add( "Origin", origin );
+        using var response = await client.SendAsync( request, TestContext.Current.CancellationToken );
+
+        Assert.Equal( HttpStatusCode.NotFound, response.StatusCode );
+    }
+
+    private static async Task<HttpResponseMessage> PostQueryAsync( HttpClient client, Uri link, string json )
+    {
+        using var request = new HttpRequestMessage( HttpMethod.Post, new Uri( link, "../query" ) )
+        {
+            Content = new StringContent( json, Encoding.UTF8, "application/json" )
+        };
+
+        request.Headers.Add( "Origin", link.GetLeftPart( UriPartial.Authority ) );
+        request.Headers.Add( "Sec-Fetch-Site", "same-origin" );
+
+        return await client.SendAsync( request, TestContext.Current.CancellationToken );
     }
 
     [Fact]

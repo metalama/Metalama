@@ -17,6 +17,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,8 +26,8 @@ namespace Metalama.Mcp.Supervisor;
 
 /// <summary>
 /// Serves html results to the browser of the user, on <c>https://localhost</c> with a random port, and renders on demand what
-/// the page expands. It never runs a query: it shows the documents of <see cref="ResultCache"/>, and follows links with the
-/// <c>open</c> method of the worker, as the MCP App view does.
+/// the page expands. It shows the documents of <see cref="ResultCache"/>, follows links with the <c>open</c> method of the
+/// worker, as the MCP App view does, and runs the query that the user edits in a page (<see cref="ServeQueryAsync"/>).
 /// </summary>
 /// <remarks>
 /// <para>Every URL starts with a random token that only the agent and the user receive, so other local processes and web pages
@@ -43,6 +44,7 @@ internal sealed class ResultServer : IAsyncDisposable
     private readonly byte[] _token;
     private readonly int _tokenLength;
     private readonly string _host;
+    private readonly string _origin;
 
     private ResultServer( WebApplication application, WorkerClient worker, ResultCache cache, byte[] token, int port )
     {
@@ -51,6 +53,7 @@ internal sealed class ResultServer : IAsyncDisposable
         this._cache = cache;
         this._token = token;
         this._host = "localhost:" + port.ToString( CultureInfo.InvariantCulture );
+        this._origin = "https://" + this._host;
         var encodedToken = ResultCache.Base64Url( token );
         this._tokenLength = encodedToken.Length;
         this.BaseUri = new Uri( $"https://{this._host}/{encodedToken}/" );
@@ -62,6 +65,26 @@ internal sealed class ResultServer : IAsyncDisposable
     public Uri BaseUri { get; }
 
     public Uri GetResultUri( string id ) => new( this.BaseUri, "r/" + id );
+
+    /// <summary>
+    /// The property of a page that holds the code of its query.
+    /// </summary>
+    public const string QueryProperty = "query";
+
+    private const int _maxQueryRequestLength = 1024 * 1024;
+
+    /// <summary>
+    /// Stores a page and returns its URL. The page of a query keeps the code, so that the user can edit it and run it again.
+    /// </summary>
+    public Uri Store( JsonObject page, string? query )
+    {
+        if ( query != null )
+        {
+            page[QueryProperty] = query;
+        }
+
+        return this.GetResultUri( this._cache.Add( page ) );
+    }
 
     public static async Task<ResultServer> StartAsync( WorkerClient worker, ResultCache cache, X509Certificate2 certificate, CancellationToken cancellationToken )
     {
@@ -115,14 +138,6 @@ internal sealed class ResultServer : IAsyncDisposable
             return;
         }
 
-        if ( !HttpMethods.IsGet( context.Request.Method ) )
-        {
-            response.Headers.Allow = "GET";
-            await WriteTextAsync( context, StatusCodes.Status405MethodNotAllowed, "Only GET is accepted." );
-
-            return;
-        }
-
         var segments = (context.Request.Path.Value ?? "").Trim( '/' ).Split( '/' );
 
         if ( segments.Length < 2 || !this.IsToken( segments[0] ) )
@@ -132,8 +147,24 @@ internal sealed class ResultServer : IAsyncDisposable
             return;
         }
 
+        // A query runs code, so it is the only POST, and it is accepted only from a page of this server.
+        var isQuery = segments is [_, "query"];
+
+        if ( isQuery ? !HttpMethods.IsPost( context.Request.Method ) : !HttpMethods.IsGet( context.Request.Method ) )
+        {
+            response.Headers.Allow = isQuery ? "POST" : "GET";
+            await WriteTextAsync( context, StatusCodes.Status405MethodNotAllowed, isQuery ? "Only POST is accepted." : "Only GET is accepted." );
+
+            return;
+        }
+
         switch ( segments[1] )
         {
+            case "query":
+                await this.ServeQueryAsync( context );
+
+                break;
+
             case "r" when segments.Length == 3:
                 await this.ServeResultAsync( context, segments[2] );
 
@@ -227,6 +258,81 @@ internal sealed class ResultServer : IAsyncDisposable
 
         context.Response.ContentType = "application/json; charset=utf-8";
         await context.Response.WriteAsync( document.ToJsonString(), Encoding.UTF8, context.RequestAborted );
+    }
+
+    /// <summary>
+    /// Runs the query that the user edited in a page, and returns the URL of the page of its result.
+    /// </summary>
+    /// <remarks>
+    /// This runs code, so beyond the token, the request must come from a page of this server: its <c>Origin</c> must be the
+    /// origin of the server, and the browser must not mark it as cross-site. The body must be JSON, which a page of another
+    /// origin cannot send without a CORS preflight, and the server answers none.
+    /// </remarks>
+    private async Task ServeQueryAsync( HttpContext context )
+    {
+        var request = context.Request;
+
+        if ( request.Headers.Origin.ToString() != this._origin
+             || (request.Headers.TryGetValue( "Sec-Fetch-Site", out var site ) && site.ToString() != "same-origin") )
+        {
+            await WriteTextAsync( context, StatusCodes.Status403Forbidden, "Queries are accepted only from the pages of this server." );
+
+            return;
+        }
+
+        if ( request.ContentType?.StartsWith( "application/json", StringComparison.OrdinalIgnoreCase ) != true )
+        {
+            await WriteTextAsync( context, StatusCodes.Status415UnsupportedMediaType, "The request must be JSON." );
+
+            return;
+        }
+
+        if ( request.ContentLength is null or > _maxQueryRequestLength )
+        {
+            await WriteTextAsync( context, StatusCodes.Status413PayloadTooLarge, "The query is too long." );
+
+            return;
+        }
+
+        string? code;
+        string? workspace;
+
+        try
+        {
+            var body = await JsonNode.ParseAsync( request.Body, cancellationToken: context.RequestAborted );
+            code = body?["code"]?.GetValue<string>();
+            workspace = body?["workspace"]?.GetValue<string>();
+        }
+        catch ( Exception e ) when ( e is JsonException or InvalidOperationException or FormatException )
+        {
+            await WriteTextAsync( context, StatusCodes.Status400BadRequest, "The request is not valid." );
+
+            return;
+        }
+
+        if ( string.IsNullOrWhiteSpace( code ) )
+        {
+            await WriteTextAsync( context, StatusCodes.Status400BadRequest, "The query is empty." );
+
+            return;
+        }
+
+        var args = new JsonObject { ["code"] = code, ["workspace"] = workspace, ["format"] = "html", [WorkerMethods.IncludeStructured] = false };
+        var result = await this._worker.CallAsync( WorkerMethods.Query, args, null, context.RequestAborted );
+
+        if ( result[WorkerMethods.Ok]?.GetValue<bool>() != true || result[WorkerMethods.Page] is not JsonObject page )
+        {
+            await WriteTextAsync(
+                context,
+                StatusCodes.Status400BadRequest,
+                result[WorkerMethods.Error]?.GetValue<string>() ?? result[WorkerMethods.Text]?.GetValue<string>() ?? "The query failed." );
+
+            return;
+        }
+
+        context.Response.ContentType = "application/json; charset=utf-8";
+        var url = this.Store( page, code ).ToString();
+        await context.Response.WriteAsync( new JsonObject { ["url"] = url }.ToJsonString(), Encoding.UTF8, context.RequestAborted );
     }
 
     private static async Task WriteTextAsync( HttpContext context, int statusCode, string text )

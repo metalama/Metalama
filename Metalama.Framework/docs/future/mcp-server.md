@@ -97,29 +97,36 @@ The server executes arbitrary code, by design, with the same privileges as the a
 only the local client process can make it run code: MCP goes over stdio, and the one HTTP endpoint runs none. The
 documentation says so plainly and never calls it a sandbox.
 
-### 4.1. Code runs only on stdio requests, enforced
+### 4.1. Code runs only for the agent and the user, enforced
 
 - MCP goes over stdio only. The server has no `--port` or similar option, and references the `ModelContextProtocol` core
   package only, never `ModelContextProtocol.AspNetCore`.
 - `Microsoft.CodeAnalysis.BannedApiAnalyzers` bans `HttpListener`, `TcpListener`, `UdpClient`, `Socket.Bind`,
   `Socket.Listen`, `WebApplication` and `KestrelServer`. One file, `Supervisor/ResultServer.cs`, suppresses the ban to host
   the result server.
-- **The result server never runs a query.** It serves documents that a query already produced, and follows links with the
-  worker's `open` method, as the MCP App view does. Query anchors, the only links that would run code, are rejected.
+- **The result server runs only the queries that the user edits in its pages.** It serves documents that a query already
+  produced, follows links with the worker's `open` method, as the MCP App view does (query anchors, the only links that
+  would run code, are rejected), and runs `POST <token>/query`, the Run button of a page (section 9.3). Holding the token
+  is therefore holding the right to run code, as holding the stdio pipe is; the token reaches only the agent and the
+  user, and the checks below make sure that only a page of the server can use it.
 - It is reachable from the local machine only, and only by whoever has a link:
   - It listens on `127.0.0.1` and `::1` on a random port, started by the first html result. `--no-http` disables it.
   - Every URL starts with a 256-bit random token, compared in constant time; anything else is 404. The token reaches only
     the agent, in the tool result, and the user.
-  - The `Host` header must be `localhost:<port>`, which defeats DNS rebinding; only GET is accepted; responses carry no
-    CORS headers, `Referrer-Policy: no-referrer` (the token is in the URL), `Cache-Control: no-store`, `nosniff`, and the
-    page's CSP with `connect-src 'self'`.
+  - The `Host` header must be `localhost:<port>`, which defeats DNS rebinding; only GET is accepted, except POST on
+    `query`; responses carry no CORS headers, `Referrer-Policy: no-referrer` (the token is in the URL),
+    `Cache-Control: no-store`, `nosniff`, and the page's CSP with `connect-src 'self'`.
+  - `POST <token>/query` also requires an `Origin` header equal to the origin of the server, rejects a `Sec-Fetch-Site`
+    other than `same-origin`, and accepts only an `application/json` body of at most 1 MB. A page of another origin can
+    send JSON only after a CORS preflight, which the server never answers, and an HTML form cannot send JSON, so neither
+    can run a query even with the token.
   - It is built with `WebApplication.CreateEmptyBuilder`, so no `appsettings.json` or `ASPNETCORE_*` variable can change
     where it listens, and it has no logging, so nothing reaches standard output, which carries MCP.
   - It serves `https://localhost` with the ASP.NET Core development certificate, so that the browser shows no warning.
     Without a trusted one, html results fail with a message to run `dotnet dev-certs https --trust`.
 - Tests check that nothing listens before an html result, that the supervisor then listens on loopback only, that the
   worker never listens and never loads `Microsoft.AspNetCore*`, that `--no-http` means no listener at all, and the token,
-  host, method and query-anchor rules.
+  host, method, query-anchor, origin and content-type rules.
 
 The guarantee covers the server's own code. A query can open a socket, as any program the user runs can.
 
@@ -480,6 +487,12 @@ Interactions:
   because its frame cannot open other applications.
 - The Save button gets `<token>/r/<id>?download=1`, the same page as an attachment without the served marker: a
   snapshot that works from a file and expands only what it holds.
+- The page of a query shows its code in an editable box, with the workspace key of the query. Run (or Ctrl+Enter) sends
+  `POST <token>/query` with `{ code, workspace }` as JSON; the server runs it with the html format, stores the page and
+  answers `{ url }`, and the page navigates there, so each result has its own URL and the browser history keeps the
+  previous ones. A failure, such as a compile error, is shown under the box, and the result stays. The query runs in the
+  worker like any other, with the default timeout, serialized with the calls of the agent. The page of an `open` result
+  has no box.
 - A link to a result that was evicted, or whose server stopped with the session, says to run the query again.
 - The server does not start a browser. The user opens the link.
 

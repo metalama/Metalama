@@ -273,7 +273,7 @@ internal sealed class McpTools : IAsyncDisposable
         if ( resultServer != null && response[WorkerMethods.Page] is JsonObject page )
         {
             // The agent gets the link and a short summary; the person opens the link.
-            pageUrl = resultServer.GetResultUri( this._results.Add( page ) );
+            pageUrl = resultServer.Store( page, method == WorkerMethods.Query ? args["code"]?.GetValue<string>() : null );
             text = $"html: {pageUrl}\n{text}";
         }
 
@@ -286,7 +286,7 @@ internal sealed class McpTools : IAsyncDisposable
             // offers to open in the browser. The server is not started for this: only an html result starts it.
             if ( pageUrl == null && this._server is { } runningServer )
             {
-                pageUrl = runningServer.GetResultUri( this._results.Add( (JsonObject) structured.DeepClone() ) );
+                pageUrl = runningServer.Store( (JsonObject) structured.DeepClone(), method == WorkerMethods.Query ? args["code"]?.GetValue<string>() : null );
             }
 
             if ( pageUrl != null )
