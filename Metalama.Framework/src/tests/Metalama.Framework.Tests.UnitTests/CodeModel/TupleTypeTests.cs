@@ -149,6 +149,55 @@ public sealed class TupleTypeTests : UnitTestClass
     }
 
     [Fact]
+    public void SourceTuple_DeclarationProperties()
+    {
+        // Regression test for #2357.
+        const string code = """
+                            class C
+                            {
+                                public (int Count, string Name) Get() => (0, "");
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var method = compilation.Types.Single().Methods.OfName( "Get" ).Single();
+        var tupleType = Assert.IsAssignableFrom<ITupleType>( method.ReturnType );
+
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[0] );
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[1] );
+    }
+
+    [Fact]
+    public void CreateTuple_DeclarationProperties()
+    {
+        // Regression test for #2357.
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( "" );
+        var tupleType = compilation.Factory.CreateTupleType( [(typeof(int), "Count"), (typeof(string), "Name")] );
+
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[0] );
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[1] );
+    }
+
+    private static void AssertTupleElementDeclarationProperties( ITupleElement tupleElement )
+    {
+        var correspondingField = tupleElement.CorrespondingTupleField;
+
+        Assert.Empty( tupleElement.Attributes );
+        Assert.Equal( correspondingField.Depth, tupleElement.Depth );
+        Assert.Null( tupleElement.OverridingProperty );
+
+        Assert.NotNull( tupleElement.GetMethod );
+        Assert.NotNull( correspondingField.GetMethod );
+        Assert.Equal( correspondingField.GetMethod.Depth, tupleElement.GetMethod.Depth );
+
+        Assert.NotNull( tupleElement.SetMethod );
+        Assert.NotNull( correspondingField.SetMethod );
+        Assert.Equal( correspondingField.SetMethod.Depth, tupleElement.SetMethod.Depth );
+    }
+
+    [Fact]
     public void CreateTuple_0_Item()
     {
         using var testContext = this.CreateTestContext();
