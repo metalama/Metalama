@@ -13,7 +13,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
