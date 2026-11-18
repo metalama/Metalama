@@ -2,8 +2,8 @@
 
 This document proposes a local MCP server that lets coding agents explore C# code with LINQ queries against the
 Metalama code model, the way the `Metalama.LinqPad` driver does for people. The server runs arbitrary C# on purpose,
-so it speaks MCP only over stdio. The only port it opens is a loopback HTTPS server that shows results to the user and never
-runs code (section 4.1). It is a design proposal. A first implementation of v1
+so it speaks MCP only over stdio. The only port it opens is a loopback HTTPS server that shows results to the user and runs only
+the queries the user edits in its pages (section 4.1). It is a design proposal. A first implementation of v1
 and of the MCP App exists in `Metalama.Introspection/src/Metalama.Mcp`; section 14 records where it settled or changed this
 design.
 
