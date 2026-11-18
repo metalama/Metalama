@@ -53,14 +53,8 @@ internal sealed class ResultServer : IAsyncDisposable
         this._host = "localhost:" + port.ToString( CultureInfo.InvariantCulture );
         var encodedToken = ResultCache.Base64Url( token );
         this._tokenLength = encodedToken.Length;
-        this.Origin = $"https://{this._host}";
-        this.BaseUri = new Uri( $"{this.Origin}/{encodedToken}/" );
+        this.BaseUri = new Uri( $"https://{this._host}/{encodedToken}/" );
     }
-
-    /// <summary>
-    /// Gets the origin of the server, such as <c>https://localhost:50123</c>.
-    /// </summary>
-    public string Origin { get; }
 
     /// <summary>
     /// Gets the URL under which every page is served, with the token.
@@ -121,39 +115,19 @@ internal sealed class ResultServer : IAsyncDisposable
             return;
         }
 
+        if ( !HttpMethods.IsGet( context.Request.Method ) )
+        {
+            response.Headers.Allow = "GET";
+            await WriteTextAsync( context, StatusCodes.Status405MethodNotAllowed, "Only GET is accepted." );
+
+            return;
+        }
+
         var segments = (context.Request.Path.Value ?? "").Trim( '/' ).Split( '/' );
 
         if ( segments.Length < 2 || !this.IsToken( segments[0] ) )
         {
             await WriteTextAsync( context, StatusCodes.Status404NotFound, "Not found." );
-
-            return;
-        }
-
-        var isOpen = segments is [_, "open"];
-
-        if ( isOpen )
-        {
-            // The MCP App view runs in a frame of the host, on another origin, and fetches links from here when the host does
-            // not forward its calls. The token, which the request already carries, is what grants access, so any origin may
-            // read the response. No credential is involved: the server uses no cookie.
-            response.Headers.AccessControlAllowOrigin = "*";
-
-            if ( HttpMethods.IsOptions( context.Request.Method ) )
-            {
-                // The preflight of a request from a public origin to localhost (Private Network Access).
-                response.Headers.AccessControlAllowMethods = "GET";
-                response.Headers["Access-Control-Allow-Private-Network"] = "true";
-                response.StatusCode = StatusCodes.Status204NoContent;
-
-                return;
-            }
-        }
-
-        if ( !HttpMethods.IsGet( context.Request.Method ) )
-        {
-            response.Headers.Allow = isOpen ? "GET, OPTIONS" : "GET";
-            await WriteTextAsync( context, StatusCodes.Status405MethodNotAllowed, "Only GET is accepted." );
 
             return;
         }

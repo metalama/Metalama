@@ -169,22 +169,6 @@ public sealed class WorkspaceEndToEndTests : IClassFixture<FrogHatteryFixture>
     }
 
     [Fact]
-    public async Task PropertiesOfAnOpenedDeclarationCanBeOpened()
-    {
-        // Expanding a type in the served page shows its properties. A property whose value is a declaration, such as
-        // ContainingDeclaration, must carry a link, so that the page can open it in turn.
-        var link = await this.Server.QueryHtmlLinkAsync( "42" );
-        using var client = ServerProcess.CreateHttpClient();
-
-        var json = await client.GetStringAsync( new Uri( link, "../open?link=" + Uri.EscapeDataString( "T:FrogHattery.BullFrog" ) ), TestContext.Current.CancellationToken );
-
-        var properties = JsonDocument.Parse( json ).RootElement.GetProperty( "result" ).GetProperty( "properties" ).EnumerateArray().ToList();
-        var containingDeclaration = properties.Single( p => p.GetProperty( "name" ).GetString() == "ContainingDeclaration" ).GetProperty( "value" );
-
-        Assert.True( containingDeclaration.TryGetProperty( "href", out _ ), json );
-    }
-
-    [Fact]
     public async Task OpenEndpointNeverRunsAQuery()
     {
         // A query anchor would run code. The HTTP server only follows links, as the MCP App view does.

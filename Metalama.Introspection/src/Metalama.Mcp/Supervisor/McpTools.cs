@@ -96,24 +96,6 @@ internal sealed class McpTools : IAsyncDisposable
         this._serverLock.Dispose();
     }
 
-    /// <summary>
-    /// Creates the page of the MCP App view. The view loads what its cells expand from the result server, so the page and the
-    /// host must let it connect there: the page by its content security policy, the host by <c>connectDomains</c>. The
-    /// origin is exact once the server runs; before, the port is not known yet, so any port of <c>localhost</c> is allowed.
-    /// </summary>
-    public TextResourceContents CreateViewerResource()
-    {
-        var connectSource = this._server?.Origin ?? "https://localhost:*";
-
-        return new TextResourceContents
-        {
-            Uri = ViewerResourceUri,
-            MimeType = HtmlWriter.AppMimeType,
-            Text = HtmlWriter.CreateAppPage( connectSource ),
-            Meta = new JsonObject { ["ui"] = new JsonObject { ["csp"] = new JsonObject { ["connectDomains"] = new JsonArray( connectSource ) } } }
-        };
-    }
-
     public IEnumerable<McpServerTool> CreateTools()
     {
         // Loading runs MSBuild targets, aspects and a NuGet restore; a query runs arbitrary code. Their destructive and
@@ -278,12 +260,6 @@ internal sealed class McpTools : IAsyncDisposable
                 return new CallToolResult { Content = [new TextContentBlock { Text = error! }], IsError = true };
             }
         }
-        else if ( includeStructured && method is WorkerMethods.Query or WorkerMethods.Open && !this._options.NoHttp )
-        {
-            // The MCP App view loads what its cells expand from the result server, because some hosts, such as Claude, do
-            // not forward its calls to the server. Without a certificate the view still shows the result, without drill-down.
-            _ = await this.GetServerAsync( cancellationToken );
-        }
 
         var response = await this._worker.CallAsync( method, args, timeout, cancellationToken );
         var text = response[WorkerMethods.Text]?.GetValue<string>() ?? response[WorkerMethods.Error]?.GetValue<string>() ?? "";
@@ -300,8 +276,9 @@ internal sealed class McpTools : IAsyncDisposable
 
         if ( includeStructured && response[WorkerMethods.Structured] is JsonObject structured )
         {
-            // The view loads what its cells expand from the result server, next to the served page of the same result, which
-            // it offers to open in the browser.
+            // Some hosts render the MCP App view but do not forward its tools/call to the server, so the view cannot drill
+            // down. Once the result server runs, every result shown in the view also gets a served page, which the view
+            // offers to open in the browser. The server is not started for this: only an html result starts it.
             if ( pageUrl == null && this._server is { } runningServer )
             {
                 pageUrl = runningServer.GetResultUri( this._results.Add( (JsonObject) structured.DeepClone() ) );

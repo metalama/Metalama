@@ -57,8 +57,8 @@ flowchart LR
   W -. "outbound HTTPS" .-> N["NuGet feeds<br/>(restore)"]
 ```
 
-The only listener is the result server in the supervisor, started by the first html result, or the first result shown in the
-MCP App view, and bound to loopback (section 4.1). The worker, which runs code, never listens. The dotted edge is an outbound connection made by restore.
+The only listener is the result server in the supervisor, started by the first html result and bound to loopback (section
+4.1). The worker, which runs code, never listens. The dotted edge is an outbound connection made by restore.
 
 ### 3.1. Supervisor and worker
 
@@ -107,21 +107,17 @@ documentation says so plainly and never calls it a sandbox.
 - **The result server never runs a query.** It serves documents that a query already produced, and follows links with the
   worker's `open` method, as the MCP App view does. Query anchors, the only links that would run code, are rejected.
 - It is reachable from the local machine only, and only by whoever has a link:
-  - It listens on `127.0.0.1` and `::1` on a random port, started by the first html result or the first result of a host
-    that renders the MCP App view (section 9.2). `--no-http` disables it.
+  - It listens on `127.0.0.1` and `::1` on a random port, started by the first html result. `--no-http` disables it.
   - Every URL starts with a 256-bit random token, compared in constant time; anything else is 404. The token reaches only
     the agent, in the tool result, and the user.
-  - The `Host` header must be `localhost:<port>`, which defeats DNS rebinding; only GET is accepted, plus the CORS
-    preflight of `open`; responses carry `Referrer-Policy: no-referrer` (the token is in the URL), `Cache-Control: no-store`,
-    `nosniff`, and the page's CSP with `connect-src 'self'`.
-  - Only `open` answers other origins (`Access-Control-Allow-Origin: *`, and `Access-Control-Allow-Private-Network` on the
-    preflight), because the MCP App view runs on the origin of the host. The token in the URL is still required, no
-    credential is involved, and pages are not readable from another origin.
+  - The `Host` header must be `localhost:<port>`, which defeats DNS rebinding; only GET is accepted; responses carry no
+    CORS headers, `Referrer-Policy: no-referrer` (the token is in the URL), `Cache-Control: no-store`, `nosniff`, and the
+    page's CSP with `connect-src 'self'`.
   - It is built with `WebApplication.CreateEmptyBuilder`, so no `appsettings.json` or `ASPNETCORE_*` variable can change
     where it listens, and it has no logging, so nothing reaches standard output, which carries MCP.
   - It serves `https://localhost` with the ASP.NET Core development certificate, so that the browser shows no warning.
     Without a trusted one, html results fail with a message to run `dotnet dev-certs https --trust`.
-- Tests check that nothing listens before an html result or an MCP App result, that the supervisor then listens on loopback only, that the
+- Tests check that nothing listens before an html result, that the supervisor then listens on loopback only, that the
   worker never listens and never loads `Microsoft.AspNetCore*`, that `--no-http` means no listener at all, and the token,
   host, method and query-anchor rules.
 
@@ -503,17 +499,17 @@ transport rules of section 4.
   grid sends `open` again with a larger `maxItems`. Hosts reject calls from the view to tools whose `visibility`
   lacks `"app"`, so `open` declares `["model", "app"]`. `query` declares `["model"]`: the view renders its results but
   cannot run a query, so a script injection in the view could not run code through it.
-- **Hosts that do not forward calls.** Claude desktop renders the view but answers the view's `tools/call` with "IPC not
-  available for MCP tool call". So the first result for a host with the extension starts the result server of section 9.3,
-  and every result shown in the view gets a `pageUrl` in its JSON: the same result stored on the result server. The view
-  then fetches drill-down from the `open` endpoint next to it, which needs no call through the host, and shows "Open in
-  browser" (`ui/open-link` when the host announces `openLinks`, or "Copy browser link" otherwise). Without `pageUrl`
-  (`--no-http`, or no development certificate), or when the fetch fails, the view falls back to `tools/call` if the host
-  announces `serverTools`, and otherwise shows values without drill-down.
+- **Hosts that do not forward calls.** Drill-down needs `hostCapabilities.serverTools` in the `ui/initialize` result.
+  Claude desktop renders the view but answers the view's `tools/call` with "IPC not available for MCP tool call", so the
+  view only makes values clickable when the host announces `serverTools`, and stops when a call is refused anyway.
+  Instead, once the result server of section 9.3 runs, every result shown in the view gets a `pageUrl` in its JSON: the
+  same result stored on the result server. The view shows "Open in browser", which asks the host to open it with
+  `ui/open-link` when it announces `openLinks`, or "Copy browser link" otherwise. The result server is not started for
+  this; only an html result starts it.
 - The view gets the JSON of a deeper tree (the depth of the HTML snapshot) than the text for the model, which keeps the
   depth of the requested format. Both come from one build of the result, so the query runs once.
-- The resource declares one `connectDomains` entry, the origin of the result server (`https://localhost:*` until it
-  runs), and its own CSP allows `connect-src` to the same origin only. The view loads nothing else.
+- The resource declares no `csp` domains, so the host applies the extension's restrictive default and the view has
+  no network access.
 - The view resource and the `_meta.ui` of the tools are always present, because hosts without the extension ignore
   them. The JSON is added to results as `structuredContent` only when the client advertises the
   `io.modelcontextprotocol/ui` capability, so that other hosts do not receive every result twice.
