@@ -6,7 +6,7 @@
   <PropertyGroup>
     <!-- 2023.2.398 is the first version that exposes ManySolutions and TestableSolution, which the design-time
          scenarios under Metalama.Framework/src/tests/DesignTimeStandalone derive from. -->
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.502</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.503</PostSharpEngineeringVersion>
 
 
     <!-- NewtonsoftJsonMinVersion is the version referenced by the libraries that Visual Studio loads. It must not
