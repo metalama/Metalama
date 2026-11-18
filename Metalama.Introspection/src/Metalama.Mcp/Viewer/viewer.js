@@ -46,8 +46,12 @@
   // A location that opens in the editor is a small source icon, with the location in its tooltip. Otherwise it stays text,
   // so that it is not lost.
   // The icon is a template of the page, which the HTML parser puts in the SVG namespace, so the page names no URL.
+  function icon( id ) {
+    return document.getElementById( id ).content.firstElementChild.cloneNode( true );
+  }
+
   function sourceIcon() {
-    return document.getElementById( 'source-icon' ).content.firstElementChild.cloneNode( true );
+    return icon( 'source-icon' );
   }
 
   function locationElement( node, className ) {
@@ -390,7 +394,9 @@
 
     if ( served ) {
       // The server sends the same page without the served marker as an attachment, which works without the server.
-      var save = el( 'a', 'action', 'Save' );
+      var save = el( 'a', 'action icon-action' );
+      save.appendChild( icon( 'save-icon' ) );
+      save.setAttribute( 'aria-label', 'Save' );
       save.href = '?download=1';
       save.title = 'Save a snapshot of this page. Values that were not loaded cannot be expanded in the snapshot.';
       toolbar.appendChild( save );
@@ -417,7 +423,9 @@
     text.addEventListener( 'input', fit );
     window.addEventListener( 'resize', fit );
     window.requestAnimationFrame( fit );
-    var run = el( 'button', 'action run', 'Run' );
+    var run = el( 'button', 'action icon-action run' );
+    run.appendChild( icon( 'run-icon' ) );
+    run.setAttribute( 'aria-label', 'Run' );
     run.type = 'submit';
     run.title = 'Run the query (Ctrl+Enter)';
     var error = el( 'pre', 'error query-error' );
@@ -426,7 +434,8 @@
     function submit() {
       if ( run.disabled ) { return; }
       run.disabled = true;
-      run.textContent = 'Running…';
+      run.classList.add( 'running' );
+      run.title = 'Running…';
       error.hidden = true;
       fetch( '../query', {
         method: 'POST',
@@ -445,7 +454,8 @@
         error.textContent = e && e.message ? e.message : String( e );
         error.hidden = false;
         run.disabled = false;
-        run.textContent = 'Run';
+        run.classList.remove( 'running' );
+        run.title = 'Run the query (Ctrl+Enter)';
       } );
     }
 
@@ -523,7 +533,10 @@
       fontSize: 13,
       renderLineHighlight: 'none',
       fixedOverflowWidgets: true,
-      scrollbar: { alwaysConsumeMouseWheel: false },
+      scrollbar: { alwaysConsumeMouseWheel: false, vertical: 'auto', horizontal: 'hidden', useShadows: false },
+      overviewRulerLanes: 0,
+      overviewRulerBorder: false,
+      hideCursorInOverviewRuler: true,
       suggest: { showWords: false }
     } );
     if ( dark && dark.addEventListener ) {
@@ -532,7 +545,8 @@
 
     // The editor grows with its content, up to half the window, as the plain box did.
     function fit() {
-      var height = Math.min( Math.max( editor.getContentHeight(), 24 ), Math.round( window.innerHeight / 2 ) );
+      // The container has a 1-pixel border, which its height includes.
+      var height = Math.min( Math.max( editor.getContentHeight(), 20 ) + 2, Math.round( window.innerHeight / 2 ) );
       container.style.height = height + 'px';
       editor.layout();
     }

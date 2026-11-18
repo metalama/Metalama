@@ -40,6 +40,10 @@ form.query .query-error { flex: 1 1 100%; margin: 0; font: 12px/1.4 var(--mono);
 #toolbar .action { margin-left: auto; font: 12px var(--sans); color: var(--link); background: transparent; text-decoration: none; border: 1px solid currentColor; border-radius: 3px; padding: 1px 8px; cursor: pointer; }
 #toolbar .action:hover, #toolbar .action:focus-visible { background: var(--cell); }
 #toolbar .action.failed { color: var(--error); }
+#toolbar .icon-action { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 22px; padding: 0; }
+#toolbar .icon-action svg { width: 14px; height: 14px; }
+#toolbar .icon-action.running svg { animation: metalama-pulse 1s ease-in-out infinite; }
+@keyframes metalama-pulse { 50% { opacity: .3; } }
 #base { color: var(--muted); font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
 main { padding: 12px 16px 32px; overflow-x: auto; }
 .muted, .null { color: var(--muted); }
