@@ -88,6 +88,20 @@ internal partial class MemoryCachingBackend : CachingBackend
     private readonly ConcurrentDictionary<string, ImmutableArray<string>> _forwardDependenciesOfRemovedItems = new( StringComparer.Ordinal );
 
     /// <summary>
+    /// The forward dependencies of the previous items of the keys that hold an item again, except the dependencies that
+    /// the current item declares. An entry is created when an item is stored for a key without invalidating the items
+    /// that depend on the key, typically because the previous item had been removed or evicted. These items were computed
+    /// from the previous item, so the key stays in the backward dependency sets of the forward dependencies of the
+    /// previous item. An invalidation of one of them then removes the items that depend on the key, and keeps the item of
+    /// the key. The entry of a key is released when no item that is in the cache depends on the key.
+    /// </summary>
+    /// <remarks>
+    /// A key has an entry in at most one of <see cref="_forwardDependenciesOfRemovedItems"/> and this dictionary. The
+    /// entry moves from one to the other when an item is stored for the key or when the item of the key is removed.
+    /// </remarks>
+    private readonly ConcurrentDictionary<string, ImmutableArray<string>> _forwardDependenciesOfPreviousItems = new( StringComparer.Ordinal );
+
+    /// <summary>
     /// The keys for which the current instance has stored an entry in the <see cref="IMemoryCache"/>. The set is used to
     /// clear and to dispose the instance without affecting other users of a shared <see cref="IMemoryCache"/>.
     /// </summary>
@@ -363,7 +377,7 @@ internal partial class MemoryCachingBackend : CachingBackend
             }
         }
 
-        if ( this._forwardDependenciesOfRemovedItems.ContainsKey( dependencyKey ) )
+        if ( this._forwardDependenciesOfRemovedItems.ContainsKey( dependencyKey ) || this._forwardDependenciesOfPreviousItems.ContainsKey( dependencyKey ) )
         {
             (releaseCandidates ??= new List<string>()).Add( dependencyKey );
         }
@@ -486,13 +500,15 @@ internal partial class MemoryCachingBackend : CachingBackend
 
     /// <summary>
     /// Gets the dependencies under which a key is registered in the backward dependency index: the forward dependencies
-    /// of its live item, and the forward dependencies kept after the removal of a previous item. Must be called while the lock of the key is held.
+    /// of its live item, and the forward dependencies kept for a previous item, whether the key holds an item again or
+    /// not. Must be called while the lock of the key is held.
     /// </summary>
     private ImmutableArray<string> GetRegisteredDependencies( string key, MemoryCacheItem? item )
     {
         var itemDependencies = IsLive( item ) && !item!.Dependencies.IsDefaultOrEmpty ? item.Dependencies : ImmutableArray<string>.Empty;
+        var keptDependencies = this.GetKeptDependencies( key );
 
-        if ( !this._forwardDependenciesOfRemovedItems.TryGetValue( key, out var keptDependencies ) || keptDependencies.IsEmpty )
+        if ( keptDependencies.IsEmpty )
         {
             return itemDependencies;
         }
@@ -501,11 +517,54 @@ internal partial class MemoryCachingBackend : CachingBackend
     }
 
     /// <summary>
-    /// Releases the registrations kept for the removed items that no item in the cache depends on any more. Must be
-    /// called while no key lock is held.
+    /// Gets the forward dependencies kept for a previous item of a key, from
+    /// <see cref="_forwardDependenciesOfRemovedItems"/> or from <see cref="_forwardDependenciesOfPreviousItems"/>.
+    /// </summary>
+    private ImmutableArray<string> GetKeptDependencies( string key )
+    {
+        if ( this._forwardDependenciesOfRemovedItems.TryGetValue( key, out var keptDependencies ) && !keptDependencies.IsEmpty )
+        {
+            return keptDependencies;
+        }
+
+        if ( this._forwardDependenciesOfPreviousItems.TryGetValue( key, out keptDependencies ) && !keptDependencies.IsEmpty )
+        {
+            return keptDependencies;
+        }
+
+        return ImmutableArray<string>.Empty;
+    }
+
+    /// <summary>
+    /// Removes a dependency from the forward dependencies kept for a previous item of a key. Must be called while the
+    /// lock of the key is held.
+    /// </summary>
+    private static void RemoveKeptDependency( ConcurrentDictionary<string, ImmutableArray<string>> keptDependenciesByKey, string key, string dependencyKey )
+    {
+        if ( !keptDependenciesByKey.TryGetValue( key, out var keptDependencies ) )
+        {
+            return;
+        }
+
+        var remainingDependencies = keptDependencies.Remove( dependencyKey, StringComparer.Ordinal );
+
+        if ( remainingDependencies.IsEmpty )
+        {
+            keptDependenciesByKey.TryRemove( key, out _ );
+        }
+        else
+        {
+            keptDependenciesByKey[key] = remainingDependencies;
+        }
+    }
+
+    /// <summary>
+    /// Releases the registrations kept for the previous items of the keys that no item in the cache depends on any more.
+    /// Must be called while no key lock is held.
     /// </summary>
     /// <param name="releaseCandidates">
-    /// The keys of removed items from whose backward dependency set a key has been removed, or <see langword="null"/>.
+    /// The keys with kept registrations from whose backward dependency set a key has been removed, or
+    /// <see langword="null"/>.
     /// </param>
     private void ReleaseRegistrationsOfRemovedItems( List<string>? releaseCandidates )
     {
@@ -520,7 +579,7 @@ internal partial class MemoryCachingBackend : CachingBackend
         {
             var key = pendingKeys.Dequeue();
 
-            if ( !this._forwardDependenciesOfRemovedItems.ContainsKey( key ) )
+            if ( !this._forwardDependenciesOfRemovedItems.ContainsKey( key ) && !this._forwardDependenciesOfPreviousItems.ContainsKey( key ) )
             {
                 continue;
             }
@@ -530,7 +589,15 @@ internal partial class MemoryCachingBackend : CachingBackend
 
             try
             {
-                if ( this.HasLiveDependents( key ) || !this._forwardDependenciesOfRemovedItems.TryRemove( key, out var forwardDependencies ) )
+                if ( this.HasLiveDependents( key ) )
+                {
+                    continue;
+                }
+
+                // The dependencies kept for a key that holds an item again exclude the dependencies of that item, so
+                // the registrations of the item itself are not removed.
+                if ( !this._forwardDependenciesOfRemovedItems.TryRemove( key, out var forwardDependencies )
+                     && !this._forwardDependenciesOfPreviousItems.TryRemove( key, out forwardDependencies ) )
                 {
                     continue;
                 }
@@ -673,6 +740,10 @@ internal partial class MemoryCachingBackend : CachingBackend
             return;
         }
 
+        // The key no longer holds an item, so the dependencies kept for a previous item are recorded with the
+        // dependencies of the removed item, or are released with them.
+        this._forwardDependenciesOfPreviousItems.TryRemove( key, out _ );
+
         if ( retainForDependents && this.HasLiveDependents( key ) )
         {
             this._forwardDependenciesOfRemovedItems[key] = registeredDependencies;
@@ -759,11 +830,14 @@ internal partial class MemoryCachingBackend : CachingBackend
                 catch
                 {
                     // The cache threw an exception, so the entry that it holds is unknown. The index is aligned with that
-                    // entry before the exception reaches the caller.
-                    this.AlignWithStoredItem( key, itemKey, cacheValue, previousItem, newDependencies, ref releaseCandidates, out _ );
+                    // entry before the exception reaches the caller. The items that depend on the key are not removed.
+                    this.AlignWithStoredItem( key, itemKey, cacheValue, previousItem, newDependencies, true, ref releaseCandidates, out _ );
 
                     throw;
                 }
+
+                // The items that depend on the key are removed below when the new item replaces a value.
+                var replacesValue = !isCopy && IsLive( previousItem );
 
                 isStored = this.AlignWithStoredItem(
                     key,
@@ -771,10 +845,11 @@ internal partial class MemoryCachingBackend : CachingBackend
                     cacheValue,
                     previousItem,
                     newDependencies,
+                    !replacesValue,
                     ref releaseCandidates,
                     out isPreviousValueLost );
 
-                isValueReplaced = isStored && !isCopy && IsLive( previousItem );
+                isValueReplaced = isStored && replacesValue;
             }
             finally
             {
@@ -810,6 +885,10 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// <param name="newItem">The entry that the backend attempted to store.</param>
     /// <param name="previousItem">The entry that was stored before the attempt, or <see langword="null"/>.</param>
     /// <param name="newDependencies">The dependencies of <paramref name="newItem"/>, which are already registered.</param>
+    /// <param name="keepsDependents">
+    /// <see langword="true"/> when the caller keeps the items that depend on the key if <paramref name="newItem"/> is
+    /// stored, <see langword="false"/> when it removes them because <paramref name="newItem"/> replaces a value.
+    /// </param>
     /// <param name="releaseCandidates">The list that receives the keys of the removed items whose registrations may be released.</param>
     /// <param name="isPreviousValueLost">
     /// <see langword="true"/> when the cache removed the value of <paramref name="previousItem"/> without storing
@@ -822,6 +901,7 @@ internal partial class MemoryCachingBackend : CachingBackend
         MemoryCacheItem newItem,
         MemoryCacheItem? previousItem,
         ImmutableArray<string> newDependencies,
+        bool keepsDependents,
         ref List<string>? releaseCandidates,
         out bool isPreviousValueLost )
     {
@@ -834,12 +914,35 @@ internal partial class MemoryCachingBackend : CachingBackend
 
         if ( ReferenceEquals( storedItem, newItem ) )
         {
-            // The registrations of the previous item, and the registrations kept for a removed item, are replaced by the
-            // registrations of the new item.
             if ( !previousDependencies.IsEmpty )
             {
+                // The key holds an item again.
                 this._forwardDependenciesOfRemovedItems.TryRemove( key, out _ );
-                this.RemoveBackwardDependencies( key, previousDependencies, newDependencies, ref releaseCandidates );
+
+                if ( keepsDependents && this.HasLiveDependents( key ) )
+                {
+                    // The items that depend on the key stay in the cache. They were computed from a previous item of the
+                    // key, so the key stays registered under the dependencies of that item, and an invalidation of one of
+                    // them still reaches these items. The dependencies that the new item declares are registered for the
+                    // new item.
+                    var keptDependencies = previousDependencies.Where( d => !newDependencies.Contains( d ) ).ToImmutableArray();
+
+                    if ( keptDependencies.IsEmpty )
+                    {
+                        this._forwardDependenciesOfPreviousItems.TryRemove( key, out _ );
+                    }
+                    else
+                    {
+                        this._forwardDependenciesOfPreviousItems[key] = keptDependencies;
+                    }
+                }
+                else
+                {
+                    // No item was computed from a previous item of the key, or the caller removes these items. The
+                    // registrations of the previous items are replaced by the registrations of the new item.
+                    this._forwardDependenciesOfPreviousItems.TryRemove( key, out _ );
+                    this.RemoveBackwardDependencies( key, previousDependencies, newDependencies, ref releaseCandidates );
+                }
             }
 
             return true;
@@ -968,7 +1071,10 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// An item is removed only when its current value still declares the invalidated dependency. A value that a concurrent
     /// <see cref="CachingBackend.SetItem"/> has stored without that dependency is kept. The items that depend on a key
     /// whose item is absent are still processed, because their key may stay registered after the removal or the eviction
-    /// of its item. The set of visited keys stops the recursion on a cyclic dependency graph.
+    /// of its item. The items that depend on a key whose item does not declare the invalidated dependency are processed
+    /// too when the key is registered under that dependency for a previous item
+    /// (<see cref="_forwardDependenciesOfPreviousItems"/>), because they were computed from that item. The set of visited
+    /// keys stops the recursion on a cyclic dependency graph.
     /// </para>
     /// </remarks>
     /// <param name="dependencyKey">The key whose dependents are removed.</param>
@@ -1051,8 +1157,13 @@ internal partial class MemoryCachingBackend : CachingBackend
             }
             else if ( currentItem!.Dependencies.IsDefaultOrEmpty || !currentItem.Dependencies.Contains( dependencyKey ) )
             {
-                // A concurrent SetItem has stored a value that does not depend on the invalidated key.
-                outcome = (false, false);
+                // The value does not depend on the invalidated key, so it is kept. When the key is registered under the
+                // invalidated key for a previous item, the items that depend on the key were computed from that item, so
+                // they are invalidated. Otherwise, a concurrent SetItem has stored the value.
+                var isRegisteredForPreviousItem = this._forwardDependenciesOfPreviousItems.TryGetValue( key, out var keptDependencies )
+                                                  && keptDependencies.Contains( dependencyKey );
+
+                outcome = (false, isRegisteredForPreviousItem);
             }
             else
             {
@@ -1089,19 +1200,8 @@ internal partial class MemoryCachingBackend : CachingBackend
                 return;
             }
 
-            if ( this._forwardDependenciesOfRemovedItems.TryGetValue( key, out var forwardDependencies ) )
-            {
-                var remainingDependencies = forwardDependencies.Remove( dependencyKey, StringComparer.Ordinal );
-
-                if ( remainingDependencies.IsEmpty )
-                {
-                    this._forwardDependenciesOfRemovedItems.TryRemove( key, out _ );
-                }
-                else
-                {
-                    this._forwardDependenciesOfRemovedItems[key] = remainingDependencies;
-                }
-            }
+            RemoveKeptDependency( this._forwardDependenciesOfRemovedItems, key, dependencyKey );
+            RemoveKeptDependency( this._forwardDependenciesOfPreviousItems, key, dependencyKey );
 
             this.RemoveBackwardDependency( dependencyKey, key, ref releaseCandidates );
         }
@@ -1440,6 +1540,7 @@ internal partial class MemoryCachingBackend : CachingBackend
 
                 var registeredDependencies = this.GetRegisteredDependencies( key, currentItem );
                 this._forwardDependenciesOfRemovedItems.TryRemove( key, out _ );
+                this._forwardDependenciesOfPreviousItems.TryRemove( key, out _ );
                 this.RemoveBackwardDependencies( key, registeredDependencies, ImmutableArray<string>.Empty, ref releaseCandidates );
             }
             finally
@@ -1510,5 +1611,6 @@ internal partial class MemoryCachingBackend : CachingBackend
         this._keysWithUnknownDependencies.Clear();
         this._backwardDependencies.Clear();
         this._forwardDependenciesOfRemovedItems.Clear();
+        this._forwardDependenciesOfPreviousItems.Clear();
     }
 }
