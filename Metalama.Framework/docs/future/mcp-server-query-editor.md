@@ -166,3 +166,6 @@ About 3 days in total, and the package grows by the Monaco build only.
   generated class), completion details, hover, signature help, diagnostics (an error at its column, and no false
   positive for expressions, `void` calls and statements), that no code runs, the security checks on every route, the
   editor files and their cache header, the CSP, and the snapshot without editor.
+- **Layout.** The worker lays out a long query written on one line with one fluent call per line (`QueryFormatter`),
+  and the description of `query` and the primer ask the agent to write it so. A query already on several lines, or
+  made of statements, is shown as written. The editor is at least three lines high, and Run and Save are icons.
