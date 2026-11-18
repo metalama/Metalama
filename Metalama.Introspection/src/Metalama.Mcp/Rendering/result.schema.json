@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doc.metalama.net/schemas/mcp-result/1",
+  "title": "Metalama MCP result",
+  "description": "The JSON form of a result of the query and open tools of Metalama.Mcp, and the input of its HTML viewer.",
+  "type": "object",
+  "required": [ "schema", "result" ],
+  "properties": {
+    "schema": { "const": 1 },
+    "base": { "type": [ "string", "null" ], "description": "The base against which the relative links are resolved." },
+    "title": { "type": "string" },
+    "root": { "type": "string", "description": "In an HTML page only: the absolute directory against which locations are relative." },
+    "editor": { "type": "string", "description": "In an HTML page only: the template of the link that opens a location in an editor, with the {path} placeholder, the absolute path in URI form such as /C:/src/a.cs, and the {line} placeholder." },
+    "served": { "type": "boolean", "description": "In a page served by the result server only: the page fetches what it expands from ../open." },
+    "pageUrl": { "type": "string", "description": "In the MCP App view only: the https://localhost link of the same result on the result server, when it runs." },
+    "result": { "$ref": "#/$defs/node" }
+  },
+  "$defs": {
+    "linked": {
+      "properties": {
+        "link": { "type": "string", "description": "The link, relative to the base." },
+        "href": { "type": "string", "description": "The absolute metalama:// link." }
+      }
+    },
+    "node": {
+      "oneOf": [
+        { "$ref": "#/$defs/scalar" },
+        { "$ref": "#/$defs/object" },
+        { "$ref": "#/$defs/collection" },
+        { "$ref": "#/$defs/grouping" },
+        { "$ref": "#/$defs/error" },
+        { "$ref": "#/$defs/text" }
+      ]
+    },
+    "scalar": {
+      "type": "object",
+      "required": [ "kind", "type" ],
+      "properties": {
+        "kind": { "const": "scalar" },
+        "type": { "enum": [ "null", "string", "number", "boolean", "enum", "severity", "other" ] },
+        "value": { "type": [ "string", "null" ] }
+      }
+    },
+    "object": {
+      "type": "object",
+      "allOf": [ { "$ref": "#/$defs/linked" } ],
+      "required": [ "kind", "type", "display" ],
+      "properties": {
+        "kind": { "const": "object" },
+        "type": { "type": "string" },
+        "display": { "type": "string" },
+        "declaration": { "type": "boolean" },
+        "transformed": { "type": "boolean" },
+        "location": { "type": "string", "description": "path:line, relative to the workspace root." },
+        "expression": { "type": "string", "description": "A C# expression that resolves the declaration." },
+        "properties": {
+          "type": "array",
+          "description": "Absent when the object is collapsed.",
+          "items": {
+            "type": "object",
+            "required": [ "name", "value" ],
+            "properties": { "name": { "type": "string" }, "value": { "$ref": "#/$defs/node" } }
+          }
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "allOf": [ { "$ref": "#/$defs/linked" } ],
+      "required": [ "kind", "type" ],
+      "properties": {
+        "kind": { "const": "collection" },
+        "type": { "type": "string" },
+        "count": { "type": [ "integer", "null" ], "description": "Null when unknown without enumerating." },
+        "truncated": { "type": "boolean" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/node" }, "description": "Absent when the collection is collapsed." }
+      }
+    },
+    "grouping": {
+      "type": "object",
+      "required": [ "kind", "key", "items" ],
+      "properties": {
+        "kind": { "const": "grouping" },
+        "key": { "$ref": "#/$defs/node" },
+        "items": { "$ref": "#/$defs/collection" }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": [ "kind", "exception", "message" ],
+      "properties": {
+        "kind": { "const": "error" },
+        "exception": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "text": {
+      "type": "object",
+      "required": [ "kind", "text", "segments" ],
+      "properties": {
+        "kind": { "const": "text" },
+        "text": { "type": "string" },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": { "text": { "type": [ "string", "null" ] }, "node": { "$ref": "#/$defs/node" } }
+          }
+        }
+      }
+    }
+  }
+}
