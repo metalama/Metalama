@@ -427,7 +427,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
         IDeclarationFactory ICompilation.Factory => this.Factory;
 
-        public IReadOnlyList<IManagedResource> ManagedResources => throw new NotImplementedException();
+        public IReadOnlyList<IManagedResource> ManagedResources => Array.Empty<IManagedResource>();
 
         public ICompilationComparers Comparers => this.CompilationContext.Comparers;
 
