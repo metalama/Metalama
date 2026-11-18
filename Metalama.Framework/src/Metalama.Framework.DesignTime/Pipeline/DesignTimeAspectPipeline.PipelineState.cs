@@ -541,7 +541,7 @@ public sealed partial class DesignTimeAspectPipeline
             var transformations = pipelineResultValue?.Transformations ?? ImmutableArray<ITransformationBase>.Empty;
 
             var annotations = pipelineResultValue?.Annotations
-                              ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty.WithKeyComparer(
+                              ?? ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance>.Empty.WithKeyComparer(
                                   RefEqualityComparer<IDeclaration>.Default );
 
             Invariant.Assert( annotations.KeyComparer is IRefEqualityComparer );
