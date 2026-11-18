@@ -114,12 +114,14 @@ documentation says so plainly and never calls it a sandbox.
   - Every URL starts with a 256-bit random token, compared in constant time; anything else is 404. The token reaches only
     the agent, in the tool result, and the user.
   - The `Host` header must be `localhost:<port>`, which defeats DNS rebinding; only GET is accepted, except POST on
-    `query`; responses carry no CORS headers, `Referrer-Policy: no-referrer` (the token is in the URL),
-    `Cache-Control: no-store`, `nosniff`, and the page's CSP with `connect-src 'self'`.
-  - `POST <token>/query` also requires an `Origin` header equal to the origin of the server, rejects a `Sec-Fetch-Site`
-    other than `same-origin`, and accepts only an `application/json` body of at most 1 MB. A page of another origin can
-    send JSON only after a CORS preflight, which the server never answers, and an HTML form cannot send JSON, so neither
-    can run a query even with the token.
+    `query` and on the IntelliSense routes of the query editor (`complete`, `describe`, `hover`, `signature`,
+    `diagnostics`, which analyze the code and never run it); responses carry no CORS headers,
+    `Referrer-Policy: no-referrer` (the token is in the URL), `Cache-Control: no-store` (except the versioned files of
+    the editor), `nosniff`, and the page's CSP.
+  - Every POST goes through one check (`ResultServer.ReadPostAsync`): an `Origin` header equal to the origin of the
+    server, no `Sec-Fetch-Site` other than `same-origin`, and an `application/json` body of at most 1 MB. A page of
+    another origin can send JSON only after a CORS preflight, which the server never answers, and an HTML form cannot
+    send JSON, so neither can run a query or read the code model even with the token.
   - It is built with `WebApplication.CreateEmptyBuilder`, so no `appsettings.json` or `ASPNETCORE_*` variable can change
     where it listens, and it has no logging, so nothing reaches standard output, which carries MCP.
   - It serves `https://localhost` with the ASP.NET Core development certificate, so that the browser shows no warning.
@@ -493,6 +495,9 @@ Interactions:
   previous ones. A failure, such as a compile error, is shown under the box, and the result stays. The query runs in the
   worker like any other, with the default timeout, serialized with the calls of the agent. The page of an `open` result
   has no box.
+- The box becomes a Monaco editor with completion, quick info, signature help and diagnostics computed by Roslyn in the
+  worker, without running the query. The plan and its outcome are in `mcp-server-query-editor.md`. A saved snapshot keeps
+  no editor.
 - A link to a result that was evicted, or whose server stopped with the session, says to run the query again.
 - The server does not start a browser. The user opens the link.
 

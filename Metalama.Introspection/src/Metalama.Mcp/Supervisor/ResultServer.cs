@@ -73,6 +73,8 @@ internal sealed class ResultServer : IAsyncDisposable
 
     private const int _maxQueryRequestLength = 1024 * 1024;
 
+    private static readonly TimeSpan _intelliSenseTimeout = TimeSpan.FromSeconds( 60 );
+
     /// <summary>
     /// Stores a page and returns its URL. The page of a query keeps the code, so that the user can edit it and run it again.
     /// </summary>
@@ -147,13 +149,22 @@ internal sealed class ResultServer : IAsyncDisposable
             return;
         }
 
-        // A query runs code, so it is the only POST, and it is accepted only from a page of this server.
-        var isQuery = segments is [_, "query"];
+        // Running a query and the IntelliSense of the query editor are POST, accepted only from a page of this server
+        // (ReadPostAsync). Everything else is GET.
+        var postMethod = segments is [_, var name] ? GetPostMethod( name ) : null;
+        var isPost = segments is [_, "query"] || postMethod != null;
 
-        if ( isQuery ? !HttpMethods.IsPost( context.Request.Method ) : !HttpMethods.IsGet( context.Request.Method ) )
+        if ( isPost ? !HttpMethods.IsPost( context.Request.Method ) : !HttpMethods.IsGet( context.Request.Method ) )
         {
-            response.Headers.Allow = isQuery ? "POST" : "GET";
-            await WriteTextAsync( context, StatusCodes.Status405MethodNotAllowed, isQuery ? "Only POST is accepted." : "Only GET is accepted." );
+            response.Headers.Allow = isPost ? "POST" : "GET";
+            await WriteTextAsync( context, StatusCodes.Status405MethodNotAllowed, isPost ? "Only POST is accepted." : "Only GET is accepted." );
+
+            return;
+        }
+
+        if ( postMethod != null )
+        {
+            await this.ServeIntelliSenseAsync( context, postMethod );
 
             return;
         }
@@ -162,6 +173,11 @@ internal sealed class ResultServer : IAsyncDisposable
         {
             case "query":
                 await this.ServeQueryAsync( context );
+
+                break;
+
+            case "assets" when segments.Length == 4:
+                await ServeAssetAsync( context, segments[2], segments[3] );
 
                 break;
 
@@ -270,27 +286,8 @@ internal sealed class ResultServer : IAsyncDisposable
     /// </remarks>
     private async Task ServeQueryAsync( HttpContext context )
     {
-        var request = context.Request;
-
-        if ( request.Headers.Origin.ToString() != this._origin
-             || (request.Headers.TryGetValue( "Sec-Fetch-Site", out var site ) && site.ToString() != "same-origin") )
+        if ( await this.ReadPostAsync( context ) is not { } body )
         {
-            await WriteTextAsync( context, StatusCodes.Status403Forbidden, "Queries are accepted only from the pages of this server." );
-
-            return;
-        }
-
-        if ( request.ContentType?.StartsWith( "application/json", StringComparison.OrdinalIgnoreCase ) != true )
-        {
-            await WriteTextAsync( context, StatusCodes.Status415UnsupportedMediaType, "The request must be JSON." );
-
-            return;
-        }
-
-        if ( request.ContentLength is null or > _maxQueryRequestLength )
-        {
-            await WriteTextAsync( context, StatusCodes.Status413PayloadTooLarge, "The query is too long." );
-
             return;
         }
 
@@ -299,11 +296,10 @@ internal sealed class ResultServer : IAsyncDisposable
 
         try
         {
-            var body = await JsonNode.ParseAsync( request.Body, cancellationToken: context.RequestAborted );
-            code = body?["code"]?.GetValue<string>();
-            workspace = body?["workspace"]?.GetValue<string>();
+            code = body["code"]?.GetValue<string>();
+            workspace = body["workspace"]?.GetValue<string>();
         }
-        catch ( Exception e ) when ( e is JsonException or InvalidOperationException or FormatException )
+        catch ( Exception e ) when ( e is InvalidOperationException or FormatException )
         {
             await WriteTextAsync( context, StatusCodes.Status400BadRequest, "The request is not valid." );
 
@@ -333,6 +329,128 @@ internal sealed class ResultServer : IAsyncDisposable
         context.Response.ContentType = "application/json; charset=utf-8";
         var url = this.Store( page, code ).ToString();
         await context.Response.WriteAsync( new JsonObject { ["url"] = url }.ToJsonString(), Encoding.UTF8, context.RequestAborted );
+    }
+
+    /// <summary>
+    /// Checks a POST request and reads its JSON body. It writes the error response and returns <c>null</c> when the request
+    /// is rejected. Every POST route goes through this method, so that none can miss a check.
+    /// </summary>
+    /// <remarks>
+    /// A POST runs a query or reads the code model, so beyond the token, the request must come from a page of this server:
+    /// its <c>Origin</c> must be the origin of the server, and the browser must not mark it as cross-site. The body must be
+    /// JSON, which a page of another origin cannot send without a CORS preflight, and the server answers none.
+    /// </remarks>
+    private async Task<JsonObject?> ReadPostAsync( HttpContext context )
+    {
+        var request = context.Request;
+
+        if ( request.Headers.Origin.ToString() != this._origin
+             || (request.Headers.TryGetValue( "Sec-Fetch-Site", out var site ) && site.ToString() != "same-origin") )
+        {
+            await WriteTextAsync( context, StatusCodes.Status403Forbidden, "Requests are accepted only from the pages of this server." );
+
+            return null;
+        }
+
+        if ( request.ContentType?.StartsWith( "application/json", StringComparison.OrdinalIgnoreCase ) != true )
+        {
+            await WriteTextAsync( context, StatusCodes.Status415UnsupportedMediaType, "The request must be JSON." );
+
+            return null;
+        }
+
+        if ( request.ContentLength is null or > _maxQueryRequestLength )
+        {
+            await WriteTextAsync( context, StatusCodes.Status413PayloadTooLarge, "The query is too long." );
+
+            return null;
+        }
+
+        try
+        {
+            if ( await JsonNode.ParseAsync( request.Body, cancellationToken: context.RequestAborted ) is JsonObject body )
+            {
+                return body;
+            }
+        }
+        catch ( JsonException ) { }
+
+        await WriteTextAsync( context, StatusCodes.Status400BadRequest, "The request is not valid." );
+
+        return null;
+    }
+
+    /// <summary>
+    /// Maps a route of the query editor to the method of the worker that answers it.
+    /// </summary>
+    private static string? GetPostMethod( string route )
+        => route switch
+        {
+            "complete" => WorkerMethods.Complete,
+            "describe" => WorkerMethods.DescribeCompletion,
+            "hover" => WorkerMethods.Hover,
+            "signature" => WorkerMethods.Signature,
+            "diagnostics" => WorkerMethods.Diagnostics,
+            _ => null
+        };
+
+    /// <summary>
+    /// Answers a request of the query editor: completion, completion details, quick info, signature help or diagnostics.
+    /// The worker analyzes the code and does not run it.
+    /// </summary>
+    private async Task ServeIntelliSenseAsync( HttpContext context, string method )
+    {
+        if ( await this.ReadPostAsync( context ) is not { } body )
+        {
+            return;
+        }
+
+        var args = new JsonObject();
+
+        try
+        {
+            args["code"] = body["code"]?.GetValue<string>() ?? "";
+            args["position"] = body["position"]?.GetValue<int>() ?? 0;
+            args["index"] = body["index"]?.GetValue<int>() ?? -1;
+        }
+        catch ( Exception e ) when ( e is InvalidOperationException or FormatException )
+        {
+            await WriteTextAsync( context, StatusCodes.Status400BadRequest, "The request is not valid." );
+
+            return;
+        }
+
+        // The page drops answers that come late, but the worker is not stopped for them: a soft timeout that is too short
+        // would kill the worker, and with it the loaded workspaces, on the first call, which loads the language services.
+        var result = await this._worker.CallAsync( method, args, _intelliSenseTimeout, context.RequestAborted );
+
+        if ( result[WorkerMethods.Ok]?.GetValue<bool>() != true || result[WorkerMethods.Structured] is not JsonObject answer )
+        {
+            await WriteTextAsync( context, StatusCodes.Status400BadRequest, result[WorkerMethods.Error]?.GetValue<string>() ?? "The request failed." );
+
+            return;
+        }
+
+        context.Response.ContentType = "application/json; charset=utf-8";
+        await context.Response.WriteAsync( answer.ToJsonString(), Encoding.UTF8, context.RequestAborted );
+    }
+
+    /// <summary>
+    /// Serves a file of the query editor. The version in the path changes with the files, so they can be cached.
+    /// </summary>
+    private static async Task ServeAssetAsync( HttpContext context, string version, string name )
+    {
+        if ( version != EditorAssets.Version || !EditorAssets.TryGet( name, out var asset ) )
+        {
+            await WriteTextAsync( context, StatusCodes.Status404NotFound, "Not found." );
+
+            return;
+        }
+
+        context.Response.Headers.CacheControl = "private, max-age=86400, immutable";
+        context.Response.ContentType = asset.ContentType;
+        context.Response.ContentLength = asset.Content.Length;
+        await context.Response.Body.WriteAsync( asset.Content, context.RequestAborted );
     }
 
     private static async Task WriteTextAsync( HttpContext context, int statusCode, string text )

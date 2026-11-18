@@ -25,17 +25,19 @@ namespace Metalama.Mcp.Worker;
 /// <summary>
 /// Handles the requests of the supervisor: loading workspaces, running queries and opening links.
 /// </summary>
-internal sealed class RequestHandler
+internal sealed class RequestHandler : IDisposable
 {
     private static readonly bool _reportAssemblies = Environment.GetEnvironmentVariable( "METALAMA_MCP_REPORT_ASSEMBLIES" ) == "1";
 
     private readonly CommandLineOptions _options;
     private readonly WorkspaceRegistry _registry = new();
     private readonly QueryCompiler _compiler = new();
+    private readonly QueryIntelliSense _intelliSense;
 
     public RequestHandler( CommandLineOptions options )
     {
         this._options = options;
+        this._intelliSense = new QueryIntelliSense( this._compiler );
     }
 
     public async Task<JsonObject> HandleAsync( JsonObject request, CancellationToken cancellationToken )
@@ -52,6 +54,16 @@ internal sealed class RequestHandler
                 WorkerMethods.Unload => this.Unload( args ),
                 WorkerMethods.Query => await this.QueryAsync( args, cancellationToken ),
                 WorkerMethods.Open => this.Open( args ),
+                WorkerMethods.Complete => Success( await this._intelliSense.CompleteAsync( GetCode( args ), GetPosition( args ), cancellationToken ) ),
+                WorkerMethods.DescribeCompletion => Success(
+                    await this._intelliSense.DescribeCompletionAsync(
+                        GetCode( args ),
+                        GetPosition( args ),
+                        args["index"]?.GetValue<int>() ?? -1,
+                        cancellationToken ) ),
+                WorkerMethods.Hover => Success( await this._intelliSense.HoverAsync( GetCode( args ), GetPosition( args ), cancellationToken ) ),
+                WorkerMethods.Signature => Success( await this._intelliSense.SignatureAsync( GetCode( args ), GetPosition( args ), cancellationToken ) ),
+                WorkerMethods.Diagnostics => Success( await this._intelliSense.DiagnosticsAsync( GetCode( args ), cancellationToken ) ),
                 _ => Failure( $"Unknown method '{method}'." )
             };
 
@@ -73,6 +85,14 @@ internal sealed class RequestHandler
             return Failure( FormatException( e ) );
         }
     }
+
+    public void Dispose() => this._intelliSense.Dispose();
+
+    private static string GetCode( JsonObject args ) => args["code"]?.GetValue<string>() ?? "";
+
+    private static int GetPosition( JsonObject args ) => args["position"]?.GetValue<int>() ?? 0;
+
+    private static JsonObject Success( JsonObject structured ) => new() { [WorkerMethods.Ok] = true, [WorkerMethods.Structured] = structured };
 
     private async Task<JsonObject> LoadAsync( JsonObject args, CancellationToken cancellationToken )
     {

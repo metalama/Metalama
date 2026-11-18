@@ -34,6 +34,12 @@ internal static partial class HtmlWriter
     /// </summary>
     public const string ServedProperty = "served";
 
+    /// <summary>
+    /// The property of the embedded document of a served page that holds the URL of the files of the query editor, relative
+    /// to the page.
+    /// </summary>
+    public const string EditorAssetsProperty = "editorAssets";
+
     // The default encoder escapes <, >, & and quotes as \uXXXX, so a value that contains </script> cannot close the element.
     private static readonly JsonSerializerOptions _embeddingOptions = new() { Encoder = JavaScriptEncoder.Default };
 
@@ -50,9 +56,10 @@ internal static partial class HtmlWriter
     {
         // SHA-256 is what the content security policy requires for script hashes.
         var scriptHash = Convert.ToBase64String( SHA256.HashData( Encoding.UTF8.GetBytes( ReadScript() ) ) );
-        var connect = served ? "; connect-src 'self'" : "";
-
-        return $"default-src 'none'; script-src 'sha256-{scriptHash}'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'{connect}";
+        // A served page also loads the query editor from the server: its script, style sheet, font and worker.
+        return served
+            ? $"default-src 'none'; script-src 'sha256-{scriptHash}' 'self'; style-src 'self' 'unsafe-inline'; img-src data:; font-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'self'"
+            : $"default-src 'none'; script-src 'sha256-{scriptHash}'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
     }
 
     /// <summary>
@@ -72,6 +79,7 @@ internal static partial class HtmlWriter
         {
             document = (JsonObject) document.DeepClone();
             document[ServedProperty] = true;
+            document[EditorAssetsProperty] = "../assets/" + EditorAssets.Version + "/";
         }
 
         var data = document != null

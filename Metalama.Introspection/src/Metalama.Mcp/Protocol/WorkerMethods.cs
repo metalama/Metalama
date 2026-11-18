@@ -20,6 +20,14 @@ internal static class WorkerMethods
     public const string Open = "open";
     public const string Cancel = "cancel";
 
+    // IntelliSense for the query editor of a served page. They analyze the code and never run it. Their answer is in
+    // Structured. The arguments are "code" and, except for Diagnostics, "position", an offset in the code.
+    public const string Complete = "complete";
+    public const string DescribeCompletion = "describeCompletion";
+    public const string Hover = "hover";
+    public const string Signature = "signature";
+    public const string Diagnostics = "diagnostics";
+
     public const string Id = "id";
     public const string Method = "method";
     public const string Args = "args";

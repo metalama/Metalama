@@ -32,6 +32,8 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 var(-
 form.query { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: flex-start; }
 form.query textarea { flex: 1 1 400px; min-height: 2.2em; max-height: 50vh; resize: vertical; font: 600 13px/1.45 var(--mono); color: var(--fg); background: var(--cell); border: 1px solid var(--rule); border-radius: 3px; padding: 4px 6px; }
 form.query textarea:focus-visible { outline: 2px solid var(--link); outline-offset: 0; }
+form.query .query-monaco { flex: 1 1 400px; min-width: 0; height: 24px; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+form.query .query-monaco:focus-within { outline: 2px solid var(--link); outline-offset: 0; }
 form.query .run { margin-left: 0; }
 form.query .run:disabled { opacity: .6; cursor: progress; }
 form.query .query-error { flex: 1 1 100%; margin: 0; font: 12px/1.4 var(--mono); white-space: pre-wrap; }

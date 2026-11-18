@@ -33,7 +33,7 @@ internal static class WorkerHost
 
         WorkerInitialization.Initialize();
 
-        var handler = new RequestHandler( options );
+        using var handler = new RequestHandler( options );
         var requests = Channel.CreateUnbounded<JsonObject>();
         CancellationTokenSource? current = null;
         var currentLock = new object();

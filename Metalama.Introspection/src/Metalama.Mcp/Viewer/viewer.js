@@ -382,7 +382,10 @@
     toolbar.querySelectorAll( '.action' ).forEach( function ( action ) { action.remove(); } );
 
     if ( served && typeof document_.query === 'string' ) {
-      titleElement.replaceChildren( queryEditor( document_.query, typeof document_.workspace === 'string' ? document_.workspace : null ) );
+      titleElement.replaceChildren( queryEditor(
+        document_.query,
+        typeof document_.workspace === 'string' ? document_.workspace : null,
+        typeof document_.editorAssets === 'string' ? document_.editorAssets : null ) );
     }
 
     if ( served ) {
@@ -401,7 +404,7 @@
   }
 
   // On a served page, the query can be edited and run again. The result has its own page, so the browser history keeps both.
-  function queryEditor( code, workspace ) {
+  function queryEditor( code, workspace, editorAssets ) {
     var form = el( 'form', 'query' );
     var text = el( 'textarea', 'query-code' );
     text.value = code;
@@ -430,7 +433,7 @@
         credentials: 'same-origin',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify( { code: text.value, workspace: workspace } )
+        body: JSON.stringify( { code: getCode(), workspace: workspace } )
       } ).then( function ( response ) {
         if ( !response.ok ) {
           return response.text().then( function ( message ) { throw new Error( message || 'The server returned ' + response.status + '.' ); } );
@@ -446,6 +449,10 @@
       } );
     }
 
+    // The plain box is replaced by the Monaco editor once it loads. If it does not load, the box stays.
+    var editor = null;
+    function getCode() { return editor ? editor.getValue() : text.value; }
+
     form.addEventListener( 'submit', function ( event ) { event.preventDefault(); submit(); } );
     text.addEventListener( 'keydown', function ( event ) {
       if ( event.key === 'Enter' && ( event.ctrlKey || event.metaKey ) ) { event.preventDefault(); submit(); }
@@ -453,7 +460,192 @@
     form.appendChild( text );
     form.appendChild( run );
     form.appendChild( error );
+
+    if ( editorAssets ) {
+      loadMonaco( editorAssets ).then( function ( monaco ) {
+        editor = createEditor( monaco, form, text, submit );
+      }, function () { /* Keep the plain box. */ } );
+    }
+
     return form;
+  }
+
+  // The query editor: a trimmed Monaco served by the result server, with IntelliSense computed by the worker of metalama-mcp.
+  var monacoPromise = null;
+
+  function loadMonaco( base ) {
+    if ( monacoPromise ) { return monacoPromise; }
+    monacoPromise = new Promise( function ( resolve, reject ) {
+      var workerUrl = new URL( base + 'editor.worker.js', document.baseURI ).toString();
+      window.MonacoEnvironment = { getWorker: function () { return new Worker( workerUrl ); } };
+      var style = document.createElement( 'link' );
+      style.rel = 'stylesheet';
+      style.href = base + 'editor.css';
+      document.head.appendChild( style );
+      var script = document.createElement( 'script' );
+      script.src = base + 'editor.js';
+      script.onload = function () { if ( window.monaco ) { registerLanguageFeatures( window.monaco ); resolve( window.monaco ); } else { reject( new Error( 'No editor.' ) ); } };
+      script.onerror = function () { reject( new Error( 'The editor did not load.' ) ); };
+      document.head.appendChild( script );
+    } );
+    return monacoPromise;
+  }
+
+  function post( route, body ) {
+    return fetch( '../' + route, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify( body )
+    } ).then( function ( response ) {
+      if ( !response.ok ) { throw new Error( 'The server returned ' + response.status + '.' ); }
+      return response.json();
+    } );
+  }
+
+  function createEditor( monaco, form, text, submit ) {
+    var container = el( 'div', 'query-monaco' );
+    text.replaceWith( container );
+    var dark = window.matchMedia ? window.matchMedia( '(prefers-color-scheme: dark)' ) : null;
+    var editor = monaco.editor.create( container, {
+      value: text.value,
+      language: 'csharp',
+      theme: dark && dark.matches ? 'vs-dark' : 'vs',
+      minimap: { enabled: false },
+      lineNumbers: 'off',
+      glyphMargin: false,
+      folding: false,
+      lineDecorationsWidth: 4,
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      automaticLayout: true,
+      fontSize: 13,
+      renderLineHighlight: 'none',
+      fixedOverflowWidgets: true,
+      scrollbar: { alwaysConsumeMouseWheel: false },
+      suggest: { showWords: false }
+    } );
+    if ( dark && dark.addEventListener ) {
+      dark.addEventListener( 'change', function () { monaco.editor.setTheme( dark.matches ? 'vs-dark' : 'vs' ); } );
+    }
+
+    // The editor grows with its content, up to half the window, as the plain box did.
+    function fit() {
+      var height = Math.min( Math.max( editor.getContentHeight(), 24 ), Math.round( window.innerHeight / 2 ) );
+      container.style.height = height + 'px';
+      editor.layout();
+    }
+    editor.onDidContentSizeChange( fit );
+    fit();
+
+    editor.addCommand( monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, submit );
+
+    // Errors and warnings, as Run would report them, a moment after the last edit. Stale answers are dropped.
+    var sequence = 0;
+    var timer = null;
+    function check() {
+      var current = ++sequence;
+      post( 'diagnostics', { code: editor.getValue() } ).then( function ( answer ) {
+        if ( current !== sequence ) { return; }
+        monaco.editor.setModelMarkers( editor.getModel(), 'metalama', ( answer.markers || [] ).map( function ( m ) {
+          return {
+            severity: m.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+            message: m.message,
+            code: m.id,
+            startLineNumber: m.startLine,
+            startColumn: m.startColumn,
+            endLineNumber: m.endLine,
+            endColumn: Math.max( m.endColumn, m.startColumn + 1 )
+          };
+        } ) );
+      }, function () { /* The server is gone: keep the markers. */ } );
+    }
+    editor.onDidChangeModelContent( function () { window.clearTimeout( timer ); timer = window.setTimeout( check, 400 ); } );
+    check();
+    editor.focus();
+    return editor;
+  }
+
+  function rangeOf( model, start, end ) {
+    var from = model.getPositionAt( start );
+    var to = model.getPositionAt( end );
+    return { startLineNumber: from.lineNumber, startColumn: from.column, endLineNumber: to.lineNumber, endColumn: to.column };
+  }
+
+  function registerLanguageFeatures( monaco ) {
+    var kinds = monaco.languages.CompletionItemKind;
+    var kindMap = {
+      method: kinds.Method, property: kinds.Property, field: kinds.Field, variable: kinds.Variable, 'class': kinds.Class,
+      struct: kinds.Struct, 'interface': kinds.Interface, 'enum': kinds.Enum, enumMember: kinds.EnumMember, 'function': kinds.Function,
+      event: kinds.Event, module: kinds.Module, keyword: kinds.Keyword, constant: kinds.Constant, typeParameter: kinds.TypeParameter,
+      snippet: kinds.Snippet, text: kinds.Text
+    };
+
+    monaco.languages.registerCompletionItemProvider( 'csharp', {
+      triggerCharacters: [ '.' ],
+      provideCompletionItems: function ( model, position ) {
+        var code = model.getValue();
+        var offset = model.getOffsetAt( position );
+        return post( 'complete', { code: code, position: offset } ).then( function ( answer ) {
+          var range = answer.items && answer.items.length ? rangeOf( model, answer.start, answer.end ) : null;
+          return {
+            suggestions: ( answer.items || [] ).map( function ( item ) {
+              return {
+                label: item.label,
+                kind: kindMap[item.kind] !== undefined ? kindMap[item.kind] : kinds.Text,
+                insertText: item.insertText,
+                filterText: item.filterText,
+                sortText: item.sortText,
+                range: range,
+                metalama: { code: code, position: offset, index: item.index }
+              };
+            } )
+          };
+        }, function () { return { suggestions: [] }; } );
+      },
+      resolveCompletionItem: function ( item ) {
+        if ( !item.metalama ) { return item; }
+        return post( 'describe', item.metalama ).then( function ( answer ) {
+          if ( answer.detail ) { item.detail = answer.detail; }
+          if ( answer.documentation ) { item.documentation = answer.documentation; }
+          return item;
+        }, function () { return item; } );
+      }
+    } );
+
+    monaco.languages.registerHoverProvider( 'csharp', {
+      provideHover: function ( model, position ) {
+        return post( 'hover', { code: model.getValue(), position: model.getOffsetAt( position ) } ).then( function ( answer ) {
+          if ( !answer.markdown ) { return null; }
+          return { contents: [ { value: answer.markdown } ], range: rangeOf( model, answer.start, answer.end ) };
+        }, function () { return null; } );
+      }
+    } );
+
+    monaco.languages.registerSignatureHelpProvider( 'csharp', {
+      signatureHelpTriggerCharacters: [ '(', ',' ],
+      signatureHelpRetriggerCharacters: [ ',' ],
+      provideSignatureHelp: function ( model, position ) {
+        return post( 'signature', { code: model.getValue(), position: model.getOffsetAt( position ) } ).then( function ( answer ) {
+          if ( !answer.signatures || !answer.signatures.length ) { return null; }
+          return {
+            value: {
+              signatures: answer.signatures.map( function ( s ) {
+                return {
+                  label: s.label,
+                  documentation: s.documentation || undefined,
+                  parameters: s.parameters.map( function ( p ) { return { label: [ p.start, p.end ] }; } )
+                };
+              } ),
+              activeSignature: answer.activeSignature,
+              activeParameter: answer.activeParameter
+            },
+            dispose: function () {}
+          };
+        }, function () { return null; } );
+      }
+    } );
   }
 
   function pageAction( url ) {

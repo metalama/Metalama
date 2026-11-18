@@ -62,6 +62,15 @@
         <EmbeddedResource Include="Viewer\viewer.html" LogicalName="Metalama.Mcp.Viewer.viewer.html" />
         <EmbeddedResource Include="Viewer\viewer.css" LogicalName="Metalama.Mcp.Viewer.viewer.css" />
         <EmbeddedResource Include="Viewer\viewer.js" LogicalName="Metalama.Mcp.Viewer.viewer.js" />
+
+        <!-- The query editor of a served page: a trimmed Monaco built by Viewer/editor-build. See EditorAssets. -->
+        <EmbeddedResource Include="Viewer\editor\editor.js" LogicalName="Metalama.Mcp.Viewer.editor.editor.js" />
+        <EmbeddedResource Include="Viewer\editor\editor.css" LogicalName="Metalama.Mcp.Viewer.editor.editor.css" />
+        <EmbeddedResource Include="Viewer\editor\editor.worker.js" LogicalName="Metalama.Mcp.Viewer.editor.editor.worker.js" />
+        <EmbeddedResource Include="Viewer\editor\codicon.ttf" LogicalName="Metalama.Mcp.Viewer.editor.codicon.ttf" />
+        <None Remove="Viewer\editor-build\**" />
+        <Content Remove="Viewer\editor-build\**" />
+        <Compile Remove="Viewer\editor-build\**" />
         <None Include="Rendering\result.schema.json" Pack="true" PackagePath="\" />
         <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>

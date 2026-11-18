@@ -44,8 +44,27 @@ internal sealed class QueryCompiler
         "Metalama.Extensions.Metrics"
     ];
 
+    /// <summary>
+    /// The parse options of a query. IntelliSense uses the same.
+    /// </summary>
+    public static CSharpParseOptions ParseOptions { get; } = new( LanguageVersion.Preview );
+
+    /// <summary>
+    /// The compilation options of a query. IntelliSense uses the same.
+    /// </summary>
+    public static CSharpCompilationOptions CompilationOptions { get; } = new(
+        OutputKind.DynamicallyLinkedLibrary,
+        nullableContextOptions: NullableContextOptions.Disable,
+        optimizationLevel: OptimizationLevel.Debug,
+        allowUnsafe: false );
+
     private readonly ConcurrentDictionary<string, CompiledQuery> _cache = new( StringComparer.Ordinal );
     private readonly Lazy<ImmutableArray<MetadataReference>> _references = new( GetReferences );
+
+    /// <summary>
+    /// Gets the references of a query: the assemblies of the worker.
+    /// </summary>
+    public ImmutableArray<MetadataReference> References => this._references.Value;
 
     public CompiledQuery Compile( string code )
     {
@@ -76,17 +95,13 @@ internal sealed class QueryCompiler
 
     private CompiledQuery Emit( string source )
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText( source, new CSharpParseOptions( LanguageVersion.Preview ), QueryFileName, Encoding.UTF8 );
+        var syntaxTree = CSharpSyntaxTree.ParseText( source, ParseOptions, QueryFileName, Encoding.UTF8 );
 
         var compilation = CSharpCompilation.Create(
             "MetalamaQuery_" + Guid.NewGuid().ToString( "N" ),
             [syntaxTree],
             this._references.Value,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Disable,
-                optimizationLevel: OptimizationLevel.Debug,
-                allowUnsafe: false ) );
+            CompilationOptions );
 
         using var stream = new MemoryStream();
         var result = compilation.Emit( stream );
@@ -102,7 +117,12 @@ internal sealed class QueryCompiler
     /// <summary>
     /// Wraps the code in a class. <c>#line</c> directives make diagnostics point at the code as the agent wrote it.
     /// </summary>
-    internal static string GenerateSource( string code, bool isExpression )
+    internal static string GenerateSource( string code, bool isExpression ) => GenerateSource( code, isExpression, out _ );
+
+    /// <summary>
+    /// Wraps the code in a class, and gives the offset at which the code starts in the generated source.
+    /// </summary>
+    internal static string GenerateSource( string code, bool isExpression, out int codeStart )
     {
         var builder = new StringBuilder();
 
@@ -122,6 +142,7 @@ internal sealed class QueryCompiler
         {
             builder.AppendLine( "        return (object)(" );
             builder.AppendLine( "#line 1 \"" + QueryFileName + "\"" );
+            codeStart = builder.Length;
             builder.AppendLine( code );
             builder.AppendLine( "#line hidden" );
             builder.AppendLine( "        );" );
@@ -129,6 +150,7 @@ internal sealed class QueryCompiler
         else
         {
             builder.AppendLine( "#line 1 \"" + QueryFileName + "\"" );
+            codeStart = builder.Length;
             builder.AppendLine( code );
             builder.AppendLine( "#line hidden" );
             builder.AppendLine( "        return null;" );

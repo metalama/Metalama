@@ -1,8 +1,8 @@
 # Metalama MCP server: a query editor with IntelliSense
 
 This document plans to replace the plain query box of the served html page (section 9.3 of `mcp-server.md`) with the
-Monaco editor, with completion, quick info, signature help and diagnostics computed by Roslyn in the worker. It is a plan;
-nothing of it is implemented yet.
+Monaco editor, with completion, quick info, signature help and diagnostics computed by Roslyn in the worker. It is
+implemented; section 7 records where the implementation differs from this plan.
 
 ## 1. Goals and non-goals
 
@@ -141,3 +141,28 @@ points here.
 | Docs and manual verification | 0.5 day |
 
 About 3 days in total, and the package grows by the Monaco build only.
+
+## 7. Implementation notes
+
+- **The Monaco build.** `Viewer/editor-build` bundles `monaco-editor` 0.57.0 with esbuild 0.28.2 from its ESM sources
+  into `Viewer/editor` (committed): `editor.js` (3.8 MB), `editor.css`, `editor.worker.js` and `codicon.ttf`, about
+  4.4 MB in all. The AMD build that the package also ships is deprecated and loads the TypeScript, JSON, CSS and HTML
+  services eagerly, so it was not used. The entry imports `features/register.all` rather than a hand-picked list of
+  contributions: with a hand-picked list, hover silently did nothing, and all the editor features cost only 0.6 MB more.
+  No language service is included.
+- **CSP.** A served page also needs `style-src 'self'` for the style sheet of the editor, which the plan missed. The
+  bundle uses no `eval`.
+- **Routes.** `complete`, `describe` (the details of one completion item, from the last list), `hover`, `signature`
+  and `diagnostics`. The editor files are at `<token>/assets/<hash>/<name>`, with the hash of the four files; any
+  other name or hash is 404.
+- **Timeout.** IntelliSense calls use a soft timeout of 60 seconds, not 2: the worker is stopped at twice the soft
+  timeout, and the first call loads the language services of Roslyn. A 2-second timeout would have killed the worker,
+  and with it the loaded workspaces. The page drops answers that come late instead.
+- **Signature help** is computed from the semantic model (`GetMemberGroup` of the invoked expression, or the
+  constructors of the created type, and the commas before the caret), because Roslyn's service is internal.
+- **Documentation.** References whose XML documentation file sits next to the assembly get it, so quick info and
+  completion details show summaries where the file ships.
+- **Tests.** `QueryEditorEndToEndTests` covers completion (members, elements of a collection, globals without the
+  generated class), completion details, hover, signature help, diagnostics (an error at its column, and no false
+  positive for expressions, `void` calls and statements), that no code runs, the security checks on every route, the
+  editor files and their cache header, the CSP, and the snapshot without editor.
