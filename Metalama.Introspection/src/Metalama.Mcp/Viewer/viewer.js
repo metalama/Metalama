@@ -740,13 +740,20 @@
         var content = ( result.content || [] ).map( function ( c ) { return c.text || ''; } ).join( '\n' );
         throw new Error( content || 'The server returned an error.' );
       }
-      if ( !result || !result.structuredContent ) { throw new Error( 'The server returned no structured result.' ); }
-      return result.structuredContent.result;
+      var document_ = viewData( result );
+      if ( !document_ ) { throw new Error( 'The server returned no result for the view.' ); }
+      return document_.result;
     }, function ( error ) {
       // The host refused the call itself, although it announced serverTools: stop offering drill-down in this view.
       toolCallsRefused = true;
       throw new Error( 'This host does not let the view load more data (' + error.message + '). Use "Open in browser", or ask the agent for the html format.' );
     } );
+  }
+
+  // The JSON form of a result comes in the _meta of the tool result, which hosts give to the view and not to the model.
+  function viewData( result ) {
+    var meta = result && result._meta;
+    return meta && meta['net.postsharp.metalama/view'] || null;
   }
 
   function notifySize() {
@@ -769,8 +776,8 @@
 
     switch ( message.method ) {
       case 'ui/notifications/tool-result':
-        if ( message.params && message.params.structuredContent ) {
-          show( message.params.structuredContent );
+        if ( viewData( message.params ) ) {
+          show( viewData( message.params ) );
         } else {
           var text = ( message.params && message.params.content || [] ).map( function ( c ) { return c.text || ''; } ).join( '\n' );
           app.replaceChildren( el( 'pre', message.params && message.params.isError ? 'error' : 'mono', text ) );

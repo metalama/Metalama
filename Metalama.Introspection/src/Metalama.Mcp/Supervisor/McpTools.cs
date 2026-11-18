@@ -44,6 +44,17 @@ internal sealed class McpTools : IAsyncDisposable
     /// </summary>
     public const string PageUrlProperty = "pageUrl";
 
+    /// <summary>
+    /// The key, in the <c>_meta</c> of a tool result, of the JSON form of the result for the MCP App view.
+    /// </summary>
+    /// <remarks>
+    /// The view gets its data in <c>_meta</c> and not in <c>structuredContent</c>, because hosts give
+    /// <c>structuredContent</c> to the model: Claude Code showed the model the whole tree of the view, three levels deep,
+    /// instead of the text, which made a projection of declarations hundreds of times larger than the text. The
+    /// <c>_meta</c> of a result goes to the view only.
+    /// </remarks>
+    public const string ViewMetaKey = "net.postsharp.metalama/view";
+
     private static readonly bool _reportAssemblies = Environment.GetEnvironmentVariable( "METALAMA_MCP_REPORT_ASSEMBLIES" ) == "1";
 
     private readonly WorkerClient _worker;
@@ -295,7 +306,9 @@ internal sealed class McpTools : IAsyncDisposable
                 structured[PageUrlProperty] = pageUrl.ToString();
             }
 
-            result.StructuredContent = JsonSerializer.SerializeToElement( structured );
+            // A node has one parent: it moves from the response of the worker to the result.
+            response.Remove( WorkerMethods.Structured );
+            result.Meta = new JsonObject { [ViewMetaKey] = structured };
         }
 
         if ( _reportAssemblies )

@@ -517,8 +517,10 @@ transport rules of section 4.
   `ui://metalama/viewer` and any earlier `ui://metalama/viewer/<hash>` with the current view, for hosts that still ask for
   them, with MIME type `text/html;profile=mcp-app`. It is the same
   page as the served page, without embedded data.
-- `query` and `open` declare `_meta.ui.resourceUri` with that URI. Their results carry the JSON in
-  `structuredContent` for the view and the text format in `content` for the model.
+- `query` and `open` declare `_meta.ui.resourceUri` with that URI. Their results carry the JSON for the view in
+  `_meta["net.postsharp.metalama/view"]` and the text format in `content` for the model. Not in `structuredContent`:
+  hosts give `structuredContent` to the model, and Claude Code showed it the whole tree of the view, three levels deep,
+  instead of the text (174,000 characters instead of about 900 for a projection of ten types).
 - The host passes the result to the view with `ui/notifications/tool-result`.
 - **Live drill-down.** A click on a link sends `tools/call` for `open` through the host. "Show more" on a truncated
   grid sends `open` again with a larger `maxItems`. Hosts reject calls from the view to tools whose `visibility`
@@ -536,7 +538,7 @@ transport rules of section 4.
 - The resource declares no `csp` domains, so the host applies the extension's restrictive default and the view has
   no network access.
 - The view resource and the `_meta.ui` of the tools are always present, because hosts without the extension ignore
-  them. The JSON is added to results as `structuredContent` only when the client advertises the
+  them. The JSON is added to the `_meta` of results only when the client advertises the
   `io.modelcontextprotocol/ui` capability, so that other hosts do not receive every result twice.
 - Following a query-anchored link runs code (section 4.3), so a host that asks permission for tool calls asks for
   calls made from the view too.
@@ -733,5 +735,5 @@ The first implementation follows this design, with these differences.
   JSON Schema validator, to avoid a test-only dependency.
 - **Injection test.** It renders values that contain `</script>`, tags and placeholders in memory instead of loading a
   separate sample project.
-- **Not covered by tests.** The tests check the MCP App metadata, the resource and `structuredContent`, but not the view
+- **Not covered by tests.** The tests check the MCP App metadata, the resource and the view data in `_meta`, but not the view
   running inside a real host, which needs a manual check.

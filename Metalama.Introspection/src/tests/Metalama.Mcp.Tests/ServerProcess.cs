@@ -12,6 +12,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using Metalama.Mcp.Supervisor;
+using Xunit;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
@@ -210,7 +212,11 @@ internal sealed partial class ServerProcess : IAsyncDisposable
         var result = await this.Client.CallToolAsync( tool, arguments );
         var text = string.Join( "\n", result.Content.OfType<TextContentBlock>().Select( t => t.Text ) );
 
-        return (result.IsError == true, text, result.StructuredContent);
+        // The JSON form for the MCP App view is in _meta, which hosts do not give to the model.
+        Assert.Null( result.StructuredContent );
+        JsonElement? view = result.Meta?[McpTools.ViewMetaKey] is { } node ? JsonSerializer.SerializeToElement( node ) : null;
+
+        return (result.IsError == true, text, view);
     }
 
     public async Task<string> CallSuccessfullyAsync( string tool, Dictionary<string, object?> arguments )
