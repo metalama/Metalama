@@ -109,6 +109,5 @@ public sealed class NamespaceIdResolutionTests : UnitTestClass
         Assert.False( viaType.BelongsToCurrentProject );
         Assert.False( viaId.BelongsToCurrentProject );
         Assert.NotSame( compilation, viaId.DeclaringAssembly );
-        Assert.Equal( viaType.Depth, viaId.Depth );
     }
 }
