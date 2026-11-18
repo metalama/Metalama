@@ -143,6 +143,7 @@ public sealed class TupleTypeTests : UnitTestClass
         Assert.Equal( "A9", tupleElement.Name );
         Assert.Equal( FieldKind.TupleElement, tupleElement.FieldKind );
         Assert.Equal( SpecialType.Int64, tupleElement.Type.SpecialType );
+        AssertTupleElementDeclarationProperties( tupleElement );
 
         // Display string.
         Assert.Equal( "(int A1, string A2, long A3, int A4, string A5, long A6, int A7, string A8, long A9)", tupleType.ToDisplayString() );
@@ -184,7 +185,7 @@ public sealed class TupleTypeTests : UnitTestClass
     {
         var correspondingField = tupleElement.CorrespondingTupleField;
 
-        Assert.Empty( tupleElement.Attributes );
+        Assert.Equal( correspondingField.Attributes.Select( a => a.Type.FullName ), tupleElement.Attributes.Select( a => a.Type.FullName ) );
         Assert.Equal( correspondingField.Depth, tupleElement.Depth );
         Assert.Null( tupleElement.OverridingProperty );
 
@@ -305,6 +306,7 @@ public sealed class TupleTypeTests : UnitTestClass
         Assert.Equal( SpecialType.Int64, tupleElement.Type.SpecialType );
         Assert.Equal( "Item9", tupleElement.CorrespondingTupleField.Name );
         Assert.True( tupleElement.HasFriendlyName );
+        AssertTupleElementDeclarationProperties( tupleElement );
 
         // Check references.
         var tupleTypeRef = tupleType.ToRef();

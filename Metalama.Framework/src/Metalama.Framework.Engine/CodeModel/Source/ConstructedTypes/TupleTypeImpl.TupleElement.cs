@@ -52,6 +52,14 @@ internal sealed partial class TupleTypeImpl
         public IField CorrespondingTupleField
             => this.Compilation.Factory.GetField( this.FieldSymbol.CorrespondingTupleField ?? this.FieldSymbol, this.GenericContextForSymbolMapping );
 
+        /// <summary>
+        /// Gets the declaration that owns the attributes of the tuple element.
+        /// </summary>
+        /// <remarks>
+        /// A tuple element cannot be referenced, so its attributes are those of the definition of <see cref="CorrespondingTupleField"/>.
+        /// </remarks>
+        protected override IDeclaration GetDefinitionDeclaration() => this.CorrespondingTupleField.Definition;
+
         protected override IFullRef<IField> Ref
             => throw new NotSupportedException( $"Referencing an ITupleElement is not supported. Reference {nameof(this.CorrespondingTupleField)} instead." );
     }
