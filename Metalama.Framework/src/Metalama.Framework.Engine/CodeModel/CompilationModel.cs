@@ -498,6 +498,16 @@ namespace Metalama.Framework.Engine.CodeModel
 
         internal int GetDepth( IDeclaration declaration )
         {
+            // A tuple element and its accessors cannot be referenced, so their depth is the depth of the corresponding tuple field.
+            switch ( declaration.DeclarationKind )
+            {
+                case DeclarationKind.Field when declaration is ITupleElement tupleElement:
+                    return this.GetDepth( tupleElement.CorrespondingTupleField );
+
+                case DeclarationKind.Method when declaration is IMethod { ContainingDeclaration: ITupleElement tupleElement } accessor:
+                    return this.GetDepth( tupleElement.CorrespondingTupleField.GetAccessor( accessor.MethodKind ).AssertNotNull() );
+            }
+
             var reference = declaration.ToRef();
 
             if ( this._depthsCache.TryGetValue( reference, out var value ) )
