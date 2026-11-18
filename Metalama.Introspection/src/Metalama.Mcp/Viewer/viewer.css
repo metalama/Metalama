@@ -81,7 +81,7 @@ table.node td { border: 1px solid var(--rule); padding: 3px 8px; vertical-align:
 table.properties > tbody > tr > th { width: 1%; }
 .filter { width: 100%; padding: 3px 6px; font: inherit; border: 1px solid var(--rule); background: var(--bg); color: var(--fg); }
 .summary { font-family: var(--mono); }
-.link { color: var(--link); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; background: none; border: 0; padding: 0; font: inherit; }
+.link { text-align: left; color: var(--link); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; background: none; border: 0; padding: 0; font: inherit; }
 .location { color: var(--muted); margin-left: 8px; font-size: 12px; }
 a.source { display: inline-flex; vertical-align: middle; margin-left: 6px; color: var(--muted); }
 a.source:hover, a.source:focus-visible { color: var(--link); }

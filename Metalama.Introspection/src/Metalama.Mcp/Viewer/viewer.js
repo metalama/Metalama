@@ -607,7 +607,6 @@
     }
     editor.onDidChangeModelContent( function () { window.clearTimeout( timer ); timer = window.setTimeout( check, 400 ); } );
     check();
-    editor.focus();
     return editor;
   }
 
