@@ -184,6 +184,8 @@ public sealed partial class CodeModelTests
                                 extension<T>( EqualityComparer<T> comparer )
                                 {
                                     public bool IsDefault( T value ) => comparer.Equals( value, default );
+
+                                    public bool IsDefault<TOther>( TOther value ) where TOther : T => comparer.Equals( value, default );
                                 }
                             }
                             """;
@@ -195,6 +197,11 @@ public sealed partial class CodeModelTests
 
         Assert.Same( extensionBlock, typeParameter.ContainingDeclaration );
         Assert.Equal( TypeParameterKind.Type, typeParameter.TypeParameterKind );
+
+        // A type parameter of a generic method declared in the extension block belongs to the method.
+        var genericMethod = extensionBlock.Methods.Single( m => m.TypeParameters.Count == 1 );
+        var methodTypeParameter = genericMethod.TypeParameters.Single();
+        Assert.Equal( TypeParameterKind.Method, methodTypeParameter.TypeParameterKind );
     }
 
     [Fact]
