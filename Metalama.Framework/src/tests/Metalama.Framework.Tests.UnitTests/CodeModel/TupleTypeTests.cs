@@ -143,9 +143,61 @@ public sealed class TupleTypeTests : UnitTestClass
         Assert.Equal( "A9", tupleElement.Name );
         Assert.Equal( FieldKind.TupleElement, tupleElement.FieldKind );
         Assert.Equal( SpecialType.Int64, tupleElement.Type.SpecialType );
+        AssertTupleElementDeclarationProperties( tupleElement );
 
         // Display string.
         Assert.Equal( "(int A1, string A2, long A3, int A4, string A5, long A6, int A7, string A8, long A9)", tupleType.ToDisplayString() );
+    }
+
+    [Fact]
+    public void SourceTuple_DeclarationProperties()
+    {
+        // Regression test for #2357.
+        const string code = """
+                            class C
+                            {
+                                public (int Count, string Name) Get() => (0, "");
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var method = compilation.Types.Single().Methods.OfName( "Get" ).Single();
+        var tupleType = Assert.IsAssignableFrom<ITupleType>( method.ReturnType );
+
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[0] );
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[1] );
+    }
+
+    [Fact]
+    public void CreateTuple_DeclarationProperties()
+    {
+        // Regression test for #2357.
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( "" );
+        var tupleType = compilation.Factory.CreateTupleType( [(typeof(int), "Count"), (typeof(string), "Name")] );
+
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[0] );
+        AssertTupleElementDeclarationProperties( tupleType.TupleElements[1] );
+    }
+
+    private static void AssertTupleElementDeclarationProperties( ITupleElement tupleElement )
+    {
+        var correspondingField = tupleElement.CorrespondingTupleField;
+
+        Assert.Equal(
+            correspondingField.Attributes.SelectAsArray( a => a.Type.FullName ),
+            tupleElement.Attributes.SelectAsArray( a => a.Type.FullName ) );
+        Assert.Equal( correspondingField.Depth, tupleElement.Depth );
+        Assert.Null( tupleElement.OverridingProperty );
+
+        Assert.NotNull( tupleElement.GetMethod );
+        Assert.NotNull( correspondingField.GetMethod );
+        Assert.Equal( correspondingField.GetMethod.Depth, tupleElement.GetMethod.Depth );
+
+        Assert.NotNull( tupleElement.SetMethod );
+        Assert.NotNull( correspondingField.SetMethod );
+        Assert.Equal( correspondingField.SetMethod.Depth, tupleElement.SetMethod.Depth );
     }
 
     [Fact]
@@ -256,6 +308,7 @@ public sealed class TupleTypeTests : UnitTestClass
         Assert.Equal( SpecialType.Int64, tupleElement.Type.SpecialType );
         Assert.Equal( "Item9", tupleElement.CorrespondingTupleField.Name );
         Assert.True( tupleElement.HasFriendlyName );
+        AssertTupleElementDeclarationProperties( tupleElement );
 
         // Check references.
         var tupleTypeRef = tupleType.ToRef();

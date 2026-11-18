@@ -191,6 +191,7 @@ internal static partial class DocumentationIdHelper
 
                 case SymbolKind.Namespace:
                     GetMatchingNamespaces( containers, name, results );
+                    this.ReplaceMergedNamespaces( results );
 
                     break;
             }
@@ -552,6 +553,45 @@ internal static partial class DocumentationIdHelper
                          && ((INamedType) member).TypeParameters.Count == 0) )
                 {
                     results.Add( member );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Replaces each merged namespace of <paramref name="results"/> by the namespace of a single assembly.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The parser starts from the merged global namespace, because it is the only namespace tree that contains the types
+        /// of the referenced assemblies. When a namespace is declared by more than one assembly, Roslyn represents it in this
+        /// tree by a namespace of kind <see cref="NamespaceKind.Compilation"/>, which has no containing assembly. Such a
+        /// namespace cannot implement <see cref="IDeclaration.DeclaringAssembly"/> or <see cref="IDeclaration.BelongsToCurrentProject"/>.
+        /// See issue #2354.
+        /// </para>
+        /// <para>
+        /// The replacement is the namespace of the current assembly when the current assembly declares the namespace, so that
+        /// the result is the namespace returned by <see cref="INamedType.ContainingNamespace"/> for a type of the current project.
+        /// Otherwise, it is the first namespace of <see cref="INamespaceSymbol.ConstituentNamespaces"/>.
+        /// </para>
+        /// </remarks>
+        private void ReplaceMergedNamespaces( List<IDeclaration> results )
+        {
+            for ( var i = 0; i < results.Count; i++ )
+            {
+                if ( results[i].GetSymbol() is { Kind: SymbolKind.Namespace } symbol
+                     && symbol is INamespaceSymbol { NamespaceKind: NamespaceKind.Compilation } mergedNamespace )
+                {
+                    var currentAssembly = this._compilation.RoslynCompilation.Assembly;
+                    var constituents = mergedNamespace.ConstituentNamespaces;
+
+                    var assemblyNamespace =
+                        constituents.FirstOrDefault( c => SymbolEqualityComparer.Default.Equals( c.ContainingAssembly, currentAssembly ) )
+                        ?? constituents.FirstOrDefault();
+
+                    if ( assemblyNamespace != null )
+                    {
+                        results[i] = this._compilation.Factory.GetNamespace( assemblyNamespace );
+                    }
                 }
             }
         }
