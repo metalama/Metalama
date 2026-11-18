@@ -579,7 +579,7 @@ internal static partial class DocumentationIdHelper
             for ( var i = 0; i < results.Count; i++ )
             {
                 if ( results[i].GetSymbol() is { Kind: SymbolKind.Namespace } symbol
-                     && ((INamespaceSymbol) symbol) is { NamespaceKind: NamespaceKind.Compilation } mergedNamespace )
+                     && symbol is INamespaceSymbol { NamespaceKind: NamespaceKind.Compilation } mergedNamespace )
                 {
                     var currentAssembly = this._compilation.RoslynCompilation.Assembly;
                     var constituents = mergedNamespace.ConstituentNamespaces;
