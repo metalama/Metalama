@@ -21,7 +21,6 @@ internal static partial class DocumentationIdHelper
     private sealed class Parser
     {
         private readonly CompilationModel _compilation;
-        private IType? _aspectGeneratedType;
 
         public Parser( CompilationModel compilation )
         {
@@ -332,7 +331,10 @@ internal static partial class DocumentationIdHelper
                 // regular type parameter
                 var typeParameterIndex = ReadNextInteger( id, ref index );
 
-                var typeContext = typeParameterContext?.DeclarationKind == DeclarationKind.Method && typeParameterContext is IMethod methodContext
+                // The context is a constructor when the identifier names a constructor whose parameter type is a type
+                // parameter of the declaring type (issue #2358).
+                var typeContext = typeParameterContext?.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor
+                                  && typeParameterContext is IMethodBase methodContext
                     ? methodContext.DeclaringType
                     : typeParameterContext?.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
                         ? typeParameterContext as INamedType
@@ -699,7 +701,7 @@ internal static partial class DocumentationIdHelper
                             }
                         }
 
-                        if ( !this.AllParametersMatch( member.Parameters, parameters, signatureCanBeModified ) )
+                        if ( !AllParametersMatch( member.Parameters, parameters, signatureCanBeModified ) )
                         {
                             // parameters don't match, try next method symbol
                             continue;
@@ -757,8 +759,9 @@ internal static partial class DocumentationIdHelper
                     continue;
                 }
 
-                memberName = DecodePropertyName( memberName );
-                var members = type.Properties.OfName( memberName ).Concat<IPropertyOrIndexer>( type.Indexers.OfName( memberName ) );
+                // The name Item denotes an indexer, but it can also be the name of an ordinary property, so the decoded
+                // name is used for indexers only (issue #2358).
+                var members = type.Properties.OfName( memberName ).Concat<IPropertyOrIndexer>( type.Indexers.OfName( DecodePropertyName( memberName ) ) );
 
                 foreach ( var member in members )
                 {
@@ -780,7 +783,7 @@ internal static partial class DocumentationIdHelper
                         }
 
                         if ( this.ParseParameterList( id, ref index, member.DeclaringType, parameters )
-                             && this.AllParametersMatch( memberParameters, parameters ) )
+                             && AllParametersMatch( memberParameters, parameters ) )
                         {
                             results.Add( member );
                             endIndex = index;
@@ -827,7 +830,7 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private bool AllParametersMatch(
+        private static bool AllParametersMatch(
             IReadOnlyList<IParameter> declarationParameters,
             List<ParameterInfo> expectedParameters,
             bool signatureCanBeModified = false )
@@ -844,12 +847,15 @@ internal static partial class DocumentationIdHelper
                 // This block is executed with constructors, when some parameters may have been introduced, changing the signature.
                 // In this case, we must not take the introduced parameters into account when matching the constructor.
 
+                // The attribute is matched by name rather than through the reflection mapper. The reflection mapper throws
+                // when the compilation does not reference Metalama.Framework, and such a compilation can still declare a
+                // constructor whose identifier must resolve (issue #2358). A parameter of such a compilation cannot carry
+                // the attribute, so every parameter is then counted.
                 declarationParameterCount = 0;
-                this._aspectGeneratedType ??= this._compilation.Factory.GetTypeByReflectionType( typeof(AspectGeneratedAttribute) );
 
                 foreach ( var declarationParameter in declarationParameters )
                 {
-                    if ( declarationParameter.Attributes.Count == 0 || !declarationParameter.Attributes.OfAttributeType( this._aspectGeneratedType ).Any() )
+                    if ( declarationParameter.Attributes.Count == 0 || !declarationParameter.Attributes.Any( IsAspectGeneratedAttribute ) )
                     {
                         declarationParameterCount++;
                     }
@@ -885,6 +891,12 @@ internal static partial class DocumentationIdHelper
 
             return true;
         }
+
+        /// <summary>
+        /// Determines whether <paramref name="attribute"/> is an instance of <see cref="AspectGeneratedAttribute"/>.
+        /// </summary>
+        private static bool IsAspectGeneratedAttribute( IAttribute attribute )
+            => attribute.Type.FullName == typeof(AspectGeneratedAttribute).FullName;
 
         private static bool ParameterMatches( IParameter parameter, ParameterInfo parameterInfo )
         {
