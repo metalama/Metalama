@@ -163,6 +163,21 @@ one parameter or, for a union with a member provider interface, of its static `C
 position that requires durability, the analyzer evaluates the operand of the conversion, so a lambda cast to a
 delegate case is analysed for captures with `LAMA0878`. See [#2115](https://github.com/metalama/Metalama/issues/2115).
 
+An anonymous type is durable when the type of each of its properties is durable, because an anonymous type is
+immutable and stores only its properties. Where an anonymous object creation expression is itself the value that is
+stored or passed, the analyzer evaluates the expression of each property initializer instead of the property type, so
+a property of type `object` that is initialized with a literal is durable. In the same position, an object creation
+expression of a system collection whose durability depends on its type arguments, such as `Dictionary<TKey, TValue>`,
+is evaluated by its constructor arguments and by the elements of its collection or index initializer. This rule holds
+only for the creation expression itself: no other code holds a reference to the new collection. A collection that is
+first stored in a local is judged by its type arguments. See [#2343](https://github.com/metalama/Metalama/issues/2343).
+
+When `LAMA0871` or `LAMA0872` reports a value whose type has a method named `ToDurableRef` or `ToDurable` that is in
+scope at that location, takes no required argument and returns a durable type, the message suggests calling it, and
+the diagnostic is reported on that value. The property `DurableConversion` of the diagnostic holds the name of the
+method. `ToDurableRef` is preferred when both methods apply, because a durable reference keeps the declaration,
+whereas a durable expression keeps only its text.
+
 **An interface may be marked, and that is how a member typed as an interface is made durable.** The attribute then
 means two things at once, and both are checked: a consumer of the interface may assume that any implementation is
 durable, and every implementation is required to be durable, which the analyzer verifies member by member exactly as

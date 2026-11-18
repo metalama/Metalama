@@ -170,8 +170,10 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                 {
                     // Special case - explicit interface implementation event field with initialized.
                     // Hide initializer expression into the single statement of the add.
+                    // The design-time pipeline generates partial code and runs no linker, so it emits an empty accessor instead.
                     { MethodKind: MethodKind.EventAdd } when isEventField && finalEvent is { ExplicitInterfaceImplementations.Count: > 0 }
                                                                           && initializerExpression != null
+                                                                          && !context.SyntaxGenerationContext.IsPartial
                         => context.SyntaxGenerator.FormattedBlock(
                             ExpressionStatement(
                                 context.AspectReferenceSyntaxProvider.AssertNotNull()

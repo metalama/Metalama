@@ -177,7 +177,7 @@ internal static class AdviceSyntaxGenerator
                 return true;
             }
 
-            var initializerName = context.InjectionNameProvider.GetInitializerName( member.DeclaringType, aspectLayerInstance.AspectLayerId, member );
+            var initializerName = context.InjectionNameProvider.AssertNotNull().GetInitializerName( member.DeclaringType, aspectLayerInstance.AspectLayerId, member );
 
             initializerExpressionSyntax = InvocationExpression( SyntaxFactoryEx.SafeIdentifierName( initializerName ) );
 

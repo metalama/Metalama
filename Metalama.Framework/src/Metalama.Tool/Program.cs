@@ -5,7 +5,9 @@
 using Metalama.Backstage;
 using Metalama.Framework.ConfigurationFiles;
 using Metalama.Tool.Divorce;
+using Metalama.Tool.Introspection;
 using Metalama.Tool.Preview;
+using SharpCrafters.Aspects.Introspection.Query.Commands;
 using SharpCrafters.Backstage.Commands;
 using SharpCrafters.Backstage.Maintenance;
 using Spectre.Console.Cli;
@@ -43,6 +45,9 @@ namespace Metalama.Tool
                 config.AddCommand<PreviewCommand>( "preview" )
                     .WithData( options )
                     .WithDescription( "Shows the code that Metalama generates for some files of a project, formatted, without building the project." );
+
+                // The commands that query the introspection file (.mlsym) written by the last build.
+                IntrospectionCommandFactory.AddIntrospectBranch( config, new IntrospectionCommandOptions( new MetalamaIntrospectionProvider() ) );
             }
         }
     }

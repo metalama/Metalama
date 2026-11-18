@@ -58,6 +58,8 @@
         </PackageReference>
         <PackageReference Include="Metalama.Backstage" />
         <PackageReference Include="SharpCrafters.Common" />
+        <!-- The writer of the introspection file (.mlsym), schema version 2. -->
+        <PackageReference Include="SharpCrafters.Aspects.Introspection" />
         <PackageReference Include="Metalama.Backstage.Tools" />
 
         <PackageReference Include="Microsoft.Bcl.HashCode" />

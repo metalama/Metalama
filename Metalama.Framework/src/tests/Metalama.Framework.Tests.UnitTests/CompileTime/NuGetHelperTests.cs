@@ -1241,8 +1241,8 @@ public sealed class NuGetHelperTests : UnitTestClass
     public void ThePackageSourceIsDeclaredForAPrereleaseRoslynVersion()
     {
         // Issue #1885: a version string that carries a prerelease label belongs to a build published on the feeds
-        // that the consolidated source serves and not on nuget.org. The version string used here is the one of
-        // Roslyn 5.12, which issue #215 of Metalama.Compiler made the version that the latest variant binds against.
+        // that the consolidated source serves and not on nuget.org. The version string used here is the prerelease
+        // build of Roslyn 5.12 that the latest variant bound against before issue #2341 moved it to the released 5.12.0.
         Assert.Equal( _prereleaseSourceUrl, SupportedCSharpVersions.GetPrereleasePackageSourceUrl( "5.12.0-1.26504.105" ) );
     }
 
