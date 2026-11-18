@@ -185,7 +185,9 @@ public sealed class TupleTypeTests : UnitTestClass
     {
         var correspondingField = tupleElement.CorrespondingTupleField;
 
-        Assert.Equal( correspondingField.Attributes.Select( a => a.Type.FullName ), tupleElement.Attributes.Select( a => a.Type.FullName ) );
+        Assert.Equal(
+            correspondingField.Attributes.SelectAsArray( a => a.Type.FullName ),
+            tupleElement.Attributes.SelectAsArray( a => a.Type.FullName ) );
         Assert.Equal( correspondingField.Depth, tupleElement.Depth );
         Assert.Null( tupleElement.OverridingProperty );
 
