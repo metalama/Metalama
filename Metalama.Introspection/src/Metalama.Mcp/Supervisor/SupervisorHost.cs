@@ -55,6 +55,24 @@ internal static class SupervisorHost
                     MimeType = HtmlWriter.AppMimeType
                 } ) );
 
+        // Hosts may still ask for the URI of an earlier view, which they took from tool descriptors they cached before an
+        // update. They get the current view, rather than an error.
+        serverOptions.ResourceCollection.Add(
+            McpServerResource.Create(
+                ( string? version ) => new TextResourceContents
+                {
+                    Uri = McpTools.ViewerResourceUriPrefix + (string.IsNullOrEmpty( version ) ? "" : "/" + version),
+                    MimeType = HtmlWriter.AppMimeType,
+                    Text = HtmlWriter.CreateAppPage()
+                },
+                new McpServerResourceCreateOptions
+                {
+                    UriTemplate = McpTools.ViewerResourceUriPrefix + "{/version}",
+                    Name = "Metalama result viewer (earlier versions)",
+                    Description = "The current result viewer, for hosts that ask for the URI of an earlier version.",
+                    MimeType = HtmlWriter.AppMimeType
+                } ) );
+
         using var shutdown = new CancellationTokenSource();
         Console.CancelKeyPress += ( _, e ) =>
         {

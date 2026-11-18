@@ -187,6 +187,24 @@ public sealed class ServerEndToEndTests
         Assert.Contains( "No workspace is loaded", text, StringComparison.Ordinal );
     }
 
+    [Theory]
+    [InlineData( "ui://metalama/viewer" )]
+    [InlineData( "ui://metalama/viewer/000000000000" )]
+    public async Task EarlierViewerUrisGetTheCurrentView( string uri )
+    {
+        // Hosts cache tool descriptors and may ask for the URI of an earlier view after an update.
+        await using var server = await ServerProcess.StartAsync();
+        var current = Assert.Single( await server.Client.ListResourcesAsync( cancellationToken: TestContext.Current.CancellationToken ) );
+        var expected = await server.Client.ReadResourceAsync( current.Uri, cancellationToken: TestContext.Current.CancellationToken );
+
+        var resource = await server.Client.ReadResourceAsync( uri, cancellationToken: TestContext.Current.CancellationToken );
+        var contents = Assert.IsType<TextResourceContents>( Assert.Single( resource.Contents ) );
+
+        Assert.Equal( uri, contents.Uri );
+        Assert.Equal( "text/html;profile=mcp-app", contents.MimeType );
+        Assert.Equal( Assert.IsType<TextResourceContents>( Assert.Single( expected.Contents ) ).Text, contents.Text );
+    }
+
     [Fact]
     public async Task ViewerIsAnMcpAppPageThatLoadsNothing()
     {

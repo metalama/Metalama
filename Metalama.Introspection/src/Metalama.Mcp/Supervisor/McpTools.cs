@@ -27,7 +27,12 @@ internal sealed class McpTools : IAsyncDisposable
     /// The URI of the MCP App view. It ends with a hash of the page, because hosts cache the resource by its URI: Claude kept
     /// showing an older view after the server was updated. A changed view has a new URI, which the host has to read.
     /// </summary>
-    public static readonly string ViewerResourceUri = "ui://metalama/viewer/" + HtmlWriter.GetAppPageVersion();
+    public static readonly string ViewerResourceUri = ViewerResourceUriPrefix + "/" + HtmlWriter.GetAppPageVersion();
+
+    /// <summary>
+    /// The URI of the MCP App view without its version, which was its whole URI before the version was added.
+    /// </summary>
+    public const string ViewerResourceUriPrefix = "ui://metalama/viewer";
 
     /// <summary>
     /// The key of the MCP Apps extension in the client capabilities.

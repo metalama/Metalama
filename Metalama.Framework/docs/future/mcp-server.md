@@ -490,7 +490,9 @@ a sandboxed frame. The view and the server talk through the host with JSON-RPC o
 transport rules of section 4.
 
 - The server declares the resource `ui://metalama/viewer/<hash>`, where the hash covers the files of the viewer, because
-  hosts cache the resource by its URI (Claude kept showing the previous view after an update), with MIME type `text/html;profile=mcp-app`. It is the same
+  hosts cache the resource by its URI (Claude kept showing the previous view after an update). A resource template answers
+  `ui://metalama/viewer` and any earlier `ui://metalama/viewer/<hash>` with the current view, for hosts that still ask for
+  them, with MIME type `text/html;profile=mcp-app`. It is the same
   page as the served page, without embedded data.
 - `query` and `open` declare `_meta.ui.resourceUri` with that URI. Their results carry the JSON in
   `structuredContent` for the view and the text format in `content` for the model.
