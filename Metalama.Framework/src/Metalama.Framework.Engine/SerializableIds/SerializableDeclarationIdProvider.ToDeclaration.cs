@@ -104,11 +104,13 @@ public static partial class SerializableDeclarationIdProvider
                     (IMethod method, nameof(RefTargetKind.Return)) => method.ReturnParameter,
                     (INamedType { TypeKind: TypeKind.Delegate } delegateType, nameof(RefTargetKind.Return))
                         => delegateType.Facets.Delegate?.InvokeMethod.ReturnParameter,
-                    (IField field, nameof(RefTargetKind.PropertyGet)) => field.GetMethod,
-                    (IField field, nameof(RefTargetKind.PropertySet)) => field.SetMethod,
-                    (IField field, nameof(RefTargetKind.PropertySetParameter)) => field.SetMethod?.Parameters[0],
-                    (IField field, nameof(RefTargetKind.PropertyGetReturnParameter)) => field.GetMethod?.ReturnParameter,
-                    (IField field, nameof(RefTargetKind.PropertySetReturnParameter)) => field.SetMethod?.ReturnParameter,
+                    // A property without a set accessor has a pseudo setter, which is identified in the same way as the
+                    // pseudo accessors of a field (issue #2358).
+                    (IFieldOrProperty fieldOrProperty, nameof(RefTargetKind.PropertyGet)) => fieldOrProperty.GetMethod,
+                    (IFieldOrProperty fieldOrProperty, nameof(RefTargetKind.PropertySet)) => fieldOrProperty.SetMethod,
+                    (IFieldOrProperty fieldOrProperty, nameof(RefTargetKind.PropertySetParameter)) => fieldOrProperty.SetMethod?.Parameters[0],
+                    (IFieldOrProperty fieldOrProperty, nameof(RefTargetKind.PropertyGetReturnParameter)) => fieldOrProperty.GetMethod?.ReturnParameter,
+                    (IFieldOrProperty fieldOrProperty, nameof(RefTargetKind.PropertySetReturnParameter)) => fieldOrProperty.SetMethod?.ReturnParameter,
                     (IEvent @event, nameof(RefTargetKind.EventRaise)) => @event.RaiseMethod,
                     (IEvent @event, nameof(RefTargetKind.EventRaiseParameter)) => @event.RaiseMethod?.Parameters[0],
                     (IEvent @event, nameof(RefTargetKind.EventRaiseReturnParameter)) => @event.RaiseMethod?.ReturnParameter,
