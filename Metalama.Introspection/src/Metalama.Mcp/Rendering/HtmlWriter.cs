@@ -95,5 +95,19 @@ internal static partial class HtmlWriter
                 } );
     }
 
+    /// <summary>
+    /// Gets a short hash of the files of the viewer, which changes whenever the page of the MCP App changes.
+    /// </summary>
+    public static string GetAppPageVersion()
+    {
+        var content = string.Join(
+            "\0",
+            EmbeddedResources.Read( "Viewer.viewer.html" ).ReplaceLineEndings( "\n" ),
+            ReadScript(),
+            EmbeddedResources.Read( "Viewer.viewer.css" ).ReplaceLineEndings( "\n" ) );
+
+        return Convert.ToHexStringLower( SHA256.HashData( Encoding.UTF8.GetBytes( content ) ) ).Substring( 0, 12 );
+    }
+
     private static string ReadScript() => EmbeddedResources.Read( "Viewer.viewer.js" ).ReplaceLineEndings( "\n" );
 }

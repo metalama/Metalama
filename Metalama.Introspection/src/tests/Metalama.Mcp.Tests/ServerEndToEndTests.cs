@@ -38,7 +38,7 @@ public sealed class ServerEndToEndTests
         }
 
         var query = tools.Single( t => t.Name == "query" ).ProtocolTool;
-        Assert.Equal( "ui://metalama/viewer", query.Meta?["ui"]?["resourceUri"]?.GetValue<string>() );
+        Assert.Matches( "^ui://metalama/viewer/[0-9a-f]{12}$", query.Meta?["ui"]?["resourceUri"]?.GetValue<string>() );
 
         // The description tells the agent what `workspace` is and where the object model is documented.
         Assert.Contains( "Metalama.Framework.Workspaces.Workspace", query.Description, StringComparison.Ordinal );
@@ -228,7 +228,9 @@ public sealed class ServerEndToEndTests
     public async Task ViewerIsAnMcpAppPageThatLoadsNothing()
     {
         await using var server = await ServerProcess.StartAsync();
-        var resource = await server.Client.ReadResourceAsync( "ui://metalama/viewer", cancellationToken: TestContext.Current.CancellationToken );
+        var listed = Assert.Single( await server.Client.ListResourcesAsync( cancellationToken: TestContext.Current.CancellationToken ) );
+        Assert.StartsWith( "ui://metalama/viewer/", listed.Uri, StringComparison.Ordinal );
+        var resource = await server.Client.ReadResourceAsync( listed.Uri, cancellationToken: TestContext.Current.CancellationToken );
         var contents = Assert.IsType<TextResourceContents>( Assert.Single( resource.Contents ) );
 
         Assert.Equal( "text/html;profile=mcp-app", contents.MimeType );
