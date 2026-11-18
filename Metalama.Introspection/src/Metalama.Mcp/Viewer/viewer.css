@@ -35,7 +35,9 @@ form.query .query-actions { display: flex; flex-direction: column; justify-conte
 form.query .query-actions .action { margin-left: 0; }
 #title:has(form.query) { order: -1; }
 #brand { display: inline-flex; align-items: center; color: var(--fg); }
-#brand .brand-logo { height: 15px; width: auto; display: block; }
+/* The toolbar aligns the bottom of the logo on its baseline, but the letters of the logo stand at 77% of its height,
+   23% above its bottom: the logo moves down by that much, so that its letters stand on the baseline of the toolbar. */
+#brand .brand-logo { height: 16px; width: auto; display: block; position: relative; top: 3.7px; }
 a.new-window { display: inline-flex; vertical-align: middle; margin-left: 4px; color: var(--muted); opacity: .7; }
 a.new-window:hover, a.new-window:focus-visible { color: var(--link); opacity: 1; }
 a.new-window svg { width: 12px; height: 12px; }
