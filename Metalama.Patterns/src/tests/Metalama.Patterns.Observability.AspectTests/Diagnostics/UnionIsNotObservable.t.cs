@@ -1,1 +1,1 @@
-// Error LAMA0037 on `Observable`: `The aspect 'Observable' cannot be applied to the type 'Result' because .`
+// Error LAMA0037 on `Observable`: `The aspect 'Observable' cannot be applied to the type 'Result' because 'Result' must be a class or a record class.`
