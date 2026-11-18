@@ -32,6 +32,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets the list of managed resources in the current compilation.
         /// </summary>
+        /// <remarks>
+        /// Managed resources are not yet represented in the code model. This property currently returns an empty list.
+        /// </remarks>
         [Obsolete( "Not implemented." )]
         IReadOnlyList<IManagedResource> ManagedResources { get; }
 

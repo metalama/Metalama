@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.UpdatableCollections;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
 using System;
@@ -39,7 +40,28 @@ public sealed partial class CompilationModel
     private ImmutableDictionary<string, NamespaceBuilderData> _namespaceBuilders;
     private ImmutableDictionary<IFullRef<INamedType>, ExtensionBlockUpdatableCollection> _extensionBlocks;
 
-    internal ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
+    /// <summary>
+    /// Gets the annotations added to the declarations of the current project, indexed by the declaration they are added to.
+    /// </summary>
+    /// <remarks>
+    /// The keys are durable references, which are compared by the identifier of the declaration. These annotations are passed to the
+    /// next compilation model of the pipeline, which is not necessarily created from the same Roslyn compilation: the linker and a
+    /// low-level weaver both create a new one. A reference compared by symbol would no longer find the declaration. See issue #2263.
+    /// Keys are created by <see cref="GetAnnotationKey"/>.
+    /// </remarks>
+    internal ImmutableDictionaryOfArray<IDurableRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
+
+    /// <summary>
+    /// Returns the key of <see cref="Annotations"/> for a given declaration.
+    /// </summary>
+    /// <remarks>
+    /// The key always holds the declaration identifier, without its nullable annotation. <see cref="IRef.ToDurable"/> is not used:
+    /// it identifies a type by its type identifier, which a type introduced by an aspect does not have before the linker, and which
+    /// differs between <c>C</c>, <c>C?</c> and an oblivious <c>C</c>. An annotation is added to a declaration and must be found
+    /// through any reference to that declaration.
+    /// </remarks>
+    internal static IDurableRef<IDeclaration> GetAnnotationKey( IRef<IDeclaration> declaration )
+        => new DeclarationIdRef<IDeclaration>( declaration.ToSerializableId().StripNullability( out _ ) );
 
     private bool IsMutable { get; }
 
@@ -279,7 +301,7 @@ public sealed partial class CompilationModel
     private void AddAnnotation( AddAnnotationTransformation addAnnotationTransformation )
         => this.Annotations =
             this.Annotations.Add(
-                addAnnotationTransformation.TargetDeclaration,
+                GetAnnotationKey( addAnnotationTransformation.TargetDeclaration ),
                 addAnnotationTransformation.AnnotationInstance );
 
     private void RemoveAttributes( RemoveAttributesTransformation removeAttributes )
