@@ -5,7 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
 using Metalama.Testing.UnitTesting;
-using Microsoft.CodeAnalysis;
 using System.Linq;
 using Xunit;
 
@@ -57,15 +56,6 @@ public sealed class SerializableDeclarationIdRoundTripTests : UnitTestClass
         var resolved = id.Resolve( declaration.Compilation );
 
         Assert.Same( declaration, resolved );
-    }
-
-    private static MetadataReference ToImageReference( Compilation compilation )
-    {
-        using var stream = new System.IO.MemoryStream();
-        var result = compilation.Emit( stream );
-        Assert.True( result.Success );
-
-        return MetadataReference.CreateFromImage( stream.ToArray() );
     }
 
     private static INamedType GetType( ICompilation compilation, string name ) => compilation.Types.OfName( name ).Single();
@@ -152,42 +142,26 @@ public sealed class SerializableDeclarationIdRoundTripTests : UnitTestClass
         AssertRoundTrips( field.GetMethod.AssertNotNull() );
     }
 
+    /// <summary>
+    /// Verifies that a constructor with parameters resolves in a compilation that does not reference Metalama.Framework,
+    /// such as a test project that references the web project it tests.
+    /// </summary>
     [Fact]
-    public void ConstructorWithParameterOfTypeArgumentFromReferencedTopLevelStatementsProgram()
+    public void ConstructorInCompilationWithoutMetalamaReference()
     {
         using var testContext = this.CreateTestContext();
 
-        var factoryAssembly = testContext.CreateCSharpCompilation(
-            """
-            namespace Microsoft.AspNetCore.Mvc.Testing
-            {
-                public class WebApplicationFactory<TEntryPoint> where TEntryPoint : class { }
-            }
-            """,
-            assemblyName: "TheFactory" );
-
-        var webAssembly = testContext.CreateCSharpCompilation(
-            """
-            System.Console.WriteLine( "Hello" );
-
-            public partial class Program { }
-            """,
-            assemblyName: "TheWeb",
-            outputKind: OutputKind.ConsoleApplication );
-
         var compilation = testContext.CreateCompilationModel(
             """
-            using Microsoft.AspNetCore.Mvc.Testing;
-
             namespace MyNamespace
             {
                 public class MyTests
                 {
-                    public MyTests( WebApplicationFactory<Program> factory ) { }
+                    public MyTests( System.Collections.Generic.List<MyTests> list ) { }
                 }
             }
             """,
-            additionalReferences: [ToImageReference( factoryAssembly ), ToImageReference( webAssembly )] );
+            addMetalamaReferences: false );
 
         AssertRoundTrips( GetType( compilation, "MyTests" ).Constructors.Single() );
     }
