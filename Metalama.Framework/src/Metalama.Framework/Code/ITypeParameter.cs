@@ -13,7 +13,7 @@ namespace Metalama.Framework.Code
     public enum TypeParameterKind
     {
         /// <summary>
-        /// The type parameter belongs to a type (class, struct, interface, etc.).
+        /// The type parameter belongs to a type (class, struct, interface, etc.) or to an extension block (<see cref="IExtensionBlock"/>).
         /// </summary>
         Type,
 
