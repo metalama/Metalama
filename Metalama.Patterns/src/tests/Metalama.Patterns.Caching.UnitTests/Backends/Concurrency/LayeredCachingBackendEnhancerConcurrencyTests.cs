@@ -946,6 +946,206 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
     }
 
     /// <summary>
+    /// Verifies that the first layer drops an item whose dependencies are known when the second layer reports, with its
+    /// own identifier, that it has removed the item.
+    /// </summary>
+    /// <remarks>
+    /// The two layers can disagree on whether a new value replaces a value. When an item is absent from the first layer
+    /// only, storing a new value for its key replaces a value in the second layer, which removes the items that depend on
+    /// the key, but it replaces nothing in the first layer, which keeps them. The event of the second layer is then the
+    /// only signal that these items are no longer valid.
+    /// </remarks>
+    [Fact]
+    public async Task ItemRemovedByL2_WithOwnSourceIdentifier_RemovesItemWithKnownDependenciesFromL1()
+    {
+        using var cancellation = new CancellationTokenSource( _timeout );
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider, raisesEvents: true );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value", [_dependency] ) );
+
+        Assert.True(
+            layered.LocalCache.GetItem( _key, includeDependencies: true ) is { Value: "value", Dependencies.IsDefaultOrEmpty: false },
+            "Precondition: the first layer does not hold the item with its dependencies." );
+
+        // The second layer removes the item without a call through the layered backend.
+        remote.RemoveItem( _key );
+
+        await fakes.WhenPendingWorkItemsCompletedAsync( cancellation.Token );
+
+        Assert.False(
+            layered.LocalCache.ContainsItem( _key ),
+            "The first layer kept the item after the second layer had reported its removal." );
+    }
+
+    /// <summary>
+    /// Verifies that the first layer keeps a tombstone when the second layer reports, with its own identifier, that it
+    /// has removed the item.
+    /// </summary>
+    /// <remarks>
+    /// The event can belong to an earlier removal than the one that wrote the tombstone. The tombstone must then keep
+    /// masking the value of the second layer until it expires.
+    /// </remarks>
+    [Fact]
+    public async Task ItemRemovedByL2_WithOwnSourceIdentifier_KeepsTombstoneInL1()
+    {
+        using var cancellation = new CancellationTokenSource( _timeout );
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider, blocking: false, raisesEvents: true, defersRemovals: true );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value" ) );
+        layered.RemoveItem( _key );
+
+        Assert.True( layered.LocalCache.GetItem( _key ) is { Value: null }, "Precondition: the removal did not write a tombstone into the first layer." );
+
+        // The second layer removes the item and raises the event with its own identifier.
+        remote.CompletePendingRemovals();
+
+        await fakes.WhenPendingWorkItemsCompletedAsync( cancellation.Token );
+
+        Assert.True(
+            layered.LocalCache.GetItem( _key ) is { Value: null },
+            "The first layer lost the tombstone after the second layer had reported the removal of the item." );
+    }
+
+    /// <summary>
+    /// Verifies that a read that requests the dependencies of an item does not return a value whose removal is pending
+    /// in a second layer that is not blocking.
+    /// </summary>
+    /// <remarks>
+    /// A tombstone has no dependencies. A read that requests the dependencies must still treat it as a tombstone, and
+    /// not as a copy whose dependencies are unknown and must be read from the second layer.
+    /// </remarks>
+    /// <param name="readAsynchronously">
+    /// <see langword="true"/> to read with <see cref="CachingBackend.GetItemAsync"/>, <see langword="false"/> to read with
+    /// <see cref="CachingBackend.GetItem"/>.
+    /// </param>
+    [Theory]
+    [InlineData( false )]
+    [InlineData( true )]
+    public async Task NonBlockingRemoveItem_ReadWithDependencies_DoesNotServeRemovedValue( bool readAsynchronously )
+    {
+        using var cancellation = new CancellationTokenSource( _timeout );
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider, blocking: false, defersRemovals: true );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value", [_dependency] ) );
+        layered.RemoveItem( _key );
+
+        Assert.True(
+            remote.PendingRemovalCount == 1 && remote.ContainsItem( _key ),
+            "Precondition: the removal of the second layer is not pending, or the second layer no longer holds the item." );
+
+        var readDuringRemoval = readAsynchronously
+            ? await layered.GetItemAsync( _key, true, cancellation.Token )
+            : layered.GetItem( _key, true );
+
+        Assert.True(
+            readDuringRemoval == null,
+            $"A read that requested the dependencies returned {DescribeItem( readDuringRemoval )} while the removal of the second layer was pending." );
+    }
+
+    /// <summary>
+    /// Verifies that an invalidation through a layered backend whose second layer is not blocking masks a copy whose
+    /// dependencies are unknown, while the invalidation is pending in the second layer.
+    /// </summary>
+    /// <remarks>
+    /// The first layer cannot tell whether such a copy depends on the invalidated dependency, so it removes the copy. It
+    /// must also write a tombstone for its key. Otherwise, a read returns the value of the second layer while the
+    /// invalidation is pending there, and copies it into the first layer again.
+    /// </remarks>
+    [Fact]
+    public void NonBlockingInvalidateDependency_MasksCopyWithUnknownDependencies()
+    {
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider, blocking: false, defersInvalidations: true );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value", [_dependency] ) );
+
+        // Remove the item from the first layer only, as an eviction would.
+        layered.LocalCache.RemoveItem( _key );
+
+        Assert.True(
+            layered.GetItem( _key ) is { Value: "value" } && layered.LocalCache.GetItem( _key, includeDependencies: true ) is { Dependencies.IsDefault: true },
+            "Precondition: the read did not copy the item of the second layer into the first layer without its dependencies." );
+
+        layered.InvalidateDependency( _dependency );
+
+        Assert.True(
+            remote.PendingInvalidationCount == 1 && remote.ContainsItem( _key ),
+            "Precondition: the invalidation of the second layer is not pending, or the second layer no longer holds the item." );
+
+        var readDuringInvalidation = layered.GetItem( _key );
+
+        remote.CompletePendingInvalidations();
+
+        Assert.False( remote.ContainsItem( _key ), "Precondition: the completed invalidation did not remove the item from the second layer." );
+
+        var readAfterInvalidation = layered.GetItem( _key );
+
+        this._output.WriteLine( $"Read while the invalidation was pending: {DescribeItem( readDuringInvalidation )}." );
+        this._output.WriteLine( $"Read after the invalidation had completed: {DescribeItem( readAfterInvalidation )}." );
+
+        Assert.True(
+            readDuringInvalidation == null,
+            $"GetItem returned {DescribeItem( readDuringInvalidation )} while the invalidation of the second layer was pending. The first layer did not mask the value of the second layer." );
+
+        Assert.True(
+            readAfterInvalidation == null,
+            $"GetItem returned {DescribeItem( readAfterInvalidation )} after the invalidation of the second layer had completed. The first layer stored the invalidated value." );
+    }
+
+    /// <summary>
+    /// Verifies that the invalidation of a dependency removes, from the first layer, the items that depend on a copy
+    /// whose dependencies are unknown.
+    /// </summary>
+    /// <remarks>
+    /// The intermediate item depends on the invalidated dependency, and an outer item depends on the key of the
+    /// intermediate item. The first layer holds a copy of the intermediate item without its dependencies, so its
+    /// dependency index does not relate the dependency to the outer item. The copy can depend on the invalidated
+    /// dependency, so the items that depend on its key can depend on it too.
+    /// </remarks>
+    [Fact]
+    public void InvalidateDependency_RemovesDependentsOfCopyWithUnknownDependenciesFromL1()
+    {
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "value", [_dependency] ) );
+        layered.SetItem( _outerKey, new CacheItem( "outer-value", [_key] ) );
+
+        // Remove the intermediate item from the first layer only, as an eviction would, and copy it again from the second
+        // layer without its dependencies.
+        layered.LocalCache.RemoveItem( _key );
+
+        Assert.True(
+            layered.GetItem( _key ) is { Value: "value" }
+            && layered.LocalCache.GetItem( _key, includeDependencies: true ) is { Dependencies.IsDefault: true }
+            && layered.LocalCache.ContainsItem( _outerKey ),
+            "Precondition: the first layer does not hold a copy of the intermediate item without its dependencies, or it lost the outer item." );
+
+        layered.InvalidateDependency( _dependency );
+
+        Assert.False(
+            layered.LocalCache.ContainsItem( _key ),
+            "Precondition: the first layer kept the copy whose dependencies are unknown after the invalidation." );
+
+        Assert.False(
+            layered.LocalCache.ContainsItem( _outerKey ),
+            "The first layer kept an item that depends on a copy whose dependencies are unknown after the invalidation of a dependency." );
+    }
+
+    /// <summary>
     /// Creates the services of a test whose backends resolve a given synchronization provider.
     /// </summary>
     /// <param name="synchronization">The synchronization provider that the backends resolve.</param>

@@ -1221,16 +1221,44 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// Removes every entry that is a copy of an item of another layer and whose dependencies are unknown.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A layered backend calls this method when a dependency is invalidated, because the dependency index cannot tell
     /// which of these entries depend on the invalidated dependency. The removed entries are read again from the other
-    /// layer when they are needed. No event is raised, because the items are still valid in the other layer unless that
-    /// layer removes them.
+    /// layer when they are needed. No event is raised for them, because the items are still valid in the other layer
+    /// unless that layer removes them.
+    /// </para>
+    /// <para>
+    /// The items that depend, directly or transitively, on the key of a removed entry are removed too, as an
+    /// invalidation of that key would remove them. The removed entry can depend on the invalidated dependency, so these
+    /// items can depend on it through the key of the entry.
+    /// </para>
     /// </remarks>
-    internal void RemoveItemsWithUnknownDependencies()
+    /// <param name="replacementValue">
+    /// A value that replaces each removed entry and each removed item for a limited time, or <see langword="null"/> to
+    /// remove them.
+    /// </param>
+    /// <param name="replacementValueExpiration">The instant, read from the clock of the backend, at which the replacement values expire.</param>
+    internal void RemoveItemsWithUnknownDependencies( MemoryCacheItem? replacementValue = null, DateTimeOffset? replacementValueExpiration = null )
     {
+        ValidateReplacement( replacementValue, replacementValueExpiration );
+
+        HashSet<string>? visitedKeys = null;
+
         foreach ( var pair in this._keysWithUnknownDependencies )
         {
-            this.RemoveItemWithUnknownDependencies( pair.Key );
+            var key = pair.Key;
+
+            if ( !this.RemoveItemWithUnknownDependencies( key, replacementValue, replacementValueExpiration ) )
+            {
+                continue;
+            }
+
+            visitedKeys ??= new HashSet<string>( StringComparer.Ordinal );
+
+            if ( visitedKeys.Add( key ) )
+            {
+                this.InvalidateDependents( key, replacementValue, replacementValueExpiration, visitedKeys, null );
+            }
         }
     }
 
@@ -1238,8 +1266,10 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// Removes the entry of a key when it is a copy of an item of another layer and its dependencies are unknown.
     /// </summary>
     /// <param name="key">The key of the item.</param>
-    /// <returns><see langword="true"/> when the entry has been removed.</returns>
-    internal bool RemoveItemWithUnknownDependencies( string key )
+    /// <param name="replacementValue">A value that replaces the entry for a limited time, or <see langword="null"/> to remove the entry.</param>
+    /// <param name="replacementValueExpiration">The instant at which the replacement value expires.</param>
+    /// <returns><see langword="true"/> when the entry has been removed or replaced.</returns>
+    private bool RemoveItemWithUnknownDependencies( string key, MemoryCacheItem? replacementValue, DateTimeOffset? replacementValueExpiration )
     {
         if ( !this._keysWithUnknownDependencies.ContainsKey( key ) )
         {
@@ -1258,11 +1288,49 @@ internal partial class MemoryCachingBackend : CachingBackend
 
             if ( isRemoved )
             {
-                this.RemoveCurrentItem( key, itemKey, currentItem, null, null, true, ref releaseCandidates );
+                this.RemoveCurrentItem( key, itemKey, currentItem, replacementValue, replacementValueExpiration, true, ref releaseCandidates );
             }
             else
             {
                 this.TrackUnknownDependencies( key, currentItem );
+            }
+        }
+        finally
+        {
+            this.ExitKeyLock( key, keyLock );
+        }
+
+        this.ReleaseRegistrationsOfRemovedItems( releaseCandidates );
+
+        return isRemoved;
+    }
+
+    /// <summary>
+    /// Removes the entry of a key unless it is a replacement value (tombstone).
+    /// </summary>
+    /// <remarks>
+    /// A layered backend calls this method when the other layer reports that it has removed the item of the key as a
+    /// consequence of an operation of this node. A replacement value is kept, because it belongs to a removal of this
+    /// node that may be more recent than the reported removal. The items that depend on the key are kept: the other
+    /// layer reports each item that it removes. No event is raised, because the other layer has already raised it.
+    /// </remarks>
+    /// <param name="key">The key of the item.</param>
+    /// <returns><see langword="true"/> when an item has been removed.</returns>
+    internal bool RemoveLiveItem( string key )
+    {
+        var itemKey = this.GetItemKey( key );
+        List<string>? releaseCandidates = null;
+        bool isRemoved;
+        var keyLock = this.EnterKeyLock( key );
+
+        try
+        {
+            var currentItem = this.GetStoredItem( itemKey );
+            isRemoved = IsLive( currentItem );
+
+            if ( isRemoved )
+            {
+                this.RemoveCurrentItem( key, itemKey, currentItem, null, null, true, ref releaseCandidates );
             }
         }
         finally
