@@ -157,6 +157,9 @@ public class Program
 
             var testRunner = new AspectTestRunner( serviceProvider, directory, testProjectReferences, testOutputHelper );
             var testInput = new TestInput.Factory( serviceProvider ).FromFile( testProjectProperties, testDirectoryOptionsReader, "Test.cs" );
+            // The test file is in an in-memory file system, so the metalamaTests.json file at the root of the repository, which
+            // disables the analyzers for the test suites of this repository, is not read.
+            testInput.Options.RunAnalyzers = false;
             var testContextOptions = testInput.Options.ApplyToTestContextOptions( new MetalamaTestContextOptions() );
             testInput.Options.SkipDiffTool = true;
             testInput.Options.IgnoredDiagnostics.Add( "CS8602" );

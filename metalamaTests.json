@@ -1,0 +1,9 @@
+{
+  // This file applies to every aspect test suite of this repository, because the test framework merges the metalamaTests.json
+  // files of all parent directories.
+  //
+  // RunAnalyzers is enabled by default for the users of Metalama.Testing.AspectTesting. It is disabled here because running the
+  // analyzers of Metalama.Framework.Analyzers increases the duration of every test. A test that needs these diagnostics enables
+  // them with the // @RunAnalyzers directive.
+  "RunAnalyzers": false
+}
