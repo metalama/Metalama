@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.metalama/metalama-mcp",
+  "title": "Metalama",
+  "description": "Runs C# queries over the Metalama code model of C# projects and solutions.",
+  "version": "__PACKAGE_VERSION__",
+  "repository": {
+    "url": "https://github.com/metalama/Metalama",
+    "source": "github",
+    "subfolder": "Metalama.Introspection/src/Metalama.Mcp"
+  },
+  "packages": [
+    {
+      "registryType": "nuget",
+      "registryBaseUrl": "https://api.nuget.org",
+      "identifier": "Metalama.Mcp",
+      "version": "__PACKAGE_VERSION__",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [],
+      "environmentVariables": []
+    }
+  ]
+}

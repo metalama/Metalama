@@ -11,6 +11,10 @@
         <AssemblyName>metalama-mcp</AssemblyName>
         <PackageId>Metalama.Mcp</PackageId>
         <PackAsTool>true</PackAsTool>
+        <!-- NuGet.org lists a package as an MCP server when it has the McpServer package type and an .mcp/server.json file.
+             The .NET SDK adds DotnetTool to this value, so the package type becomes DotnetTool;McpServer. -->
+        <PackageType>McpServer</PackageType>
+        <PackageTags>metalama mcp mcp-server</PackageTags>
         <ToolCommandName>metalama-mcp</ToolCommandName>
         <RollForward>Major</RollForward>
         <InvariantGlobalization>True</InvariantGlobalization>
@@ -74,6 +78,21 @@
         <None Include="Rendering\result.schema.json" Pack="true" PackagePath="\" />
         <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
+
+    <!-- Packs .mcp/server.json, from which NuGet.org generates the MCP client configuration. The source file contains the
+         __PACKAGE_VERSION__ placeholder, which is replaced by the package version, so that the manifest always names the
+         package that contains it. -->
+    <Target Name="_PackMcpServerManifest" BeforeTargets="_GetPackageFiles">
+        <PropertyGroup>
+            <_McpServerManifestPath>$(IntermediateOutputPath)mcp/server.json</_McpServerManifestPath>
+            <_McpServerManifestContent>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/.mcp/server.json').Replace('__PACKAGE_VERSION__', '$(PackageVersion)'))</_McpServerManifestContent>
+        </PropertyGroup>
+        <WriteLinesToFile File="$(_McpServerManifestPath)" Lines="$(_McpServerManifestContent)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+        <ItemGroup>
+            <None Include="$(_McpServerManifestPath)" Pack="true" PackagePath=".mcp/" />
+            <FileWrites Include="$(_McpServerManifestPath)" />
+        </ItemGroup>
+    </Target>
 
     <!-- Exclude the PDBs and XML documentation from the tool package, as Metalama.Tool does. -->
     <Target Name="_ExcludePackageFiles" AfterTargets="Build" BeforeTargets="GenerateNuspec">
