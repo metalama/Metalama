@@ -234,6 +234,9 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
         var testDirectoryOptionsReader = new TestDirectoryOptionsReader( serviceProvider, directory );
         var testRunner = new AspectTestRunner( serviceProvider, directory, testProjectReferences, null );
         var testInput = new TestInput.Factory( serviceProvider ).FromFile( testProjectProperties, testDirectoryOptionsReader, "Test.cs" );
+        // The test file is in an in-memory file system, so the metalamaTests.json file at the root of the repository, which
+        // disables the analyzers for the test suites of this repository, is not read.
+        testInput.Options.RunAnalyzers = false;
         configureOptions?.Invoke( testInput.Options );
         var testContextOptions = testInput.Options.ApplyToTestContextOptions( new MetalamaTestContextOptions() );
         testInput.Options.SkipDiffTool = true;

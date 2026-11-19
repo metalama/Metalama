@@ -84,7 +84,7 @@ public sealed class OlderFrameworkReferenceTests : AspectTestBase
         // Before the fix, the aspect was skipped with LAMA0033: "defines a member named 'get_OverrideEnumerableProperty', but the
         // member is not annotated with the [Template] custom attribute".
         Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0033" );
-        Assert.True( result.IsSuccessful, string.Join( "\n", diagnostics.Select( d => d.ToString() ) ) );
+        Assert.True( result.IsSuccessful, string.Join( "\n", diagnostics.SelectAsArray( d => d.ToString() ) ) );
 
         // The getter of the target property is the template.
         var targetClass = result.Value.ResultingCompilation.Compilation.SyntaxTrees
