@@ -362,7 +362,7 @@ The table in *The Out-of-band family* records the result of this cross-reference
 
 ### What NOT to use as the cap
 
-`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version, but it **is** load-time-significant. Some .NET libraries keep AsmVer frozen across NuGet patches (e.g., `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0); others don't (`System.Memory` 4.5.5 = AsmVer 4.0.1.2, 4.6.0 = 4.0.2.0, 4.6.3 = 4.0.5.0 — real bumps within one line). So:
+`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version, but it **is** load-time-significant. Some .NET libraries keep AsmVer frozen across NuGet patches (e.g., `Microsoft.Build` 17.x and 18.x, up to at least 18.7.1, all expose AsmVer 15.1.0.0); others don't (`System.Memory` 4.5.5 = AsmVer 4.0.1.2, 4.6.0 = 4.0.2.0, 4.6.3 = 4.0.5.0 — real bumps within one line). So:
 
 - **Don't cap on AsmVer alone** — for many packages it's frozen and tells you nothing.
 - **Don't cap on the VS-shipped DLL version alone** — the `newVersion` in the binding redirect is the shipped DLL, but it's not the cap; the `oldVersion` *upper bound* is.

@@ -64,10 +64,10 @@
 
         <PackageReference Include="Microsoft.Bcl.HashCode" />
         <PackageReference Include="System.IO.Hashing" />
-        <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
+        <PackageReference Include="Newtonsoft.Json" />
 
 		<!-- Resolve conflict -->
-    	<PackageReference Include="System.Text.Json" NoWarn="NU1903" />
+    	<PackageReference Include="System.Text.Json" />
     	<PackageReference Include="System.Memory" />
 
     </ItemGroup>
