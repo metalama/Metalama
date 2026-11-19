@@ -219,11 +219,22 @@ Rewriter.AddInjectionsOnPosition (during syntax tree rewriting)
 
 ### Primary Constructor Handling
 
-Primary constructors (on records and classes) receive special treatment:
+Primary constructors (on records, classes and structs) receive special treatment. A union declaration has no primary constructor, and the subsection "Union Declarations" below describes how the linker treats its case list.
 
 - **`ApplyMemberLevelTransformationsToPrimaryConstructor`**: Modifies the type declaration's parameter list and base list (for `: BaseType(args)` syntax) instead of a constructor body.
 - **Non-materialized parameters** (`MaterializeOnRecord == false`): Trigger primary-constructor materialization — the linker emits an explicit body-declared constructor and registers the parameter name so the linker skips the corresponding positional property / `Deconstruct` entry.
 - **Materialized parameters** (`MaterializeOnRecord == true`): Tracked separately so `Deconstruct` emission can differentiate the all-non-materialized case from the mixed/all-materialized case.
+
+#### Union Declarations
+
+A union declaration carries its case list in the syntactic position where a class carries the parameter list of a primary constructor. `TypeDeclarationSyntax.ParameterList`, which `GetParameterList` returns, is the case list for a union. The case list is not a parameter list, and the language forbids a union to declare a primary constructor. The linker must therefore keep the case list unchanged and must not apply the logic of a primary constructor to it (#1941, #1944). The code that reads `ParameterList` keeps a union out of that logic as follows:
+
+- **`LinkerInjectionStep.Rewriter.VisitTypeDeclaration`** is the fallback path, and `VisitUnionDeclaration` calls it. No member-level transformation targets a union, so `ApplyMemberLevelTransformationsToPrimaryConstructor` returns without a change, and `WithParameterList` writes the case list back unchanged. The `Deconstruct` overload is generated only for a `RecordDeclarationSyntax`, so a union stays out of the record path.
+- **`LinkerLinkingStep.LinkingRewriter.VisitUnionDeclaration`** calls `LinkerRewritingDriver.RewriteUnion` and not `RewriteStruct`. `RewriteStruct` removes a primary constructor when `LinkerLateTransformationRegistry.HasRemovedPrimaryConstructor` is `true`, and `RewriteUnion` replaces only the members. A union therefore stays out of the struct path.
+- **`ImplicitLastOverrideReferenceInliner`** returns the parameter list of a type declaration as the body of an implicit last override of a primary constructor. An arm for `SyntaxKind.UnionDeclaration` precedes the arm for `IsTypeDeclaration` and throws an `AssertionFailedException`, because the case list is not the body of a primary constructor.
+- **`LinkerLateTransformationRegistry.GetPrimaryConstructorFields`** selects the declaring syntax of a type among the class, struct, record and record struct kinds that have a parameter list. The union kind is intentionally absent from this list.
+
+The `SyntaxKind.UnionDeclaration` arms are inside `#if ROSLYN_5_12_0_OR_GREATER` blocks, because the lower Roslyn variant does not declare the kind.
 
 ## Key Files
 

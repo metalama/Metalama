@@ -154,6 +154,22 @@ ExecuteAspectLayerPipelineStep.ExecuteAsync():
 
 Within a single type, if there are multiple aspect instances (e.g., from different aspect sources), they execute **sequentially** — each aspect sees the immutable snapshot produced by the previous aspect on that type.
 
+### Order of the Aspect Instances of One Type
+
+`ExecuteAspectLayerPipelineStep` sorts the aspect instances of one type with `AspectInstanceComparer.Compare`, a nested class of `ExecuteAspectLayerPipelineStep.cs`, before it executes them. The comparer orders two aspect instances by their target declarations, by applying these rules in order:
+
+1. Two references to the same aspect instance are equal.
+2. A target declaration that has a primary declaration syntax comes before an introduced target declaration, which has none.
+3. Two source target declarations in different syntax trees are ordered by the ordinal comparison of the file paths.
+4. Two source target declarations in the same syntax tree are ordered by the start position of their primary declaration syntax.
+5. Two equal target declarations are equal.
+6. Two target declarations that share a start position are ordered by origin. A declaration that the user wrote comes before an implicitly declared one (`IDeclaration.IsImplicitlyDeclared`).
+7. Two target declarations that share a start position and an origin are ordered by `StructuralSymbolComparer.Signature`. This comparer orders two symbols of different kinds by kind.
+8. Two source target declarations that none of these rules orders cause an `AssertionFailedException`.
+9. Two introduced target declarations are ordered by the ordinal comparison of their string representations.
+
+Several declarations share the span of one type declaration. The compiler declares the `Equals`, `GetHashCode`, `ToString` and `PrintMembers` methods, the equality operators, the copy constructor and the `EqualityContract` property of a record implicitly, and each of them carries the span of the record declaration. The `Value` property of a union carries the span of the union declaration in the same way. Rules 6 and 7 order any two declarations that share a span, whatever their kinds and whatever the type declaration (#1945). Before #1945, the comparer required two implicitly declared methods of a record and threw for any other pair.
+
 ### Example: Inheritance-Based Ordering
 
 Consider an inheritable aspect applied to `Base → Derived → MostDerived`:

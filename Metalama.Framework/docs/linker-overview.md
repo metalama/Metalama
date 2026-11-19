@@ -22,6 +22,20 @@ possible to produce the final compilation, which is the output of Metalama Frame
   InjectedMember in the correct place.
 * All of collected information results in the creation of `LinkerInjectionRegistry`, which is used during the
   analysis step.
+* A builder can be registered with no injected member. `IntroduceSynthesizedDeclarationTransformation` registers a
+  member that the compiler synthesizes from an introduced type declaration, such as the `Value` property and the case
+  constructors of an introduced union (#1951). Such a transformation has no syntax tree, so the pass that groups
+  transformations by syntax tree does not reach it. `LinkerInjectionStep` indexes every transformation whose
+  `IIntroduceDeclarationTransformation.IsCompilerSynthesized` is `true` in a separate pass, which runs first. This pass
+  adds the builder to the map from builder data to transformation. In `LinkerInjectionRegistry`, the builder therefore
+  has the following behavior:
+    * `GetTransformationForBuilder` returns the `IntroduceSynthesizedDeclarationTransformation`. A transformation that
+      replaces the declaration resolves it through this map. This happens when an aspect introduces a field into an
+      introduced struct and the implicit parameterless constructor of that struct is replaced.
+    * `GetInjectedMembersForTransformation` returns an empty list for that transformation, because no member is
+      injected.
+    * `GetIntermediateCompilationSymbol` returns `null` for the declaration, because no injected member maps it to a
+      symbol of the intermediate compilation.
 
 ### Aspect References
 
@@ -304,8 +318,14 @@ return_label:
 
 ## Step 3 - Linking (`LinkerLinkingStep` class):
 
-* On each syntax tree execute `LinkerLinkingStep.LinkingRewriter`, which goes through every class and produces final
-  sets of members:
+* On each syntax tree execute `LinkerLinkingStep.LinkingRewriter`, which goes through every type declaration and
+  produces final sets of members. The type declarations are the class, the struct, the interface, the record, the
+  record struct and the union, and also the extension block. `VisitUnionDeclaration` exists in the latest Roslyn
+  variant only, and it calls `LinkerRewritingDriver.RewriteUnion`, which rewrites the members of the union as
+  `RewriteStruct` rewrites those of a struct (#1944). A union declaration carries its case list in the syntactic
+  position where a class carries the parameter list of a primary constructor. The language forbids a union to declare
+  a primary constructor, so `RewriteUnion` has no primary constructor to remove and keeps the case list unchanged. The
+  final sets of members are produced as follows:
     * Removes inlined members.
     * Produced final members by applying substitutions
 * In the future the resulting syntax tree should run through the final prettifying rewriter to produce nice code that
