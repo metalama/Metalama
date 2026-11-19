@@ -21,6 +21,8 @@ Pattern matching using `is` and `switch` on these types is expensive because it 
 - No duplicate casts when variable is used multiple times
 - Consistent pattern across codebase
 
+Test the discriminator kind before the pattern match. Entry 7 of "Edge Cases" states how to add a new type-declaration kind, such as the union declaration, to the existing kind enumerations. Entry 8 states the exemption for a test on an abstract syntax type.
+
 ---
 
 ## Pattern A: Switch Statement
@@ -313,7 +315,7 @@ if (node.Kind() == SyntaxKind.Block && node is BlockSyntax block)
 | `Indexer` | `IIndexer` | |
 | `Parameter` | `IParameter` | |
 | `TypeParameter` | `ITypeParameter` | |
-| `NamedType` | `INamedType` | Classes, structs, interfaces, etc. |
+| `NamedType` | `INamedType` | Classes, structs, interfaces, records, unions, enums and delegates |
 | `Namespace` | `INamespace` | |
 | `Compilation` | `ICompilation` | |
 | `Attribute` | `IAttribute` | |
@@ -366,8 +368,11 @@ if (node.Kind() == SyntaxKind.Block && node is BlockSyntax block)
 | `InterfaceDeclaration` | `InterfaceDeclarationSyntax` |
 | `RecordDeclaration` | `RecordDeclarationSyntax` |
 | `RecordStructDeclaration` | `RecordDeclarationSyntax` |
+| `UnionDeclaration` | `UnionDeclarationSyntax` (latest Roslyn variant only, inside `#if ROSLYN_5_12_0_OR_GREATER`) |
 | `EnumDeclaration` | `EnumDeclarationSyntax` |
 | `DelegateDeclaration` | `DelegateDeclarationSyntax` |
+
+No row is added for unions to the table "DeclarationKind → IDeclaration Types" or to the multi-kind table of "Pitfall 1". The C# 15 work adds neither a `TypeKind` value nor a `DeclarationKind` value for a union (#1941). A union is a named type whose `TypeKind` is `Struct`, and `INamedType.IsUnion` tells it apart. Closedness is also a flag, `INamedType.IsClosed`, and not a kind (#1939).
 | `NamespaceDeclaration` | `NamespaceDeclarationSyntax` |
 | `FileScopedNamespaceDeclaration` | `FileScopedNamespaceDeclarationSyntax` |
 | `Block` | `BlockSyntax` |
@@ -477,6 +482,33 @@ if (node is RecordDeclarationSyntax record)
 if (node.Kind() is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
     && node is RecordDeclarationSyntax record)
 ```
+
+### 7. Adding a New Type-Declaration Kind
+
+When Roslyn adds a type-declaration kind, add the new kind to the existing kind enumerations. Do not replace an enumeration by a test on the abstract syntax type, such as `TypeDeclarationSyntax`. The union declaration of C# 15 was added in this way (#1941, #1944).
+
+The lower Roslyn variant does not declare a kind that a later Roslyn version adds. The addition is therefore placed inside the block of the latest variant:
+
+```csharp
+case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
+    or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+#if ROSLYN_5_12_0_OR_GREATER
+    or SyntaxKind.UnionDeclaration
+#endif
+    when node is TypeDeclarationSyntax typeDeclaration:
+```
+
+The predicates of `SyntaxKindExtensions`, such as `IsTypeDeclaration` and `IsUnionDeclaration`, follow the same rule. Code that must name the union kind outside a variant block uses `IsUnionDeclaration`, which compares with a constant that is `SyntaxKind.None` in the lower variant.
+
+An enumeration that intentionally excludes the new kind is left unchanged. For example, `LinkerLateTransformationRegistry.GetPrimaryConstructorFields` does not list `UnionDeclaration`, because the parameter list of a union declaration is its case list and not the parameter list of a primary constructor.
+
+### 8. Tests on Abstract Syntax Types Are Exempt
+
+A pattern-matching test on an abstract syntax type, such as `TypeDeclarationSyntax`, `ExpressionSyntax` or `StatementSyntax`, is exempt from the discriminator rule. Such a test checks a type hierarchy and not one specific syntax type, so no single `SyntaxKind` discriminates it.
+
+The exemption is implemented by `KindCheckOptimizationAnalyzer.IsRelevantType` in `Metalama.Framework.Engine.Analyzers/KindCheckOptimizationAnalyzer.cs`. For a class type that derives from `SyntaxNode`, the method returns `false` when `type.IsAbstract` is `true`, so the analyzer reports no `LAMA0860` diagnostic for the test.
+
+This is an exemption and not the preferred form. When the set of kinds is known, enumerate the kinds as entry 6 and entry 7 describe. Use a test on the abstract syntax type only when the code needs every node of the hierarchy, including kinds that later Roslyn versions may add.
 
 ---
 

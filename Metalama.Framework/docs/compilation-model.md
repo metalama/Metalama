@@ -78,6 +78,17 @@ Builders are created during aspect execution and allow mutation via property set
 
 **Concrete examples:** `ConstructorBuilder`, `ParameterBuilder`, `MethodBuilder`, `FieldBuilder`, `PropertyBuilder`
 
+The named type builder, `NamedTypeBuilder`, carries two properties that describe the C# 15 type forms:
+
+- `IsClosed` is the closedness flag (#1950). It is a flag and not a type kind. `NamedTypeBuilderData.IsClosed` stores it.
+  The setter refuses the value `true` in a Roslyn variant that predates C# 15, because that variant cannot emit the
+  `closed` modifier.
+- `IsUnion` is `true` for `UnionBuilder` alone. The language reports a union as a struct, so the type kind of a union
+  is `TypeKind.Struct`, and `IsUnion` tells it apart. `UnionBuilder.Cases` is the case list (#1951), in the order in
+  which the aspect added the cases. When the builder is frozen, `UnionBuilder` creates one constructor per case and the
+  `Value` property, and `UnionBuilderData` stores them as `CaseConstructors` and `ValueProperty`. The section
+  "Declarations Registered Without Injected Syntax" describes how these members reach the code model.
+
 ### DeclarationBuilderData (Immutable)
 
 **Base class:** `CodeModel/Introductions/BuilderData/DeclarationBuilderData.cs`
@@ -274,6 +285,39 @@ Special methods for parameter management:
 - `NamedTypeBuilderData` → `TypeUpdatableCollection` of parent + top-level collection
 - `AttributeBuilderData` → `AttributeUpdatableCollection`
 
+### Declarations Registered Without Injected Syntax
+
+A declaration can be registered in the code model as a builder without any syntax being injected for it. The
+transformation that registers it implements `IIntroduceDeclarationTransformation` and does not implement
+`IInjectMemberTransformation`. Both emitters select the transformations to emit by `IInjectMemberTransformation`:
+`LinkerInjectionStep` at build time and `DesignTimeSyntaxTreeGenerator` at design time. A transformation that does not
+implement it is therefore added to the code model by `AddDeclaration` and emitted by neither.
+
+Two transformations have this shape:
+
+- `IntroduceNamespaceTransformation` registers an introduced namespace. A namespace is not a member. The namespace declaration
+  is emitted by the code that wraps an introduced type in its namespace.
+- `IntroduceSynthesizedDeclarationTransformation` registers a member that the compiler synthesizes from a type
+  declaration that Metalama emits. For an introduced union, these members are the `Value` property and the constructor
+  of each case. The same transformation registers the `Invoke` method of an introduced delegate, the members that a
+  record declaration implies, and the parameterless constructor of an introduced struct. Section 4.2 of
+  [`introducing-types.md`](introducing-types.md) lists these members.
+
+A member must be registered because the introduction pipeline does not read the final compilation from Roslyn again,
+so an aspect sees only the members of the code model. A member must not be emitted because the compiler creates it from
+the type declaration, and a member that is both emitted and synthesized is declared twice.
+
+The builder of a member that the compiler synthesizes has `IsSynthesizedByCompiler` set to `true`, and
+`DeclarationBuilderData.IsSynthesizedByCompiler` stores the flag. The builder of the type sets it when the type builder
+is frozen. `AddAttributeAdvice` refuses to add a custom attribute to such a member, because the member has no
+declaration of its own. `IIntroduceDeclarationTransformation.IsCompilerSynthesized` is `true` for
+`IntroduceSynthesizedDeclarationTransformation` and `false` for every other implementation, including
+`IntroduceNamespaceTransformation`.
+
+`IsSynthesizedByCompiler` is independent of `IDeclaration.IsImplicitlyDeclared`. The `Value` property and the case
+constructors of an introduced union report `IsImplicitlyDeclared` as `false`. The same members of a union that is
+declared in source are Roslyn symbols, and they report `IsImplicitlyDeclared` as `true`.
+
 ## Declaration Origin
 
 Every declaration exposes its origin via `IDeclaration.Origin`:
@@ -284,6 +328,7 @@ Every declaration exposes its origin via `IDeclaration.Origin`:
 | Declaration from referenced assembly | `External` | From a NuGet package or project reference |
 | Aspect-introduced declaration | via `IAspectDeclarationOrigin` | Created by an aspect; `AspectInstance` identifies which |
 | Compiler-generated | `Source` + `IsCompilerGenerated` | Implicit constructors, top-level statement classes, etc. |
+| Member that the compiler synthesizes from an introduced type | via `IAspectDeclarationOrigin` + `IsSynthesizedByCompiler` on the builder data | Registered as a builder without injected syntax, for example the `Value` property and the case constructors of an introduced union |
 
 Source declarations determine their origin by comparing the symbol's containing assembly with the compilation's assembly. Introduced declarations always return the creating aspect instance.
 
