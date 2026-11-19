@@ -65,23 +65,23 @@ Within the chosen .NET line we take the **highest available patch** that the lim
 
 The desktop flavour of the payload embeds `System.Text.Json`, `System.Text.Encodings.Web`, `System.IO.Pipelines` and `Microsoft.Bcl.AsyncInterfaces`, among others. In the Roslyn 5.12 variant all four resolve to NuGet 10.0.10, whose `lib/net462` asset carries assembly version 10.0.0.10. Roslyn 5.12 imposes that version: the `netstandard2.0` group of `Microsoft.CodeAnalysis.Features` 5.12.0 requires all four at 10.0.10. Roslyn 5.11 and the prerelease builds of Roslyn 5.12 required the same versions. The central pins of the .NET 10.0 line are at the same 10.0.10, so the Roslyn 5.0 variant embeds the same assembly versions as the Roslyn 5.12 variant.
 
-The binding redirects were measured on 2026-10-13 for issue #2238, and on 2026-11-13 for issue #2341:
+The binding redirects were measured on 2026-10-13 for issue #2238, on 2026-11-13 for issue #2341, and on 2026-11-19 for issue #1974:
 
 | Visual Studio | Roslyn presented | Upper bound of the four redirects in `devenv.exe.config` | Variant selected | In the supported set |
 | --- | --- | --- | --- | --- |
 | 2022 17.14.41 | 4.14 | 10.0.0.8 | none | No |
 | 2026 18.9.12112.369 | below 5.10 | 10.0.0.8 | `Roslyn.5.0.0` | No |
 | 2026 18.10.3 | 5.10 | 10.0.0.10 | `Roslyn.5.0.0` | No |
-| 2026 18.11, the long-term servicing channel | 5.11 | 10.0.0.10, measured on 18.11.0 | `Roslyn.5.0.0` | Yes, the floor |
+| 2026 18.11.4 (12405.450), the long-term servicing channel | 5.11 (`5.11.0-1.26424.5`) | 10.0.0.10 | `Roslyn.5.0.0` | Yes, the floor |
 | 2026 18.12.0 (12405.243), Stable | 5.12 (`5.12.0-1.26502.2`) | 10.0.0.10 | `Roslyn.5.12.0` | Yes |
 
-The 18.9 row is the measurement recorded in *The Out-of-band family*; its Roslyn version follows from that of 18.10. In Visual Studio 18.10, 18.11 and 18.12, `ServiceHub.RoslynCodeAnalysisService.exe.config` carries the same bound as `devenv.exe.config`. `devenv.exe.config` points the `codeBase` of each redirect at the 10.0.10 assemblies that Visual Studio ships under `SharedAssemblies`. In `devenv.exe.config`, `System.Collections.Immutable`, `System.Reflection.Metadata`, `System.Threading.Channels`, `System.Threading.AccessControl` and `System.Diagnostics.DiagnosticSource` carry the same bound. `MSBuild.exe.config` of 18.12 carries the same bound as well.
+The 18.9 row is the measurement recorded in *The Out-of-band family*; its Roslyn version follows from that of 18.10. In Visual Studio 18.10, 18.11 and 18.12, `ServiceHub.RoslynCodeAnalysisService.exe.config` carries the same bound as `devenv.exe.config`. `devenv.exe.config` points the `codeBase` of each redirect at the 10.0.10 assemblies that Visual Studio ships under `SharedAssemblies`. In `devenv.exe.config`, `System.Collections.Immutable`, `System.Reflection.Metadata`, `System.Threading.Channels`, `System.Threading.AccessControl` and `System.Diagnostics.DiagnosticSource` carry the same bound. `MSBuild.exe.config` of 18.11.4 and of 18.12 carries the same bound as well.
 
 Visual Studio 18.12 is the first Visual Studio that presents Roslyn 5.12, and it confirms that the redirect of a host that selects the Roslyn 5.12 variant admits 10.0.0.10.
 
 The ceiling is exact and there is no headroom above 10.0.10. Re-read it before a Roslyn update raises the floor again.
 
-A Visual Studio 2026 release below 18.10 admits only 10.0.0.8, so it cannot load either variant of the payload. That is a consequence of the pins and not a defect. Microsoft supports only the long-term servicing channel 18.11 and the latest Stable release, so these releases are outside the supported set. The measurement of 18.11 was taken on the 18.11.0 preview. Read the redirects of the released 18.11.4 again before the general availability of Metalama 2027.0.
+A Visual Studio 2026 release below 18.10 admits only 10.0.0.8, so it cannot load either variant of the payload. That is a consequence of the pins and not a defect. Microsoft supports only the long-term servicing channel 18.11 and the latest Stable release, so these releases are outside the supported set. The 18.11 row was first measured on the 18.11.0 preview, and the measurement of the released 18.11.4 on 2026-11-19 gives the same bounds.
 
 `SystemTextJsonLatestVersion` is set per Roslyn variant for the same reason, next to `SystemTextJsonVersion`. It feeds `Metalama.Testing.UnitTesting` and the test projects, which a design-time host does not load. It still must not exceed what the hosts of the variant provide, so that the tests of each variant run against the `System.Text.Json` that the payload of that variant meets in a host. The Roslyn 5.12 variant therefore takes 10.0.10 and not the highest patch of the 10.0 line, and the Roslyn 5.0 variant takes 9.0.10.
 
@@ -192,10 +192,11 @@ of the split: AsmVer 4.0.2.0 belongs to `System.Memory` 4.6.0, not to 4.5.5, who
 as 4.5.5 put the pin a whole line lower than the ceiling of the day allowed.
 
 The Visual Studio 2026 long-term servicing channel shipped on 2026-11-10 as version 18.11. Its ceilings were
-measured on the 18.11.0 preview, and they are the same as those of 18.9 and 18.12. Read them again on the
-released 18.11.4, which is item 1 of the verification checklist of
-[`platform-support.md`](Metalama.Framework/docs/platform-support.md). Because 17.14, 18.9, 18.10, 18.11.0 and
-18.12 agree exactly, a change is unlikely.
+measured on the 18.11.0 preview, and again on the released 18.11.4 (build 12405.450) on 2026-11-19. Both
+measurements give the same ceilings as 18.9 and 18.12, in `devenv.exe.config`, in `MSBuild.exe.config` and in
+`ServiceHub.RoslynCodeAnalysisService.exe.config`. The pins therefore stay as they are. The other values of item 1
+of the verification checklist of [`platform-support.md`](Metalama.Framework/docs/platform-support.md) are recorded
+there.
 
 ## Conventions in `Directory.Packages.props` and `eng\Versions.props`
 
@@ -438,6 +439,6 @@ Per-package rationales (why a specific version is pinned, what host shipped it, 
 Time-bounded policy items that affect future bumps. PR-specific work in flight is tracked in the corresponding PR / GitHub issues, not here.
 
 - The ceilings of the .NET 10.0 line in the desktop payload are recorded in *The .NET 10.0 line in the desktop payload*. They are exact for the Roslyn 5.12 variant, so the Roslyn update that follows it must re-read them, because it may require an 11.0 version that no Visual Studio 2026 release admits.
-- The Out-of-band-family ceilings and the ceilings of the .NET 10.0 line are measured against Visual Studio 2026 18.9, 18.10, the 18.11.0 preview and 18.12.0. The floor is the long-term servicing channel 18.11, whose released build 18.11.4 has not been measured yet. Re-read the ceilings on 18.11.4, and again whenever Microsoft ships a Stable feature update that rotates the assemblies Visual Studio ships. The values are recorded in *The Out-of-band family* and in *The .NET 10.0 line in the desktop payload* above.
+- The Out-of-band-family ceilings and the ceilings of the .NET 10.0 line are measured against Visual Studio 2026 18.9, 18.10, the 18.11.0 preview, 18.11.4 and 18.12.0. The floor is the long-term servicing channel 18.11, which was measured on its released build 18.11.4 on 2026-11-19. Re-read the ceilings whenever Microsoft ships a servicing update of 18.11, and whenever Microsoft ships a Stable feature update that rotates the assemblies Visual Studio ships. The values are recorded in *The Out-of-band family* and in *The .NET 10.0 line in the desktop payload* above.
 - The Visual Studio floor itself is tracked in [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), together with the checklist of measurements that must be taken against real machines before the floor moves.
 - The pins shared with `metalama/Metalama.Vsx` (`StreamJsonRpc`, `System.Diagnostics.DiagnosticSource`, `System.Threading.Tasks.Extensions`, `System.IO.Pipelines`, `Microsoft.Bcl.AsyncInterfaces`, `System.Memory`, `System.Runtime.CompilerServices.Unsafe`, `System.Text.Json`) must be raised in both repositories in the same change, because that repository enables central transitive pinning and its build fails if its pins sit below what our packages require. This is a build-time coupling; see the gotcha above for why it is not a deployment-time one. It disappears once Metalama.Vsx moves onto `Metalama.Framework.DesignTime.Contracts` (metalama/Metalama#1605, metalama/Metalama.Vsx.Public#18).
