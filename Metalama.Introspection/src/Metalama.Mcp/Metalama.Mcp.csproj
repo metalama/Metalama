@@ -14,7 +14,9 @@
         <!-- NuGet.org lists a package as an MCP server when it has the McpServer package type and an .mcp/server.json file.
              The .NET SDK adds DotnetTool to this value, so the package type becomes DotnetTool;McpServer. -->
         <PackageType>McpServer</PackageType>
-        <PackageTags>metalama mcp mcp-server</PackageTags>
+        <PackageTags>mcp mcp-server ai-agents csharp roslyn code-analysis metalama</PackageTags>
+        <!-- The documentation of the server, instead of the product home page that eng/Packaging.props sets by default. -->
+        <PackageProjectUrl>https://doc.postsharp.net/metalama/preview/conceptual/introspection/mcp-server</PackageProjectUrl>
         <ToolCommandName>metalama-mcp</ToolCommandName>
         <RollForward>Major</RollForward>
         <InvariantGlobalization>True</InvariantGlobalization>
@@ -26,7 +28,7 @@
         <!-- The translated resources of Roslyn and its dependencies are a sixth of the package, and the server only
              returns compiler messages to agents, so English is enough. -->
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-        <PackageDescription>A local Model Context Protocol server that lets coding agents load C# projects and run C# queries over the Metalama code model and introspection API. It speaks MCP only over stdio. Results in the html format are served to the user's browser on https://localhost, on a random port, behind a secret token; that server runs only the queries that the user edits in its pages.</PackageDescription>
+        <PackageDescription>A local Model Context Protocol (MCP) server that lets AI coding agents explore any C# project or solution, whether or not it uses Metalama Framework. The agent runs C# queries over the semantic model of the compiler to answer questions about types, members, inheritance and references. When a project uses Metalama, the queries also cover its aspects and the transformed code. The server requires the .NET 10 SDK or later. It speaks MCP only over stdio. Results in the html format are served to the user's browser on https://localhost, on a random port, behind a secret token; that server runs only the queries that the user edits in its pages.</PackageDescription>
 
         <!-- Uses Metalama internals, as Metalama.LinqPad does. -->
         <NoWarn>$(NoWarn);LAMA0820</NoWarn>

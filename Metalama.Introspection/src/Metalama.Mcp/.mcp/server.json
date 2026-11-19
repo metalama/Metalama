@@ -1,9 +1,10 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.metalama/metalama-mcp",
-  "title": "Metalama",
-  "description": "Runs C# queries over the Metalama code model of C# projects and solutions.",
+  "title": "Metalama MCP Server",
+  "description": "Lets AI coding agents explore any C# project or solution by querying the compiler's semantic model.",
   "version": "__PACKAGE_VERSION__",
+  "websiteUrl": "https://doc.postsharp.net/metalama/preview/conceptual/introspection/mcp-server",
   "repository": {
     "url": "https://github.com/metalama/Metalama",
     "source": "github",
