@@ -480,6 +480,65 @@ public sealed class RemotingTests : UnitTestClass
         Assert.Equal( sentEventData.ProjectKey, receivedNotification.ProjectKey );
     }
 
+    /// <summary>
+    /// Verifies that an event forwarded by the event hub reaches a client that has subscribed, even when the server
+    /// has not yet promoted the connection of this client to its list of started connections.
+    /// </summary>
+    /// <remarks>
+    /// The server calls <c>JsonRpc.StartListening</c> before it promotes the connection. The client can therefore
+    /// complete its subscription, and its <c>ConnectAsync</c> can return, before the promotion. The test holds the
+    /// server between these two steps with the <c>ServerEndpoint.AfterStartsListening</c> synchronization point.
+    /// This interleaving caused the intermittent failure of <see cref="PublishChangeNotification"/> (issue #2364).
+    /// </remarks>
+    [Fact]
+    public async Task PublishChangeNotification_BeforeServerPromotesClient()
+    {
+        using var testContext = this.CreateTestContext();
+        var syncProvider = testContext.SyncProvider;
+        var cancellationToken = testContext.CancellationToken;
+
+        // ReSharper disable once UseAwaitUsing
+        using var cancellationRegistration = cancellationToken.Register( () => syncProvider.ReleaseAll() );
+
+        var serviceProvider = testContext.ServiceProvider.Global;
+
+        var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
+        var syncPointName = $"ServerEndpoint.AfterStartsListening:{discoveryPipeName}";
+
+        syncProvider.EnableSyncPoint( syncPointName );
+
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
+        userProcessHubEndpoint.Start();
+
+        using var codeLensClientEndpoint = new CodeLensProcessClientEndpoint( serviceProvider.Underlying, discoveryPipeName );
+
+        var receivedNotificationTaskSource =
+            new TaskCompletionSource<CompilationResultChangedEventData>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        codeLensClientEndpoint.Client.EventReceived += eventData =>
+        {
+            if ( eventData is CompilationResultChangedEventData compilationResultChangedEventData )
+            {
+                receivedNotificationTaskSource.TrySetResult( compilationResultChangedEventData );
+            }
+        };
+
+        // The connection completes the subscription while the server is held at the synchronization point.
+        await codeLensClientEndpoint.ConnectAsync( cancellationToken );
+        await syncProvider.WaitForSyncPointReachedAsync( syncPointName, cancellationToken );
+
+        var projectKey = ProjectKeyFactory.CreateTest( "MyProjectId" );
+        var sentEventData = new CompilationResultChangedEventData( projectKey, false, ImmutableArray<string>.Empty );
+
+        await userProcessHubEndpoint.EventHub.ForwardEventAsync( sentEventData, cancellationToken );
+
+        syncProvider.ReleaseSyncPoint( syncPointName );
+
+        var receivedNotification = await receivedNotificationTaskSource.Task.WithCancellation( cancellationToken );
+
+        Assert.Equal( sentEventData.ProjectKey, receivedNotification.ProjectKey );
+    }
+
     private sealed class PreviewImpl : ITransformationPreviewServiceImpl
     {
         public Task<SerializablePreviewTransformationResult> PreviewTransformationAsync(

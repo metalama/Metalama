@@ -28,8 +28,16 @@ public sealed partial class EventHubRpcService : RpcService<IEventHubRpcApi>
     /// <param name="eventData">The event data to forward.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
+    /// <remarks>
+    /// The method iterates <see cref="RpcService{TApi}.RegisteredApis"/> and not <see cref="RpcService{TApi}.Apis"/>. A client
+    /// subscribes during its connection, and the server handles the subscription before it adds the connection to
+    /// <see cref="RpcService{TApi}.Apis"/>. An event forwarded between these two steps would otherwise be lost, although the
+    /// connection of the client has already completed (issue #2364). Iterating the connections that have not yet been promoted
+    /// is safe because the implementation of <see cref="IEventHubRpcApi"/> sends an event only to a client that has subscribed to its type, and the server has
+    /// started listening on any connection that has received a subscription.
+    /// </remarks>
     public Task ForwardEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
         => Task.WhenAll(
-            this.Apis.Select(
+            this.RegisteredApis.Select(
                 api => this.SafeBroadcastInvokeAsync( ct => ((Api) api).RaiseEventAsync( eventData, ct ), cancellationToken ) ) );
 }

@@ -83,7 +83,7 @@ public abstract class RpcService
     /// Helper for broadcasting an event to one client. Swallows any per-client failure so a single
     /// transitioning client cannot fail the broadcast for the others. Used by both
     /// <see cref="RpcService{TApi}.RaiseEventAsync"/> (which iterates <c>_clients</c>) and
-    /// <c>EventHubRpcService.ForwardEventAsync</c> (which iterates <see cref="RpcService{TApi}.Apis"/>).
+    /// <c>EventHubRpcService.ForwardEventAsync</c> (which iterates <see cref="RpcService{TApi}.RegisteredApis"/>).
     /// The per-rpc lock in <see cref="RpcService{TApi}.OnRpcDisconnected"/> only narrows the race
     /// window — it cannot eliminate it because broadcast iteration is unlocked by design (taking
     /// a lock at broadcast time would block disconnect cleanup behind a network call).
@@ -238,6 +238,24 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
     }
 
     protected IEnumerable<TApi> Apis => this._apis.Values;
+
+    /// <summary>
+    /// Gets the API implementations of all connections that have been configured and have not been disconnected.
+    /// Unlike <see cref="Apis"/>, this collection includes the connections that <see cref="OnRpcStarted"/> has not yet promoted.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The server endpoint calls <see cref="JsonRpc.StartListening"/> before it calls <see cref="OnRpcStarted"/>. Between these two
+    /// steps, the server already handles the requests of the client. A client can therefore complete a request, such as a
+    /// subscription, and observe a completed connection, while the connection is still missing from <see cref="Apis"/>.
+    /// </para>
+    /// <para>
+    /// A caller can send a callback to an API of this collection only when the client has already sent a request on the same
+    /// connection, because the server has then called <see cref="JsonRpc.StartListening"/>. Otherwise, the callback can fail with
+    /// <c>"This operation is not allowed before listening for messages has started."</c>
+    /// </para>
+    /// </remarks>
+    protected IEnumerable<TApi> RegisteredApis => this._registrations.Values.Select( r => r.Api );
 
     protected abstract TApi CreateApi( IRpcEventSender eventSender );
 
