@@ -1,0 +1,97 @@
+
+<html>
+    <head>
+        <style>
+            .cr-CompileTime,
+            .cr-Conflict,
+            .cr-TemplateKeyword,
+            .cr-Dynamic,
+            .cr-CompileTimeVariable,
+            .cr-GeneratedCode
+            {
+                background-color: rgba(50,50,90,0.1);
+            }
+
+            .cr-NeutralTrivia
+            {
+                background-color: rgba(0,255,0,0.1);
+            }
+
+            .cr-TemplateKeyword
+            {
+                color: rgb(250, 0, 250) !important;
+                font-weight: bold;
+            }
+
+            .cr-Dynamic
+            {
+                text-decoration: underline;
+            }
+
+            .cr-CompileTimeVariable
+            {
+                font-style: italic;
+            }
+
+            .diag-Warning
+            {
+                text-decoration: underline 1px wavy orange;
+            }
+
+            .diag-Error
+            {
+                text-decoration: underline 1px wavy red;
+            }
+
+         .diff-Imaginary {
+                display: block;
+                background-image: repeating-linear-gradient( -45deg, gray, gray 2px, transparent 2px, transparent 8px );
+            }
+
+
+            .legend
+            {
+                margin-top: 100px;
+            }
+        </style>
+    </head>
+    <body><pre><code class="nohighlight"><span class='line-number'>1</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Aspects</span><span class="cs-punctuation">;</span>
+<span class='line-number'>2</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Code</span><span class="cs-punctuation">;</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span><span class="cs-keyword">namespace</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">AspectTests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Formatting</span><span class="cs-operator">.</span><span class="cs-namespace-name">RunAnalyzers</span><span class="cs-punctuation">;</span>
+<span class='line-number'>5</span>
+<span class='line-number' data-member='RegisterEntityAspect'>6</span><span class="cr-NeutralTrivia cs-comment">// The aspect stores a declaration of the code model in a property. An aspect instance outlives the compilation, so the</span>
+<span class='line-number' data-member='RegisterEntityAspect'>7</span><span class="cr-NeutralTrivia cs-comment">// DurableContractAnalyzer reports LAMA0870 on the property.</span>
+<span class='line-number' data-member='RegisterEntityAspect'>8</span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">class</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">RegisterEntityAspect</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">TypeAspect</span>
+<span class='line-number' data-member='RegisterEntityAspect'>9</span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class="diagLines">    <span class="diagLine-Warning">Warning LAMA0870: 'RegisterEntityAspect' does not satisfy the [Durable] contract because 'INamedType' is not durable. Retention path: RegisterEntityAspect -&gt; Type -&gt; INamedType (a code model element reaches its CompilationModel).</span>
+    
+</span><span class='line-number' data-member='RegisterEntityAspect.Type'>10</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">INamedType</span><span class="cr-CompileTime cs-operator">?</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-property-name diag-Warning" title="Warning LAMA0870: 'RegisterEntityAspect' does not satisfy the [Durable] contract because 'INamedType' is not durable. Retention path: RegisterEntityAspect -&gt; Type -&gt; INamedType (a code model element reaches its CompilationModel).">Type</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">{</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">get</span><span class="cr-CompileTime cs-punctuation">;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">private</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">set</span><span class="cr-CompileTime cs-punctuation">;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='RegisterEntityAspect.Type'>11</span>
+<span class='line-number' data-member='RegisterEntityAspect.BuildAspect'>12</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">override</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">void</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-method-name">BuildAspect</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">IAspectBuilder</span><span class="cr-CompileTime cs-punctuation">&lt;</span><span class="cr-CompileTime cs-interface-name">INamedType</span><span class="cr-CompileTime cs-punctuation">&gt;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span>
+<span class='line-number' data-member='RegisterEntityAspect.BuildAspect'>13</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='RegisterEntityAspect.BuildAspect'>14</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-keyword">this</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Type</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Target</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='RegisterEntityAspect.BuildAspect'>15</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='RegisterEntityAspect'>16</span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='RegisterEntityAspect'>17</span>
+<span class='line-number' data-member='Customer'>18</span><span class="cs-comment">// &lt;target&gt;</span>
+<span class='line-number' data-member='Customer'>19</span><span class="cs-punctuation">[</span><span class="cs-class-name">RegisterEntityAspect</span><span class="cs-punctuation">]</span>
+<span class='line-number' data-member='Customer'>20</span><span class="cs-keyword">public</span> <span class="cs-keyword">class</span> <span class="cs-class-name">Customer</span> <span class="cs-punctuation">{</span> <span class="cs-punctuation">}</span>
+<span class='line-number'>21</span>
+</code></pre>
+       <p class='legend'>Legend:</p>
+       <pre>
+<span class='cr-Default'>Default</span>
+<span class='cr-RunTime'>RunTime</span>
+<span class='cr-CompileTime'>CompileTime</span>
+<span class='cr-Dynamic'>Dynamic</span>
+<span class='cr-CompileTimeVariable'>CompileTimeVariable</span>
+<span class='cr-TemplateKeyword'>TemplateKeyword</span>
+<span class='cr-Conflict'>Conflict</span>
+<span class='cr-Excluded'>Excluded</span>
+<span class='cr-GeneratedCode'>GeneratedCode</span>
+<span class='cr-SourceCode'>SourceCode</span>
+<span class='cr-NeutralTrivia'>NeutralTrivia</span>
+       </pre>
+   </body>
+</html>

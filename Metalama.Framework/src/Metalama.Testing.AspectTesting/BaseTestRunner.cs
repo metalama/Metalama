@@ -4,6 +4,7 @@
 
 using Document = Microsoft.CodeAnalysis.Document;
 using JetBrains.Annotations;
+using Metalama.Framework.Analyzers.Durability;
 using Metalama.Framework.ConfigurationFiles;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
@@ -18,6 +19,7 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using SharpCrafters.Backstage.Configuration;
 using SharpCrafters.Backstage.Infrastructure;
 using System;
@@ -44,6 +46,26 @@ namespace Metalama.Testing.AspectTesting;
 internal abstract partial class BaseTestRunner
 {
     private static readonly AsyncLocal<bool> _isTestRunning = new();
+
+    /// <summary>
+    /// Gets the analyzers that run when the <see cref="TestOptions.RunAnalyzers"/> option is set: every C# analyzer of the
+    /// <c>Metalama.Framework.Analyzers</c> assembly.
+    /// </summary>
+    /// <remarks>
+    /// The analyzers are discovered by reflection, so that an analyzer added to the assembly runs without a change to the test
+    /// framework. A Roslyn analyzer must not store state that depends on a compilation, so the instances are shared by all tests.
+    /// </remarks>
+    private static readonly Lazy<ImmutableArray<DiagnosticAnalyzer>> _metalamaAnalyzers = new(
+        () => typeof(DurableContractAnalyzer).Assembly.GetTypes()
+            .Where(
+                t => t is { IsAbstract: false, IsPublic: true }
+                     && typeof(DiagnosticAnalyzer).IsAssignableFrom( t )
+                     && t.GetCustomAttributes( typeof(DiagnosticAnalyzerAttribute), false )
+                         .Cast<DiagnosticAnalyzerAttribute>()
+                         .Any( a => a.Languages.Contains( LanguageNames.CSharp ) ) )
+            .OrderBy( t => t.FullName, StringComparer.Ordinal )
+            .Select( t => (DiagnosticAnalyzer) Activator.CreateInstance( t )! )
+            .ToImmutableArray() );
 
     private readonly GlobalServiceProvider _serviceProvider;
     private readonly TestProjectReferences _references;
@@ -371,6 +393,14 @@ internal abstract partial class BaseTestRunner
             testResult.InputCompilation = initialCompilation;
             testResult.MetalamaTestContext = testContext;
 
+            if ( testInput.Options.RunAnalyzers == true )
+            {
+                // The analyzers run on the source compilation, as in a build. Their diagnostics refer to the input syntax trees,
+                // like the diagnostics of the pipeline, so they are reported to the same bag.
+                var analyzerDiagnostics = await GetAnalyzerDiagnosticsAsync( initialCompilation, mainProject.AnalyzerOptions, testContext.CancellationToken );
+                testResult.PipelineDiagnostics.Report( analyzerDiagnostics );
+            }
+
             async Task<Project> AddAdditionalDocumentsAsync( Project project, CSharpParseOptions parseOptions )
             {
                 if ( this._references.GlobalUsingsFile != null )
@@ -551,6 +581,25 @@ internal abstract partial class BaseTestRunner
         }
 
         return (MetadataReference.CreateFromFile( outputPath ), project);
+    }
+
+    /// <summary>
+    /// Runs the analyzers of the <c>Metalama.Framework.Analyzers</c> assembly on a compilation and returns their diagnostics.
+    /// </summary>
+    /// <remarks>
+    /// An exception thrown by an analyzer is reported by Roslyn as an AD0001 diagnostic, which is returned with the other
+    /// diagnostics, so that it appears in the test output.
+    /// </remarks>
+    private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
+        Compilation compilation,
+        AnalyzerOptions analyzerOptions,
+        CancellationToken cancellationToken )
+    {
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            _metalamaAnalyzers.Value,
+            new CompilationWithAnalyzersOptions( analyzerOptions, null, concurrentAnalysis: true, logAnalyzerExecutionTime: false ) );
+
+        return await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync( cancellationToken );
     }
 
     // Resharper disable once VirtualMemberNeverOverridden.Global

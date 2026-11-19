@@ -67,6 +67,20 @@ public class TestOptions
     public bool? IncludeAllSeverities { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the Roslyn analyzers of the <c>Metalama.Framework.Analyzers</c> assembly must run on the
+    /// source compilation of the test, so that their diagnostics are included in the test result. These analyzers are shipped in the
+    /// <c>Metalama.Framework</c> package. For instance, they report the diagnostics LAMA0870 to LAMA0878 of the <c>[Durable]</c> contract.
+    /// The default value is <c>false</c>, because running the analyzers increases the duration of every test.
+    /// To enable this option in a test, add this comment to your test file: <c>// @RunAnalyzers</c>.
+    /// </summary>
+    /// <remarks>
+    /// The analyzers run on the compilation of the test input, before any transformation, as in a build. Their diagnostics are reported
+    /// with the diagnostics of the Metalama pipeline: in the comments of the expected output file and in the HTML of the input file.
+    /// Other analyzers, such as the analyzers referenced by the test project, are not run.
+    /// </remarks>
+    public bool? RunAnalyzers { get; set; }
+
+    /// <summary>
     /// Gets or sets the name of the test runner factory type (implementing <see cref="ITestRunnerFactory"/>).
     /// You can only define this option in the <c>metalamaTests.json</c> file of a directory. This setting is for Metalama internal use only.
     /// </summary>
@@ -428,6 +442,8 @@ public class TestOptions
 
         this.IncludeAllSeverities ??= baseOptions.IncludeAllSeverities;
 
+        this.RunAnalyzers ??= baseOptions.RunAnalyzers;
+
         this.TestRunnerFactoryType ??= baseOptions.TestRunnerFactoryType;
 
         this.WriteInputHtml ??= baseOptions.WriteInputHtml;
@@ -554,6 +570,11 @@ public class TestOptions
 
                 case "IncludeAllSeverities":
                     this.IncludeAllSeverities = true;
+
+                    break;
+
+                case "RunAnalyzers":
+                    this.RunAnalyzers = true;
 
                     break;
 

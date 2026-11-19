@@ -147,6 +147,7 @@ Per-test configuration is expressed with `// @Directive(args)` comments; directo
 | Gating | `@Skipped(reason)` | Skip the test. |
 | Gating | `@RequiredConstant(c)`, `@ForbiddenConstant(c)`, `@TargetFrameworks(net10.0;net472)` | Run only when a preprocessor symbol / TFM matches. |
 | Diagnostics | `@IncludeAllSeverities` | Include hidden/info diagnostics, not just warnings and above. |
+| Diagnostics | `@RunAnalyzers` | Run the Roslyn analyzers of `Metalama.Framework.Analyzers` (for instance LAMA0870–LAMA0878 of `DurableContractAnalyzer`) on the source compilation and report their diagnostics with the pipeline diagnostics. Opt-in because it lengthens every test. |
 | Diagnostics | `@IgnoredDiagnostic(id)`, `@ClearIgnoredDiagnostics`, `@ExpectedException(type)` | Suppress specific IDs; expect the pipeline to throw. |
 | Compilation | `@Include(path)`, `@AssemblyReference(name)`, `@DefinedConstant(c)` | Add another input file / reference / preprocessor symbol. |
 | Compilation | `@LanguageVersion(v)`, `@LanguageFeature(f[=v])`, `@NullabilityDisabled`, `@OutputAssemblyType(Dll\|Exe)`, `@MainMethod(name)` | Shape the compilation. |
