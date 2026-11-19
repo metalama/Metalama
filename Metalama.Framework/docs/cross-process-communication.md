@@ -16,7 +16,7 @@ The two boundaries demand different mechanisms. Mixing them is forbidden.
 | Boundary | Mechanism | Where it lives |
 |---|---|---|
 | Cross-process, **same** Metalama version | RPC over named pipe (StreamJsonRpc + MessagePack framing) | `Metalama.Framework.DesignTime.Rpc` |
-| **Cross-version**, same process | CLR type equivalence via `[Guid]` / `[ComImport]` / `[TypeIdentifier]` | `Metalama.Framework.DesignTime.Contracts` |
+| **Cross-version**, same process | CLR type equivalence via `[Guid]` / `[ComImport]` | `Metalama.Framework.DesignTime.Contracts` |
 | Cross-process, cross-version | **Not allowed.** | n/a |
 
 The third rule is the strict one: there is **no path** for a 2026.0 process to talk over a pipe to a 2026.1 process. If that scenario arises in a design discussion, the design is wrong. Pull the boundary back to one of the first two rows.
@@ -39,7 +39,7 @@ ServerEndpoint (in Metalama process A)  ←── named pipe ──→  ClientEn
         │                                                              │
    RpcService<TApi>                                                RpcClient<TApi>
         ▲                                                              ▲
-        └─────────── shared TApi ── e.g. IEventHubRpcApi ──────────────┘
+        └─────────── shared TApi ── e.g. ICodeLensRpcApi ───────────────┘
                   (deployed from one Metalama-version NuGet)
 ```
 
@@ -58,7 +58,7 @@ GUIDs are rotated when the assembly is bumped to a new physical name (v1 → v2)
 - Method signatures on `[Guid]`-marked interfaces are part of the wire contract; they are evolved only by adding new interfaces (e.g., `ICodeLensService2`), never by mutating existing ones.
 - DTO classes carry a `[Guid]` and may only be extended with members whose absence on the other side is harmless (the older copy will simply not see the new field).
 
-**Existing precedent**: see `Metalama.Framework.DesignTime.Contracts/CodeLens/ICodeLensService.cs` (`[Guid("9E3E6194-302E-4F36-8612-FD2CA0190F21")]`), `EntryPoint/IDesignTimeEntryPointManager.cs`, etc. Every interface and DTO in that folder follows the pattern.
+**Existing precedent**: see `Metalama.Framework.DesignTime.Contracts/CodeLens/ICodeLensService.cs` (`[Guid("35A231CD-EA5E-40CB-8CEF-5832C65C66B9")]`), `EntryPoint/IDesignTimeEntryPointManager.cs`, etc. Every interface and DTO in that folder follows the pattern.
 
 **Who may consume this layer**: anyone — VSX, third-party extensions, the Metalama analyzer itself. This is the only public cross-version-safe surface.
 
@@ -84,9 +84,7 @@ The CodeLens notification path traverses both boundaries:
 2. **Same-version, cross-process** (Metalama analyzer ↔ Metalama user-process):
    - The Metalama analyzer process raises `RpcEventData` (e.g., `CompilationResultChangedEventData`) and forwards it to the user process over `Metalama.Framework.DesignTime.Rpc` (StreamJsonRpc + MessagePack).
    - Both ends are the same Metalama version, so the framing and `[RpcContract]` types are safe.
-   - In the user process, `ServiceHubServerEndpoint` receives the event and:
-     - publishes it to its internal `EventHubRpcService` (legacy pipe-based delivery, retained so older VSX builds that still consume `Metalama.Framework.DesignTime.Rpc` keep working);
-     - raises `InProcessEventReceived`, which is what `DesignTimeNotificationService` from step 1 listens to.
+   - In the user process, `ServiceHubServerEndpoint` receives the event and raises `InProcessEventReceived`, which is what `DesignTimeNotificationService` from step 1 listens to. It also forwards the event to its `EventHubRpcService`, a pipe-based delivery that no released build of the extension consumes any more: every 2026.1 build of the extension uses `IDesignTimeNotificationService`, and the builds for 2026.0 cannot see a 2026.1 or later provider. The tests of `ServerEndpoint` still use it.
 
 VSX never calls into `Metalama.Framework.DesignTime.Rpc` directly on the new path — that would be a cross-process *and* cross-version path, which Rule 3 forbids.
 

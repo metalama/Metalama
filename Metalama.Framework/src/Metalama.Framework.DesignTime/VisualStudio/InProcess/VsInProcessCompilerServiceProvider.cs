@@ -13,9 +13,10 @@ namespace Metalama.Framework.DesignTime.VisualStudio.InProcess;
 /// design-time architecture. It serves the services of the Visual Studio user process, and <see cref="IWorkspaceReceiver"/>.
 /// </summary>
 /// <remarks>
-/// The service provider of the user process does not serve <see cref="IWorkspaceReceiver"/> in Visual Studio, so the
-/// workspace that the Visual Studio extension gives to it is not used there. In this mode, the analysis process has no
-/// other way to get the workspace, so the interface is served by <see cref="VsInProcessAnalysisProcess"/>.
+/// In Visual Studio, the service provider of the user process serves <see cref="IWorkspaceReceiver"/> with the workspace provider of
+/// that process only, because the analysis process gets the workspace from Roslyn. In this mode, the analysis process has no
+/// other way to get the workspace, so the interface is served by <see cref="VsInProcessAnalysisProcess"/>, which gives it to the
+/// workspace providers of both processes.
 /// </remarks>
 internal sealed class VsInProcessCompilerServiceProvider : VsUserProcessCompilerServiceProvider
 {
