@@ -1,0 +1,4 @@
+[RegisterEntityAspect]
+public class Customer
+{
+}

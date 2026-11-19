@@ -12,7 +12,7 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Tests.AspectTests.Tests.TestFramework.RunAnalyzers;
 
 // The aspect stores a declaration of the code model in a property. An aspect instance outlives the compilation, so the
-// DurableContractAnalyzer reports LAMA0870 on the property.
+// DurableContractAnalyzer reports LAMA0870 on the property when it runs.
 public class RegisterEntityAspect : TypeAspect
 {
     public INamedType? Type { get; private set; }

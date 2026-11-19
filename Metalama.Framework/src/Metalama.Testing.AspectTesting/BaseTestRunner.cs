@@ -48,7 +48,7 @@ internal abstract partial class BaseTestRunner
     private static readonly AsyncLocal<bool> _isTestRunning = new();
 
     /// <summary>
-    /// Gets the analyzers that run when the <see cref="TestOptions.RunAnalyzers"/> option is set: every C# analyzer of the
+    /// Gets the analyzers that run unless the <see cref="TestOptions.RunAnalyzers"/> option is disabled: every C# analyzer of the
     /// <c>Metalama.Framework.Analyzers</c> assembly.
     /// </summary>
     /// <remarks>
@@ -393,7 +393,8 @@ internal abstract partial class BaseTestRunner
             testResult.InputCompilation = initialCompilation;
             testResult.MetalamaTestContext = testContext;
 
-            if ( testInput.Options.RunAnalyzers == true )
+            // The analyzers run unless the option is explicitly disabled.
+            if ( testInput.Options.RunAnalyzers != false )
             {
                 // The analyzers run on the source compilation, as in a build. Their diagnostics refer to the input syntax trees,
                 // like the diagnostics of the pipeline, so they are reported to the same bag.
