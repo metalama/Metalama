@@ -148,27 +148,6 @@ internal static class CachingDiagnosticDescriptors
                 "Multiple suitable overloads found.",
                 _category,
                 _helpLinkFormat );
-
-        // TODO: Reinstate equivalent annotations when supported by the Metalama framework.
-#if false
-        public static readonly DiagnosticDefinition<IMethod> InfoMethodIsInvalidatedBy =
-            new(
-                "LAMA5108",
-                Info,
-                "This method is invalidated by {0}.",
-                "Invalidated by an [InvalidateCache] method.",
-                _cagtegory,
-                _helpLinkFormat );
-
-        public static readonly DiagnosticDefinition<IMethod> InfoMethodInvalidates =
-            new(
-                "LAMA5109",
-                Info,
-                "This method invalidates {0}.",
-                "Invalidates a [Cache] method.",
-                _cagtegory,
-                _helpLinkFormat );
-#endif
     }
 
     public static class Cache

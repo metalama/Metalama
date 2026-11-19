@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
-using Metalama.Framework.Engine.Diagnostics;
 using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -50,25 +49,9 @@ internal sealed class IntroduceExtensionBlockAdvice : IntroduceDeclarationAdvice
     {
         var targetType = (INamedType) this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
-        // Validate: target must be a static class
-        if ( !targetType.IsStatic )
-        {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.ExtensionBlockTargetMustBeStaticClass.CreateRoslynDiagnostic(
-                    targetType.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, builder.ReceiverParameterBuilder.Type, targetType),
-                    this ) );
-        }
-
-        // Validate: target cannot be an extension block
-        if ( targetType is IExtensionBlock )
-        {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.CannotIntroduceExtensionBlockIntoExtensionBlock.CreateRoslynDiagnostic(
-                    targetType.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, builder.ReceiverParameterBuilder.Type, targetType),
-                    this ) );
-        }
+        // The eligibility rule of the IntroduceExtensionBlock advice accepts only top-level static classes. It therefore rejects
+        // non-static types and extension blocks before the advice is created.
+        Invariant.Assert( targetType is { IsStatic: true } and not IExtensionBlock );
 
         // No uniqueness check - multiple extension blocks with the same receiver are allowed.
 

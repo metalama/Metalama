@@ -480,12 +480,6 @@ public sealed class InvalidateCacheAttribute : MethodAspect
                 // null indicates already processed (eg, via another aspect instance on the current target method)
                 if ( invalidatedMethodInfo != null )
                 {
-                    // TODO: Reinstate equivalent annotations when supported by the Metalama framework.
-#if false
-                    builder.Diagnostics.Report( InfoMethodIsInvalidatedBy.WithArguments( invalidatingMethod ), invalidatedMethodInfo.Method );
-                    builder.Diagnostics.Report( InfoMethodInvalidates.WithArguments( invalidatedMethodInfo.Method ), invalidatingMethod );
-#endif
-
                     invalidatedMethods.Add( invalidatedMethodInfo.Method, invalidatedMethodInfo );
                 }
             }

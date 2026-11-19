@@ -183,13 +183,11 @@ namespace Metalama.Framework.Aspects
                     break;
 
                 default:
-                    builder.Diagnostics.Report(
-                        FrameworkDiagnosticDescriptors.CannotUseIntroduceWithoutDeclaringType.WithArguments(
-                            (builder.AspectInstance.AspectClass.ShortName, templateMember.DeclarationKind, builder.Target.DeclarationKind) ) );
-
-                    builder.SkipAspect();
-
-                    return;
+                    // BuildAspectEligibility requires the target to be a type or a member, so an aspect applied to another kind of
+                    // declaration is rejected before this method is called.
+                    throw new InvalidOperationException(
+                        $"The aspect '{builder.AspectInstance.AspectClass.ShortName}' cannot introduce a declaration because it is applied to " +
+                        $"a declaration of kind '{builder.Target.DeclarationKind}', which is neither a type nor a member." );
             }
 
             switch ( targetType )

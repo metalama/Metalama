@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0037 on `Introduction`: `The aspect 'Introduction' cannot be applied to the parameter 'TargetClass.Method(int)/p' because 'TargetClass.Method(int)/p' must be a method, constructor, field, property, indexer, event or type.`

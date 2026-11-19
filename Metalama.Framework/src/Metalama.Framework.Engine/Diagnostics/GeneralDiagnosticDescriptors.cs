@@ -723,15 +723,5 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Warning,
                 "Cannot write the introspection file.",
                 _helpLinkFormat );
-
-        // TODO: Use formattable string (C# does not seem to find extension methods).
-        internal static readonly DiagnosticDefinition<string>
-            UnsupportedFeature = new(
-                "LAMA0099",
-                "Feature is not yet supported.",
-                "Feature is not yet supported: {0}",
-                _category,
-                Error,
-                _helpLinkFormat );
     }
 }
