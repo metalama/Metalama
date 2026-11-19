@@ -158,6 +158,7 @@ internal sealed class McpTools : IAsyncDisposable
         + "its projects with target frameworks, the default link base, and load diagnostics. Loading builds the projects' compile-time code, "
         + "which runs MSBuild targets and Metalama aspects of the target repository: only load code you trust." )]
     public Task<CallToolResult> LoadWorkspace(
+        McpServer server,
         [Description( "Paths of the projects or solutions, absolute or relative to the server's working directory." )]
         string[] paths,
         [Description( "Optional MSBuild properties, such as Configuration." )]
@@ -169,6 +170,13 @@ internal sealed class McpTools : IAsyncDisposable
         if ( properties is { Count: > 0 } )
         {
             args["properties"] = new JsonObject( properties.Select( p => KeyValuePair.Create( p.Key, (JsonNode?) p.Value ) ) );
+        }
+
+        // The worker reports the client in the usage telemetry. The supervisor keeps these arguments to reload the
+        // workspace into a new worker, so a restarted worker knows the client too.
+        if ( server.ClientInfo is { } clientInfo )
+        {
+            args[WorkerMethods.Client] = new JsonObject { [WorkerMethods.ClientName] = clientInfo.Name, [WorkerMethods.ClientVersion] = clientInfo.Version };
         }
 
         return this.CallAsync( null, WorkerMethods.Load, args, null, cancellationToken );

@@ -5,7 +5,9 @@
 using JetBrains.Annotations;
 using LINQPad;
 using Metalama.Framework.Workspaces;
+using Metalama.Introspection.Navigation.Telemetry;
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Metalama.LinqPad
@@ -47,6 +49,26 @@ namespace Metalama.LinqPad
                 {
                     throw;
                 }
+            }
+            catch ( Exception e ) when ( e is not OutOfMemoryException )
+            {
+                // IntrospectionTelemetry skips the exceptions that are attributable to the user or to the environment.
+                IntrospectionTelemetry.ReportException( e, GetDirectory( path ) );
+
+                throw;
+            }
+        }
+
+        private static string? GetDirectory( string path )
+        {
+            try
+            {
+                return Path.GetDirectoryName( Path.GetFullPath( path ) );
+            }
+            catch ( Exception e ) when ( e is not OutOfMemoryException )
+            {
+                // The path is malformed. The working directory of the process is used instead.
+                return null;
             }
         }
     }

@@ -87,6 +87,21 @@ server itself, so another web page cannot run one even if it learns the token. T
 Loading a workspace runs the repository's MSBuild targets and its Metalama aspects and fabrics at compile time. Only load code
 you trust.
 
+## Privacy and telemetry
+
+The server follows the telemetry settings of Metalama. It sends nothing for a directory that is not in a git repository, for
+an unattended process, or when telemetry is disabled.
+
+* A usage report is sent at most once a day for each loaded workspace. It contains the name and the version of the MCP client,
+  the extensions of the loaded files, the number of projects and of projects that use Metalama, the target frameworks, the load
+  time, and the number of load errors and warnings. It never contains a path, the name of a solution, project or type, source
+  code, or the text of a query.
+* An unexpected failure of the server produces an exception report. By default, the report is sent only after you review and
+  approve it. An error caused by a query or by the environment, such as a missing .NET SDK, produces no report.
+
+To disable telemetry, run `metalama telemetry disable`, add a `metalama.json` file to the repository, or set the
+`METALAMA_TELEMETRY_OPT_OUT` environment variable. See [Telemetry](https://doc.postsharp.net/metalama/preview/conceptual/configuration/telemetry).
+
 ## Related packages
 
 * `Metalama.LinqPad` exposes the same code model to LINQPad queries.

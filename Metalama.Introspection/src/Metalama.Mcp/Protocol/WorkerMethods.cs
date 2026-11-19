@@ -46,4 +46,13 @@ internal static class WorkerMethods
     /// The argument that asks the worker to return the JSON form of the result in <see cref="Structured"/>, for the MCP App view.
     /// </summary>
     public const string IncludeStructured = "includeStructured";
+
+    /// <summary>
+    /// The argument of <see cref="Load"/> that gives the MCP client, as an object with the properties
+    /// <see cref="ClientName"/> and <see cref="ClientVersion"/>. The worker reports it in the usage telemetry.
+    /// </summary>
+    public const string Client = "client";
+
+    public const string ClientName = "name";
+    public const string ClientVersion = "version";
 }

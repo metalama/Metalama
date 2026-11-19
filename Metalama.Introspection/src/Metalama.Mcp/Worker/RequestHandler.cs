@@ -6,6 +6,7 @@ using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
 using Metalama.Introspection.Navigation.Links;
 using Metalama.Introspection.Navigation.Results;
+using Metalama.Introspection.Navigation.Telemetry;
 using Metalama.Mcp.Protocol;
 using Metalama.Mcp.Rendering;
 using System;
@@ -82,7 +83,36 @@ internal sealed class RequestHandler : IDisposable
         }
         catch ( Exception e ) when ( e is not OutOfMemoryException )
         {
+            // The exceptions that the user's query throws are caught by QueryAsync, so an exception that arrives here comes
+            // from the worker or from the code model. IntrospectionTelemetry skips the ones that are attributable to the
+            // user or to the environment, such as a missing .NET SDK.
+            IntrospectionTelemetry.ReportException( e, this.GetDirectory( method, args ) );
+
             return Failure( FormatException( e ) );
+        }
+    }
+
+    /// <summary>
+    /// Gets the directory that determines the telemetry policy of a request: the directory of the workspace that the
+    /// request targets, or <see langword="null"/>, which means the working directory of the process.
+    /// </summary>
+    private string? GetDirectory( string? method, JsonObject args )
+    {
+        try
+        {
+            if ( method == WorkerMethods.Load )
+            {
+                var firstPath = args["paths"]?.AsArray().FirstOrDefault()?.GetValue<string>();
+
+                return string.IsNullOrEmpty( firstPath ) ? null : Path.GetDirectoryName( Path.GetFullPath( firstPath ) );
+            }
+
+            return this._registry.TryGet( args["workspace"]?.GetValue<string>(), out var entry, out _ ) ? entry.RootDirectory : null;
+        }
+        catch ( Exception e ) when ( e is not OutOfMemoryException )
+        {
+            // The arguments are malformed. The working directory of the process is used instead.
+            return null;
         }
     }
 
@@ -109,8 +139,20 @@ internal sealed class RequestHandler : IDisposable
 
         var stopwatch = Stopwatch.StartNew();
         var entry = await this._registry.LoadAsync( paths, properties, cancellationToken );
+        var elapsed = stopwatch.Elapsed;
 
-        return DescribeWorkspace( entry, "loaded", stopwatch.Elapsed, args );
+        var client = args[WorkerMethods.Client] as JsonObject;
+
+        IntrospectionTelemetry.ReportWorkspaceLoaded(
+            IntrospectionHost.Mcp,
+            entry.Key,
+            entry.Paths,
+            entry.Workspace,
+            elapsed,
+            client?[WorkerMethods.ClientName]?.GetValue<string>(),
+            client?[WorkerMethods.ClientVersion]?.GetValue<string>() );
+
+        return DescribeWorkspace( entry, "loaded", elapsed, args );
     }
 
     private async Task<JsonObject> ReloadAsync( JsonObject args, CancellationToken cancellationToken )

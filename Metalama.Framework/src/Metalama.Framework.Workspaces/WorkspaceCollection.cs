@@ -11,6 +11,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -105,6 +106,16 @@ namespace Metalama.Framework.Workspaces
 
         internal GlobalServiceProvider ServiceProvider { get; }
 
+        /// <summary>
+        /// Occurs when a workspace has been loaded, with the time the load took. The event is not raised when a load
+        /// returns a workspace that the collection already holds.
+        /// </summary>
+        /// <remarks>
+        /// Metalama.LinqPad handles this event to report its usage telemetry, because the queries of the user load the
+        /// workspaces themselves. An exception thrown by a handler is ignored and does not fail the load.
+        /// </remarks>
+        internal event Action<Workspace, TimeSpan>? WorkspaceLoaded;
+
         [Obsolete( "Errors are now always ignored." )]
         public bool IgnoreLoadErrors { get; set; }
 
@@ -173,8 +184,11 @@ namespace Metalama.Framework.Workspaces
 
             async Task<Workspace> LoadCore( string k )
             {
+                var stopwatch = Stopwatch.StartNew();
                 var workspace = await Workspace.LoadAsync( this.ServiceProvider, key, paths, properties, this, restore, cancellationToken );
                 workspace.Disposed += this.OnWorkspaceDisposed;
+
+                this.OnWorkspaceLoaded( workspace, stopwatch.Elapsed );
 
                 return workspace;
             }
@@ -197,6 +211,28 @@ namespace Metalama.Framework.Workspaces
                 TaskScheduler.Default );
 
             return task;
+        }
+
+        private void OnWorkspaceLoaded( Workspace workspace, TimeSpan elapsed )
+        {
+            var handlers = this.WorkspaceLoaded;
+
+            if ( handlers == null )
+            {
+                return;
+            }
+
+            foreach ( var handler in handlers.GetInvocationList().Cast<Action<Workspace, TimeSpan>>() )
+            {
+                try
+                {
+                    handler( workspace, elapsed );
+                }
+                catch ( Exception e ) when ( e is not OutOfMemoryException )
+                {
+                    // A handler, such as the telemetry of a host, must not fail the load.
+                }
+            }
         }
 
         private void OnWorkspaceDisposed( object? sender, EventArgs e )

@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using LINQPad.Extensibility.DataContext;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Introspection.Navigation.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -102,8 +103,27 @@ namespace {nameSpace}
             catch ( Exception e )
             {
                 Logger?.Error?.Log( e.ToString() );
+                IntrospectionTelemetry.ReportException( e, GetProjectDirectory( cxInfo ) );
 
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets the directory of the project or solution of a connection, which determines the telemetry policy.
+        /// </summary>
+        private static string? GetProjectDirectory( IConnectionInfo cxInfo )
+        {
+            try
+            {
+                var project = new ConnectionData( cxInfo ).Project;
+
+                return string.IsNullOrEmpty( project ) ? null : Path.GetDirectoryName( Path.GetFullPath( project ) );
+            }
+            catch ( Exception e ) when ( e is not OutOfMemoryException )
+            {
+                // The connection is malformed. The working directory of the process is used instead.
+                return null;
             }
         }
     }

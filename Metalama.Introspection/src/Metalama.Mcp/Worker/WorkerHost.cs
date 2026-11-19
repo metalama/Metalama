@@ -19,6 +19,11 @@ namespace Metalama.Mcp.Worker;
 /// </summary>
 internal static class WorkerHost
 {
+    /// <summary>
+    /// The maximal time that the worker waits for the background tasks of Backstage when the supervisor is gone.
+    /// </summary>
+    private static readonly TimeSpan _backgroundTasksTimeout = TimeSpan.FromSeconds( 5 );
+
     public static async Task<int> RunAsync( CommandLineOptions options )
     {
         using var input = new AnonymousPipeClientStream( PipeDirection.In, options.WorkerInputHandle! );
@@ -64,7 +69,10 @@ internal static class WorkerHost
                 }
 
                 // The supervisor is gone. A request in progress, such as a query that never ends, must not keep the worker
-                // and its build host running without a parent.
+                // and its build host running without a parent. The telemetry tasks that are already queued, such as the
+                // upload of a usage report, are given a few seconds to complete first.
+                await WorkerInitialization.CompleteBackgroundTasksAsync( _backgroundTasksTimeout );
+
                 Environment.Exit( 0 );
             } );
 
