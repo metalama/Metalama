@@ -4,6 +4,7 @@
 
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -22,7 +23,7 @@ internal static class QueryFormatter
     {
         var trimmed = code.Trim();
 
-        if ( trimmed.Contains( '\n' ) || trimmed.Length <= _maxSingleLineLength || !QueryCompiler.TryGetExpression( trimmed, out var expressionText ) )
+        if ( trimmed.Contains( '\n', StringComparison.Ordinal ) || trimmed.Length <= _maxSingleLineLength || !QueryCompiler.TryGetExpression( trimmed, out var expressionText ) )
         {
             return trimmed;
         }

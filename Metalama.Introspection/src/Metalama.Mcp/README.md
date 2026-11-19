@@ -1,8 +1,31 @@
 ![Metalama by PostSharp](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
 
-`Metalama.Mcp` is a local [Model Context Protocol](https://modelcontextprotocol.io) server that lets coding agents explore C#
-code. An agent loads a project or solution once and then runs C# queries over the Metalama code model and introspection API, as
-a person does with the `Metalama.LinqPad` driver.
+`Metalama.Mcp` is a local [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that lets AI coding agents
+explore any C# project or solution, whether or not it uses Metalama Framework. The agent loads a project or solution once. It
+then runs C# queries over the semantic model of the compiler to answer questions about types, members, inheritance and
+references, instead of searching the source files as text. When a project uses Metalama, the queries also cover its aspects
+and the transformed code.
+
+The server works with any agent that supports MCP, such as Claude Code, GitHub Copilot or Cursor.
+
+## Documentation
+
+* [Using the MCP server](https://doc.postsharp.net/metalama/preview/conceptual/introspection/mcp-server): installation,
+  options, queries, and the browser view of results.
+* API reference of the objects that queries use:
+  * [Introspection API](https://doc.postsharp.net/metalama/preview/api/introspection-api), for the workspace, its projects,
+    and the aspects, advice and diagnostics of a project.
+  * [Code model API](https://doc.postsharp.net/metalama/preview/api/metalama-framework-code), for declarations such as
+    `INamedType`, `IMethod` and `IProperty`.
+  * [`Workspace` class](https://doc.postsharp.net/metalama/preview/api/metalama-framework-workspaces-workspace), the entry
+    point of every query.
+* [Metalama plugin for AI agents](https://doc.postsharp.net/metalama/preview/conceptual/using/ide/ai-agents): a plugin for
+  Claude Code and OpenAI Codex that gives the agent the Metalama documentation, including the code model and introspection
+  API. It is published in the [Metalama.AI.Skills](https://github.com/metalama/Metalama.AI.Skills) repository.
+
+## Requirements
+
+The server requires the .NET 10 SDK or later.
 
 ## Installation
 
@@ -12,7 +35,14 @@ Register the server with your MCP client. For Claude Code:
 claude mcp add metalama -- dnx Metalama.Mcp
 ```
 
-Or install it as a tool with `dotnet tool install -g Metalama.Mcp` and register the `metalama-mcp` command.
+Or install it as a tool with `dotnet tool install -g Metalama.Mcp` and register the `metalama-mcp` command:
+
+```
+claude mcp add metalama -- metalama-mcp
+```
+
+Start the agent from the directory of your repository, because the server resolves relative paths against its working
+directory.
 
 To view results in a browser, trust the ASP.NET Core development certificate once:
 
