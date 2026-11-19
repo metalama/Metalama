@@ -588,8 +588,15 @@ internal abstract partial class BaseTestRunner
     /// Runs the analyzers of the <c>Metalama.Framework.Analyzers</c> assembly on a compilation and returns their diagnostics.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// An exception thrown by an analyzer is reported by Roslyn as an AD0001 diagnostic, which is returned with the other
     /// diagnostics, so that it appears in the test output.
+    /// </para>
+    /// <para>
+    /// The analysis is not concurrent. A concurrent analysis starts worker tasks of its own, which the test runner cannot observe
+    /// and which may still run after the test has completed. A sequential analysis starts no such task. The analyzers are fast
+    /// enough that a sequential analysis does not increase the duration of a test significantly.
+    /// </para>
     /// </remarks>
     private static async Task<ImmutableArray<Diagnostic>> GetAnalyzerDiagnosticsAsync(
         Compilation compilation,
@@ -598,7 +605,7 @@ internal abstract partial class BaseTestRunner
     {
         var compilationWithAnalyzers = compilation.WithAnalyzers(
             _metalamaAnalyzers.Value,
-            new CompilationWithAnalyzersOptions( analyzerOptions, null, concurrentAnalysis: true, logAnalyzerExecutionTime: false ) );
+            new CompilationWithAnalyzersOptions( analyzerOptions, null, concurrentAnalysis: false, logAnalyzerExecutionTime: false ) );
 
         return await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync( cancellationToken );
     }
