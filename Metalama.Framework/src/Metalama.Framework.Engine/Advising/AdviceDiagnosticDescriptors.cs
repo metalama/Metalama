@@ -198,15 +198,6 @@ namespace Metalama.Framework.Engine.Advising
                 _helpLinkFormat );
 
         // Sub-range 520-549: Various introduction diagnostics.
-        internal static readonly DiagnosticDefinition<(string AspectType, IConstructor Constructor)>
-            CannotIntroduceParameterIntoStaticConstructor = new(
-                "LAMA0520",
-                "Cannot introduce a parameter into a static constructor.",
-                "The aspect '{0}' cannot introduce a parameter into '{1}' because it is a static constructor.",
-                _category,
-                Error,
-                _helpLinkFormat );
-
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType AttributeType, IDeclaration TargetDeclaration)>
             AttributeAlreadyPresent = new(
                 "LAMA0521",
@@ -223,15 +214,6 @@ namespace Metalama.Framework.Engine.Advising
                 "Invalid override strategy when introducing a finalizer.",
                 "The aspect '{0}' cannot introduce a finalizer into the type '{1}' because the override strategy '{2}' is not supported for " +
                 "finalizers. Use 'Fail', 'Ignore', or 'Override'.",
-                _category,
-                Error,
-                _helpLinkFormat );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, INamedType Record)>
-            CannotAddInitializerToRecord = new(
-                "LAMA0524",
-                "Cannot add an initializer to all constructors of a record.",
-                "The aspect '{0}' cannot add an initializer to all constructors of the record '{1}', because the copy constructor cannot be changed. Consider adding initializers directly to the relevant constructors.",
                 _category,
                 Error,
                 _helpLinkFormat );
@@ -350,24 +332,6 @@ namespace Metalama.Framework.Engine.Advising
                 _helpLinkFormat );
 
         // Sub-range 540-549: Extension block introduction diagnostics.
-
-        internal static readonly DiagnosticDefinition<(string AspectType, IType ReceiverType, INamedType TargetType)>
-            ExtensionBlockTargetMustBeStaticClass = new(
-                "LAMA0540",
-                "Cannot introduce an extension block into a non-static class.",
-                "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target type is not a static class.",
-                _category,
-                Error,
-                _helpLinkFormat );
-
-        internal static readonly DiagnosticDefinition<(string AspectType, IType ReceiverType, INamedType TargetType)>
-            CannotIntroduceExtensionBlockIntoExtensionBlock = new(
-                "LAMA0541",
-                "Cannot introduce an extension block into another extension block.",
-                "The aspect '{0}' cannot introduce an extension block for type '{1}' into '{2}' because the target is an extension block. Extension blocks can only be introduced into static classes.",
-                _category,
-                Error,
-                _helpLinkFormat );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceInitOnlyIndexerIntoExtensionBlock = new(

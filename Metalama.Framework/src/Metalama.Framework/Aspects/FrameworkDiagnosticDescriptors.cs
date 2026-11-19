@@ -7,7 +7,7 @@ using Metalama.Framework.Diagnostics;
 
 namespace Metalama.Framework.Aspects;
 
-// Range: 0700, 0750-0799
+// Range: 0750-0799
 
 /// <summary>
 /// Contains diagnostic descriptors used internally by the Metalama Framework. This class is reserved for internal use.
@@ -15,16 +15,6 @@ namespace Metalama.Framework.Aspects;
 public static class FrameworkDiagnosticDescriptors
 {
     private const string _helpLinkFormat = "https://doc.postsharp.net/metalama/errors/{0}";
-
-    internal static readonly DiagnosticDefinition<(string AspectType, DeclarationKind IntroducedDeclarationKind, DeclarationKind TargetDeclarationKind)>
-        CannotUseIntroduceWithoutDeclaringType = new(
-            "LAMA0700",
-            "Cannot use [Introduce] in an aspect that is applied to a declaration that is neither a type nor a type member.",
-            "The aspect '{0}' cannot introduce a member of kind '{1}' because it has been applied to a declaration of kind '{2}', which is " +
-            "neither a type nor a type member.",
-            "Metalama.Advices",
-            Severity.Error,
-            _helpLinkFormat );
 
     internal static readonly DiagnosticDefinition<(string AspectType, DeclarationKind IntroducedDeclarationKind, TypeKind TargetTypeKind)>
         CannotApplyAdviceOnTypeOrItsMembers = new(
@@ -34,14 +24,5 @@ public static class FrameworkDiagnosticDescriptors
             "into a class, a struct, or an interface.",
             "Metalama.Advices",
             Severity.Error,
-            _helpLinkFormat );
-
-    internal static readonly DiagnosticDefinition<(IDeclaration InterfaceType, INamedType ImplementingType)>
-        InternalImplementConstraint = new(
-            "LAMA0751",
-            "An interface cannot be implemented by a type because of the [InternalImplement] constraint.",
-            "The interface '{0}' cannot be implemented by the type '{1}' because of the [InternalImplement] constraint.",
-            "Metalama.Advices",
-            Severity.Warning,
             _helpLinkFormat );
 }

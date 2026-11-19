@@ -127,15 +127,8 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
                     this ) );
         }
 
-        // Introducing parameters into static constructors is not allowed.
-        if ( constructor.IsStatic )
-        {
-            return this.CreateFailedResult(
-                AdviceDiagnosticDescriptors.CannotIntroduceParameterIntoStaticConstructor.CreateRoslynDiagnostic(
-                    constructor.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, constructor),
-                    this ) );
-        }
+        // The eligibility rule of the IntroduceParameter advice rejects static constructors before the advice is created.
+        Invariant.Assert( !constructor.IsStatic );
 
         return this.IntroduceNewParameter( context, constructor );
     }
