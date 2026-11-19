@@ -206,9 +206,10 @@ This inference has one dependency worth watching: the upstream move off .NET 8,
 [dotnet/roslyn#84192](https://github.com/dotnet/roslyn/pull/84192), was merged in June 2026, reverted the next
 day, and relanded. Visual Studio 2026 18.12, measured on 2026-11-13, ships both `dotnet\net10.0` and
 `dotnet\net8.0` runtimes in its installation layout, so the layout alone does not decide which runtime the
-analysis process uses. Confirm the actual private runtime of the long-term servicing channel 18.11 before the
-2027.0 general availability date. See the checklist below. If it turns out to be .NET 8, the Core flavour must
-stay `net8.0` for 2027.0.
+analysis process uses. The long-term servicing channel 18.11.4, measured on 2026-11-19, ships the same two
+runtimes. Its service definitions settle the question: the Core Roslyn services run in the ServiceHub host
+`dotnet`, which is `DevHub.exe` on .NET 10. Checklist item 1 below records the details. The Core flavour can
+therefore be `net10.0`. Item 3 of the checklist confirms it in a running Visual Studio.
 
 ### Other design-time hosts
 
@@ -331,10 +332,10 @@ Two sub-axes feed this floor, and they are settled differently.
 
 The Visual Studio sub-axis is settled by the calendar. With Visual Studio 2022 17.14, which carries Roslyn 4.14,
 out of the set, the lowest Visual Studio in the set is the Visual Studio 2026 long-term servicing channel 18.11.
-Roslyn minor versions track Visual Studio minor versions, so 18.11 carries Roslyn 5.11, and the measurement of the
-18.11.0 preview on 2026-10-13 confirms it. Visual Studio 2026 18.12 carries Roslyn 5.12, measured on 2026-11-13.
-No Visual Studio in the set presents a Roslyn version between 5.0 and 5.9. Checklist item 1 below records the
-measurement of the released 18.11 that is still to be taken.
+Roslyn minor versions track Visual Studio minor versions, so 18.11 carries Roslyn 5.11. The measurement of the
+18.11.0 preview on 2026-10-13 confirms it, and so does the measurement of the released 18.11.4 on 2026-11-19,
+which presents Roslyn `5.11.0-1.26424.5`. Visual Studio 2026 18.12 carries Roslyn 5.12, measured on 2026-11-13.
+No Visual Studio in the set presents a Roslyn version between 5.0 and 5.9.
 
 The other-design-time-host sub-axis is not settled by a calendar, because Rider and the C# Dev Kit publish none,
 and the doctrine substitutes the current release for rules 1 to 3. Their Roslyn version is therefore a
@@ -462,18 +463,28 @@ The companion change for PB-2027.0 in that repository is
 Rules 1 to 8 are applied against calendars. These three items are applied against machines, and no removal of
 `net8.0` should ship without them.
 
-1. The Visual Studio 2026 long-term servicing channel baseline private runtime and Roslyn version. The baseline
-   shipped on 2026-11-10 as version 18.11, and its released build 18.11.4 has not been measured yet. The Stable
-   release 18.12.0 was measured on 2026-11-13: it presents Roslyn `5.12.0-1.26502.2`, it ships both the
-   `dotnet\net10.0` and the `dotnet\net8.0` runtimes, and its ServiceHub host directory defines a `desktopClr` and
-   a `netfx` host for `RoslynCodeAnalysisService`. Install 18.11.4 and record both values. Confirm that `ServiceHub.RoslynCodeAnalysisService` runs on
-   .NET 10, either from the Visual Studio installation layout, under
-   `Microsoft Visual Studio\<year>\<sku>\dotnet\net10.0\runtime\`, or from Roslyn's
-   `docs/contributing/target-framework-strategy.md` on the branch that shipped it. If it is .NET 8, the Core
-   flavour stays `net8.0` for 2027.0. Read the Roslyn version from the same installation, and the binding
-   redirects of `devenv.exe.config`, which must admit 10.0.0.10 for the .NET 10.0 line, as recorded in
-   [`Directory.Packages.md`](../../Directory.Packages.md). Record the
-   name of the analysis process as well. Metalama classifies its host by process name, in the table of
+1. The Visual Studio 2026 long-term servicing channel baseline private runtime and Roslyn version. Done on
+   2026-11-19, from the installation layout of Visual Studio Professional 2026 18.11.4 (build 12405.450, channel
+   `VisualStudio.18.Release.LTSC.18.11`), for issue [#1974](https://github.com/metalama/Metalama/issues/1974):
+   - Roslyn `5.11.0-1.26424.5`, both in `Common7\IDE\CommonExtensions\Microsoft\VBCSharp\LanguageServices` and in
+     `MSBuild\Current\Bin\Roslyn`.
+   - The installation ships the `dotnet\net10.0` runtime 10.0.15 and the `dotnet\net8.0` runtime 8.0.34.
+   - The Core Roslyn services, in `LanguageServices\Core\*.servicehub.service.json`, declare the host `dotnet`
+     with the host identifier `RoslynCodeAnalysisService`. The ServiceHub host `dotnet` is defined under
+     `ServiceHub.Host.Extensibility.amd64\net10.0-windows10.0.19041.0` and runs `DevHub.exe`, whose
+     `runtimeconfig.json` targets `net10.0`. The .NET 8 runtime serves only the separate host `dotnet.previous`.
+     `Microsoft.CodeAnalysis.Remote.ServiceHub.dll` in `LanguageServices\Core` targets `.NETCoreApp,Version=v10.0`.
+     The Core flavour can therefore be `net10.0`.
+   - The analysis process is `DevHub`. `ProcessKindDetector` classifies it as `RoslynCodeAnalysisService`, and
+     `ProcessKindTests` asserts that classification.
+   - The binding redirects of `devenv.exe.config`, `MSBuild.exe.config` and
+     `ServiceHub.RoslynCodeAnalysisService.exe.config` admit 10.0.0.10 for the .NET 10.0 line, as recorded in
+     [`Directory.Packages.md`](../../Directory.Packages.md).
+
+   These values were read from files and not from a running process. Item 3 confirms them in a running Visual
+   Studio. The Stable release 18.12.0 was measured on 2026-11-13: it presents Roslyn `5.12.0-1.26502.2` and ships
+   the same two runtimes. Repeat the measurement when Microsoft ships a servicing update of 18.11, and record
+   the name of the analysis process each time. Metalama classifies its host by process name, in the table of
    `SharpCrafters.Backstage.ProcessClassification.ProcessKindDetector`, and Visual Studio has renamed that process once already:
    it was `ServiceHub.RoslynCodeAnalysisService` up to Visual Studio 2022 and is `DevHub` in Visual Studio 2026,
    which issue [#1463](https://github.com/metalama/Metalama/issues/1463) reported as a bug. A name that the table
