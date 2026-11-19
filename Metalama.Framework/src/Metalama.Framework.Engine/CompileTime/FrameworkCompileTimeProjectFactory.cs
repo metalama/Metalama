@@ -176,7 +176,7 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
 
     private static CompileTimeProjectManifest CreateFrameworkProjectManifest( IAssemblySymbol assembly, ILogger logger )
         => new(
-            _frameworkAssemblyIdentity.ToString(),
+            assembly.Identity.ToString(),
             "",
             ImmutableArray<string>.Empty,
             ImmutableArray<string>.Empty,
@@ -224,10 +224,15 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
             manifest = CreateFrameworkProjectManifest( assembly, logger );
         }
 
+        // The run-time identity is the Metalama.Framework that the compilation references, because the repository finds the
+        // manifest of a symbol by the identity of its containing assembly, and the symbols of the compilation belong to that
+        // assembly. It is older than the engine when the engine comes from a newer package than the one the project builds
+        // with, as with the MCP server, the LINQPad driver or Metalama.Framework.Workspaces. The compile-time identity is the
+        // assembly of the engine, which is the one loaded and executed.
         return new CompileTimeProject(
             serviceProvider,
             domain,
-            _frameworkAssemblyIdentity,
+            assembly.Identity,
             _frameworkAssemblyIdentity,
             ImmutableArray<CompileTimeProject>.Empty,
             manifest,

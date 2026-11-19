@@ -59,7 +59,9 @@ public sealed class ProcessKindTests
     /// The assembly is an analyzer assembly that no project can reference, so it is loaded by path instead. The
     /// path is passed by the project file of this test, because the assembly is not copied to the output directory
     /// of this test: a reference to it would declare, in this test assembly, types of the same full name as the
-    /// ones that are being read.
+    /// ones that are being read. Loading the assembly locks its file until the test process exits. The project file
+    /// of this test therefore declares that <c>Metalama.Framework.CompilerExtensions</c> is built before this project,
+    /// so that a build of the solution does not write the file while the tests are running.
     /// </remarks>
     private static Assembly LoadCompilerExtensionsAssembly()
     {

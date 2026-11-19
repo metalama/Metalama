@@ -20,13 +20,6 @@
 //
 // The behaviour is intended and is not changed by this test. A union declaration carries no observable state: its only
 // synthesized state is the get-only Value property, which the compiler forbids the user to add to.
-//
-// The justification of LAMA0037 is empty, which is a defect of the engine and not of this library, and it is pinned
-// here as it is. ObservableAttribute is inheritable, so the aspect source asks for the justification of the
-// Inheritance scenario, while the rule that rejects a type that is not a class is declared under
-// ExceptForInheritance and therefore leaves that scenario eligible. No rule then answers for the requested scenario
-// and the justification is null. The same message appears for an ordinary struct, so the defect is reachable without
-// C# 15. It is filed as issue #2029.
 
 namespace Metalama.Patterns.Observability.AspectTests.Diagnostics.UnionIsNotObservable;
 

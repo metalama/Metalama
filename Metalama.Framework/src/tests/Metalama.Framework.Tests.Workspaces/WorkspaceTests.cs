@@ -507,5 +507,71 @@ class MyClass {}" );
                 workspace.Projects.SelectMany( c => c.RoslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) )
                     .Select( d => d.ToString() ) );
         }
+
+        private static async Task<string> CreatePlainProjectAsync( MetalamaTestContext testContext, string name )
+        {
+            var directory = Path.Combine( testContext.BaseDirectory, name );
+            Directory.CreateDirectory( directory );
+            var projectPath = Path.Combine( directory, name + ".csproj" );
+
+            await File.WriteAllTextAsync(
+                projectPath,
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <PropertyGroup>
+                        <TargetFramework>net10.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """,
+                testContext.CancellationToken );
+
+            await File.WriteAllTextAsync( Path.Combine( directory, "Code.cs" ), $"class {name}Class {{}}", testContext.CancellationToken );
+
+            return projectPath;
+        }
+
+        [Fact]
+        public async Task CancelledLoadIsNotCached()
+        {
+            using var testContext = this.CreateTestContext();
+            var projectPath = await CreatePlainProjectAsync( testContext, "Cancelled" );
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+
+            using var cancelled = new System.Threading.CancellationTokenSource();
+            await cancelled.CancelAsync();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => workspaceCollection.LoadAsync( [projectPath], _buildProperties, cancellationToken: cancelled.Token ) );
+
+            // A load that did not complete must not stay cached: the same load is retried.
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties, cancellationToken: testContext.CancellationToken );
+
+            CheckWorkspace( workspace );
+        }
+
+        [Fact]
+        public async Task FailedLoadDoesNotBreakTryFindProject()
+        {
+            using var testContext = this.CreateTestContext();
+            var loadedPath = await CreatePlainProjectAsync( testContext, "Loaded" );
+            var cancelledPath = await CreatePlainProjectAsync( testContext, "Cancelled" );
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+
+            using var workspace = await workspaceCollection.LoadAsync( [loadedPath], _buildProperties, cancellationToken: testContext.CancellationToken );
+
+            using var cancelled = new System.Threading.CancellationTokenSource();
+            await cancelled.CancelAsync();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => workspaceCollection.LoadAsync( [cancelledPath], _buildProperties, cancellationToken: cancelled.Token ) );
+
+            // TryFindProject must skip the load that did not complete instead of throwing. A compilation of no workspace
+            // makes it visit every entry, whatever the order of the dictionary.
+            var unknownCompilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create( "Unknown" );
+            Assert.False( workspaceCollection.TryFindProject( unknownCompilation, out _, out _, out _ ) );
+
+            Assert.True( workspaceCollection.TryFindProject( workspace.Projects[0].RoslynCompilation, out var found, out _, out _ ) );
+            Assert.Same( workspace, found );
+        }
     }
 }

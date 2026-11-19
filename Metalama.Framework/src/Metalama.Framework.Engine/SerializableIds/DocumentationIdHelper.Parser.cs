@@ -21,7 +21,6 @@ internal static partial class DocumentationIdHelper
     private sealed class Parser
     {
         private readonly CompilationModel _compilation;
-        private IType? _aspectGeneratedType;
 
         public Parser( CompilationModel compilation )
         {
@@ -191,6 +190,7 @@ internal static partial class DocumentationIdHelper
 
                 case SymbolKind.Namespace:
                     GetMatchingNamespaces( containers, name, results );
+                    this.ReplaceMergedNamespaces( results );
 
                     break;
             }
@@ -331,7 +331,10 @@ internal static partial class DocumentationIdHelper
                 // regular type parameter
                 var typeParameterIndex = ReadNextInteger( id, ref index );
 
-                var typeContext = typeParameterContext?.DeclarationKind == DeclarationKind.Method && typeParameterContext is IMethod methodContext
+                // The context is a constructor when the identifier names a constructor whose parameter type is a type
+                // parameter of the declaring type (issue #2358).
+                var typeContext = typeParameterContext?.DeclarationKind is DeclarationKind.Method or DeclarationKind.Constructor
+                                  && typeParameterContext is IMethodBase methodContext
                     ? methodContext.DeclaringType
                     : typeParameterContext?.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
                         ? typeParameterContext as INamedType
@@ -556,6 +559,45 @@ internal static partial class DocumentationIdHelper
             }
         }
 
+        /// <summary>
+        /// Replaces each merged namespace of <paramref name="results"/> by the namespace of a single assembly.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The parser starts from the merged global namespace, because it is the only namespace tree that contains the types
+        /// of the referenced assemblies. When a namespace is declared by more than one assembly, Roslyn represents it in this
+        /// tree by a namespace of kind <see cref="NamespaceKind.Compilation"/>, which has no containing assembly. Such a
+        /// namespace cannot implement <see cref="IDeclaration.DeclaringAssembly"/> or <see cref="IDeclaration.BelongsToCurrentProject"/>.
+        /// See issue #2354.
+        /// </para>
+        /// <para>
+        /// The replacement is the namespace of the current assembly when the current assembly declares the namespace, so that
+        /// the result is the namespace returned by <see cref="INamedType.ContainingNamespace"/> for a type of the current project.
+        /// Otherwise, it is the first namespace of <see cref="INamespaceSymbol.ConstituentNamespaces"/>.
+        /// </para>
+        /// </remarks>
+        private void ReplaceMergedNamespaces( List<IDeclaration> results )
+        {
+            for ( var i = 0; i < results.Count; i++ )
+            {
+                if ( results[i].GetSymbol() is { Kind: SymbolKind.Namespace } symbol
+                     && symbol is INamespaceSymbol { NamespaceKind: NamespaceKind.Compilation } mergedNamespace )
+                {
+                    var currentAssembly = this._compilation.RoslynCompilation.Assembly;
+                    var constituents = mergedNamespace.ConstituentNamespaces;
+
+                    var assemblyNamespace =
+                        constituents.FirstOrDefault( c => SymbolEqualityComparer.Default.Equals( c.ContainingAssembly, currentAssembly ) )
+                        ?? constituents.FirstOrDefault();
+
+                    if ( assemblyNamespace != null )
+                    {
+                        results[i] = this._compilation.Factory.GetNamespace( assemblyNamespace );
+                    }
+                }
+            }
+        }
+
         private static void GetMatchingNamespaces( List<IDeclaration> containers, string memberName, List<IDeclaration> results )
         {
             for ( int i = 0, n = containers.Count; i < n; i++ )
@@ -659,7 +701,7 @@ internal static partial class DocumentationIdHelper
                             }
                         }
 
-                        if ( !this.AllParametersMatch( member.Parameters, parameters, signatureCanBeModified ) )
+                        if ( !AllParametersMatch( member.Parameters, parameters, signatureCanBeModified ) )
                         {
                             // parameters don't match, try next method symbol
                             continue;
@@ -717,8 +759,9 @@ internal static partial class DocumentationIdHelper
                     continue;
                 }
 
-                memberName = DecodePropertyName( memberName );
-                var members = type.Properties.OfName( memberName ).Concat<IPropertyOrIndexer>( type.Indexers.OfName( memberName ) );
+                // The name Item denotes an indexer, but it can also be the name of an ordinary property, so the decoded
+                // name is used for indexers only (issue #2358).
+                var members = type.Properties.OfName( memberName ).Concat<IPropertyOrIndexer>( type.Indexers.OfName( DecodePropertyName( memberName ) ) );
 
                 foreach ( var member in members )
                 {
@@ -740,7 +783,7 @@ internal static partial class DocumentationIdHelper
                         }
 
                         if ( this.ParseParameterList( id, ref index, member.DeclaringType, parameters )
-                             && this.AllParametersMatch( memberParameters, parameters ) )
+                             && AllParametersMatch( memberParameters, parameters ) )
                         {
                             results.Add( member );
                             endIndex = index;
@@ -787,7 +830,7 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private bool AllParametersMatch(
+        private static bool AllParametersMatch(
             IReadOnlyList<IParameter> declarationParameters,
             List<ParameterInfo> expectedParameters,
             bool signatureCanBeModified = false )
@@ -804,12 +847,15 @@ internal static partial class DocumentationIdHelper
                 // This block is executed with constructors, when some parameters may have been introduced, changing the signature.
                 // In this case, we must not take the introduced parameters into account when matching the constructor.
 
+                // The attribute is matched by name rather than through the reflection mapper. The reflection mapper throws
+                // when the compilation does not reference Metalama.Framework, and such a compilation can still declare a
+                // constructor whose identifier must resolve (issue #2358). A parameter of such a compilation cannot carry
+                // the attribute, so every parameter is then counted.
                 declarationParameterCount = 0;
-                this._aspectGeneratedType ??= this._compilation.Factory.GetTypeByReflectionType( typeof(AspectGeneratedAttribute) );
 
                 foreach ( var declarationParameter in declarationParameters )
                 {
-                    if ( declarationParameter.Attributes.Count == 0 || !declarationParameter.Attributes.OfAttributeType( this._aspectGeneratedType ).Any() )
+                    if ( declarationParameter.Attributes.Count == 0 || !declarationParameter.Attributes.Any( IsAspectGeneratedAttribute ) )
                     {
                         declarationParameterCount++;
                     }
@@ -845,6 +891,12 @@ internal static partial class DocumentationIdHelper
 
             return true;
         }
+
+        /// <summary>
+        /// Determines whether <paramref name="attribute"/> is an instance of <see cref="AspectGeneratedAttribute"/>.
+        /// </summary>
+        private static bool IsAspectGeneratedAttribute( IAttribute attribute )
+            => attribute.Type.FullName == typeof(AspectGeneratedAttribute).FullName;
 
         private static bool ParameterMatches( IParameter parameter, ParameterInfo parameterInfo )
         {

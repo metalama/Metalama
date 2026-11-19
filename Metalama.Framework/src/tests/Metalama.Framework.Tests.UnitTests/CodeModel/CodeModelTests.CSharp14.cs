@@ -169,6 +169,41 @@ public sealed partial class CodeModelTests
         Assert.Equal( Code.Accessibility.Public, codeModelAccessibility );
     }
 
+    /// <summary>
+    /// Checks that <see cref="ITypeParameter.TypeParameterKind"/> returns <see cref="TypeParameterKind.Type"/> for a type parameter
+    /// of an extension block (issue #2355).
+    /// </summary>
+    [Fact]
+    public void ExtensionBlockTypeParameterKind()
+    {
+        const string code = """
+                            using System.Collections.Generic;
+
+                            public static class MyExtensions
+                            {
+                                extension<T>( EqualityComparer<T> comparer )
+                                {
+                                    public bool IsDefault( T value ) => comparer.Equals( value, default );
+
+                                    public bool IsDefault<TOther>( TOther value ) where TOther : T => comparer.Equals( value, default );
+                                }
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var extensionBlock = compilation.Types.Single().ExtensionBlocks.Single();
+        var typeParameter = Assert.Single( extensionBlock.TypeParameters );
+
+        Assert.Same( extensionBlock, typeParameter.ContainingDeclaration );
+        Assert.Equal( TypeParameterKind.Type, typeParameter.TypeParameterKind );
+
+        // A type parameter of a generic method declared in the extension block belongs to the method.
+        var genericMethod = extensionBlock.Methods.Single( m => m.TypeParameters.Count == 1 );
+        var methodTypeParameter = genericMethod.TypeParameters.Single();
+        Assert.Equal( TypeParameterKind.Method, methodTypeParameter.TypeParameterKind );
+    }
+
     [Fact]
     public void ExtensionMemberAttributes_MirroredToImplementation()
     {

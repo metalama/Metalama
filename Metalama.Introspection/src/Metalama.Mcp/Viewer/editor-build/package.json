@@ -1,0 +1,12 @@
+{
+  "name": "metalama-mcp-query-editor",
+  "private": true,
+  "description": "Builds the trimmed Monaco editor that the served html page of metalama-mcp uses to edit queries. The output is committed under ../editor; run `npm ci && npm run build` after changing the versions or entry.js.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "monaco-editor": "0.57.0"
+  }
+}

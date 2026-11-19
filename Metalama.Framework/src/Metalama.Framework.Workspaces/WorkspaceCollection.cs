@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -178,7 +179,24 @@ namespace Metalama.Framework.Workspaces
                 return workspace;
             }
 
-            return this._workspaces.GetOrAdd( key, LoadCore );
+            var task = this._workspaces.GetOrAdd( key, LoadCore );
+
+            // A load that fails or is cancelled must not stay cached, otherwise the same load could never be retried. The
+            // entry is removed only if it is still this task. ExecuteSynchronously removes an entry that already failed before
+            // this method returns, which is the case of a cancellation token that was cancelled before the call.
+            _ = task.ContinueWith(
+                t =>
+                {
+                    if ( !t.IsCompletedSuccessfully )
+                    {
+                        this._workspaces.TryRemove( new KeyValuePair<string, Task<Workspace>>( key, t ) );
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default );
+
+            return task;
         }
 
         private void OnWorkspaceDisposed( object? sender, EventArgs e )
@@ -210,12 +228,13 @@ namespace Metalama.Framework.Workspaces
             [NotNullWhen( true )] out Project? project,
             out bool isMetalamaOutput )
         {
-            // We are only considering workspaces that have already been loaded.
+            // We are only considering workspaces that have already been loaded. A load that failed or was cancelled has no
+            // result, and reading it would throw.
 
 #pragma warning disable VSTHRD002
             var found = this._workspaces.Values
                 .Select(
-                    w => w.IsCompleted
+                    w => w.IsCompletedSuccessfully
                         ? (Project: w.Result.Projects.FirstOrDefault(
                                p => p.RoslynCompilation == compilation
                                     || (p.IsMetalamaOutputEvaluated && p.CompilationResult.TransformedCode.GetRoslynCompilation() == compilation) ),

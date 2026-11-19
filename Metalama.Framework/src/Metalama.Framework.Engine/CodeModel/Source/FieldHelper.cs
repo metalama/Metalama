@@ -12,6 +12,12 @@ internal static class FieldHelper
 {
     public static IProperty? GetOverridingProperty( IField field )
     {
+        if ( field.FieldKind == FieldKind.TupleElement )
+        {
+            // A tuple element cannot be referenced, so it cannot be redirected to a property.
+            return null;
+        }
+
         if ( !field.GenericContext.IsEmptyOrIdentity )
         {
             var propertyDefinition = GetOverridingPropertyDefinition( field.Definition );

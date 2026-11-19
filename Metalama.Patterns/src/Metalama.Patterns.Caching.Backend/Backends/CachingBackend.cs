@@ -6,6 +6,7 @@ using Flashtrace;
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Building;
 using Metalama.Patterns.Caching.Implementation;
+using SharpCrafters.Common.Testing.Hooks;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 using static Flashtrace.Messages.FormattedMessageBuilder;
@@ -28,7 +29,7 @@ namespace Metalama.Patterns.Caching.Backends;
 /// <seealso cref="Implementation.CacheItem"/>
 /// <seealso href="@caching-getting-started"/>
 [PublicAPI]
-public abstract class CachingBackend : IDisposable, IAsyncDisposable
+public abstract partial class CachingBackend : IDisposable, IAsyncDisposable
 {
     private static readonly ValueTask<bool> _falseTaskResult = new( false );
     private static readonly ValueTask<bool> _trueTaskResult = new( true );
@@ -37,6 +38,12 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     private readonly TaskCompletionSource<bool> _disposeTask = new();
     private readonly SemaphoreSlim _initializeSemaphore = new( 1, 1 );
     private readonly CancellationTokenSource _disposeCancellationTokenSource = new();
+
+    /// <summary>
+    /// The optional test synchronization service, resolved once from the service provider. It is never registered in
+    /// production, in which case it stays <see langword="null"/> and every synchronization point is skipped.
+    /// </summary>
+    private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
 
     private CachingBackendFeatures? _features;
     private int _status;
@@ -52,6 +59,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
         this.TimeProvider = serviceProvider.GetTimeProvider();
         this.WorkItemDispatcher = serviceProvider.GetWorkItemDispatcher();
         this._exceptionObserver = serviceProvider?.GetService<ICachingExceptionObserver>();
+        this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider?.GetService( typeof(ITestSynchronizationProvider) );
         this.Configuration = configuration ?? new MemoryCachingBackendConfiguration();
         this.LogSource = serviceProvider.GetFlashtraceSource( this.GetType(), FlashtraceRole.Caching );
         this.DebugName = this.Configuration.DebugName ?? this.Id.ToString();
@@ -939,9 +947,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                 throw new InvalidOperationException( string.Format( CultureInfo.InvariantCulture, "{0} does not support events.", this.GetType().Name ) );
             }
 
-            this._itemRemoved += value;
+            this.AddHandler( ref this._itemRemoved, value );
         }
-        remove => this._itemRemoved -= value;
+        remove => this.RemoveHandler( ref this._itemRemoved, value );
     }
 
     /// <summary>
@@ -962,9 +970,50 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                 throw new InvalidOperationException( string.Format( CultureInfo.InvariantCulture, "{0} does not support dependencies.", this.GetType().Name ) );
             }
 
-            this._dependencyInvalidated += value;
+            this.AddHandler( ref this._dependencyInvalidated, value );
         }
-        remove => this._dependencyInvalidated -= value;
+        remove => this.RemoveHandler( ref this._dependencyInvalidated, value );
+    }
+
+    /// <summary>
+    /// Adds a handler to the delegate stored in a field, atomically with respect to other additions, removals and the
+    /// reset of the field in <see cref="Dispose()"/>.
+    /// </summary>
+    /// <remarks>
+    /// The result of the exchange is compared with <see cref="object.ReferenceEquals"/>. The equality operator of a
+    /// delegate type compares the invocation lists, so it would also report a success when the field holds another
+    /// delegate instance with an equal invocation list, in which case the exchange has not happened.
+    /// </remarks>
+    private void AddHandler<T>( ref EventHandler<T>? field, EventHandler<T>? handler )
+    {
+        EventHandler<T>? current;
+
+        do
+        {
+            current = Volatile.Read( ref field );
+            this._testSynchronizationProvider?.SyncPoint( EventSyncPoints.AddHandlerDelegateRead );
+        }
+        while ( !ReferenceEquals( Interlocked.CompareExchange( ref field, (EventHandler<T>?) Delegate.Combine( current, handler ), current ), current ) );
+    }
+
+    /// <summary>
+    /// Removes a handler from the delegate stored in a field, atomically with respect to other additions, removals and the
+    /// reset of the field in <see cref="Dispose()"/>.
+    /// </summary>
+    /// <remarks>
+    /// The result of the exchange is compared with <see cref="object.ReferenceEquals"/>, for the reason given in
+    /// <see cref="AddHandler{T}"/>.
+    /// </remarks>
+    private void RemoveHandler<T>( ref EventHandler<T>? field, EventHandler<T>? handler )
+    {
+        EventHandler<T>? current;
+
+        do
+        {
+            current = Volatile.Read( ref field );
+            this._testSynchronizationProvider?.SyncPoint( EventSyncPoints.RemoveHandlerDelegateRead );
+        }
+        while ( !ReferenceEquals( Interlocked.CompareExchange( ref field, (EventHandler<T>?) Delegate.Remove( current, handler ), current ), current ) );
     }
 
     private void Validate( CacheItem cacheItem )
