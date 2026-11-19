@@ -34,6 +34,10 @@
         <None Update="build/*" Pack="true" PackagePath=""/>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.Workspaces" />
+    </ItemGroup>
+
 
     <ItemGroup>
         <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" PrivateAssets="all"/>

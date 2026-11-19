@@ -352,6 +352,148 @@ class MyClass {}" );
             static IEnumerable<string> GetReferences( IDeclaration d ) => d.GetInboundReferences().Select( x => x.ToString()! ).OrderBy( x => x );
         }
 
+        [Fact]
+        public async Task LoadXmlSolution()
+        {
+            using var testContext = this.CreateTestContext();
+
+            var projectPath = Path.Combine( testContext.BaseDirectory, "Project", "Project.csproj" );
+            Directory.CreateDirectory( Path.GetDirectoryName( projectPath )! );
+
+            await File.WriteAllTextAsync(
+                projectPath,
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <PropertyGroup>
+                        <TargetFramework>net10.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>
+                """,
+                testContext.CancellationToken );
+
+            await File.WriteAllTextAsync( Path.Combine( testContext.BaseDirectory, "Project", "Code.cs" ), "class MyClass {}", testContext.CancellationToken );
+
+            var solutionPath = Path.Combine( testContext.BaseDirectory, "Solution.slnx" );
+
+            await File.WriteAllTextAsync(
+                solutionPath,
+                """
+                <Solution>
+                  <Project Path="Project/Project.csproj" />
+                </Solution>
+                """,
+                testContext.CancellationToken );
+
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+
+            using var workspace = await workspaceCollection.LoadAsync( [solutionPath], _buildProperties, cancellationToken: testContext.CancellationToken );
+
+            CheckWorkspace( workspace );
+
+            Assert.Single( workspace.Projects );
+            Assert.Single( workspace.Projects[0].Types );
+        }
+
+        [Fact]
+        public async Task NuGetAuditWarningsAreWarnings()
+        {
+            using var testContext = this.CreateTestContext();
+
+            var projectPath = Path.Combine( testContext.BaseDirectory, "Project.csproj" );
+
+            // Newtonsoft.Json 12.0.1 has a known high severity vulnerability (GHSA-5crp-9r3c-p9vr), so restore reports NU1903,
+            // which dotnet build reports as a warning.
+            await File.WriteAllTextAsync(
+                projectPath,
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                    <PropertyGroup>
+                        <TargetFramework>net10.0</TargetFramework>
+                        <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+                        <NuGetAudit>true</NuGetAudit>
+                        <NuGetAuditMode>direct</NuGetAuditMode>
+                    </PropertyGroup>
+                    <ItemGroup>
+                        <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+                    </ItemGroup>
+                </Project>
+                """,
+                testContext.CancellationToken );
+
+            await File.WriteAllTextAsync( Path.Combine( testContext.BaseDirectory, "Code.cs" ), "class MyClass {}", testContext.CancellationToken );
+
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties, cancellationToken: testContext.CancellationToken );
+
+            var diagnostics = workspace.WorkspaceDiagnostics.Select( d => $"{d.Severity}: {d.Message}" ).ToArray();
+
+            Assert.Contains( diagnostics, d => d.StartsWith( "Warning: ", StringComparison.Ordinal ) && d.Contains( "Newtonsoft.Json", StringComparison.Ordinal ) );
+            Assert.DoesNotContain( diagnostics, d => d.StartsWith( "Error: ", StringComparison.Ordinal ) );
+            Assert.Single( workspace.Projects );
+        }
+
+        [Fact]
+        public void NuGetAssetsDiagnosticsAreScopedToTheirProject()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string message = "Package 'P' 1.0.0 has a known high severity vulnerability.";
+
+            // The same message is a warning in Project1 and an error in Project2.
+            var project1 = CreateProjectWithAssetsFile( testContext, "Project1", "obj/project.assets.json", message, "Warning" );
+            var project2 = CreateProjectWithAssetsFile( testContext, "Project2", "obj/project.assets.json", message, "Error" );
+
+            var diagnostics = new NuGetAssetsDiagnostics();
+            diagnostics.AddAssetsFile( project1, "obj/project.assets.json" );
+            diagnostics.AddAssetsFile( project2, "obj/project.assets.json" );
+
+            var fixedDiagnostics = diagnostics.Fix( [CreateRoslynDiagnostic( project1, message ), CreateRoslynDiagnostic( project2, message )] );
+
+            Assert.Equal( new[] { WorkspaceDiagnosticKind.Warning, WorkspaceDiagnosticKind.Failure }, fixedDiagnostics.Select( d => d.Kind ) );
+        }
+
+        [Fact]
+        public void NuGetAssetsDiagnosticsResolveRelativeAssetsFileAgainstProject()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string message = "Package 'P' 1.0.0 has a known moderate severity vulnerability.";
+
+            var project = CreateProjectWithAssetsFile( testContext, "Project", "custom/assets.json", message, "Warning" );
+
+            var diagnostics = new NuGetAssetsDiagnostics();
+            diagnostics.AddAssetsFile( project, "custom/assets.json" );
+
+            var fixedDiagnostics = diagnostics.Fix( [CreateRoslynDiagnostic( project, message )] );
+
+            Assert.Equal( WorkspaceDiagnosticKind.Warning, Assert.Single( fixedDiagnostics ).Kind );
+        }
+
+        private static string CreateProjectWithAssetsFile( MetalamaTestContext testContext, string name, string assetsFile, string message, string level )
+        {
+            var projectDirectory = Path.Combine( testContext.BaseDirectory, name );
+            var assetsPath = Path.Combine( projectDirectory, assetsFile );
+            Directory.CreateDirectory( Path.GetDirectoryName( assetsPath )! );
+
+            File.WriteAllText(
+                assetsPath,
+                $$"""
+                  { "version": 3, "logs": [ { "code": "NU1903", "level": "{{level}}", "message": "{{message}}" } ] }
+                  """ );
+
+            var projectPath = Path.Combine( projectDirectory, $"{name}.csproj" );
+            File.WriteAllText( projectPath, "<Project />" );
+
+            return projectPath;
+        }
+
+        // Formats the message as MSBuildWorkspace does.
+        private static WorkspaceDiagnostic CreateRoslynDiagnostic( string projectPath, string message )
+            => new(
+                WorkspaceDiagnosticKind.Failure,
+                $"Msbuild failed when processing the file '{projectPath}' with message: {projectPath}: (0, 0): {message}" );
+
         /// <summary>
         /// Asserts that the workspace loaded without a diagnostic. The assertions project the diagnostics to their
         /// messages, because the failure output of xUnit shows only the first properties of an object and the message
