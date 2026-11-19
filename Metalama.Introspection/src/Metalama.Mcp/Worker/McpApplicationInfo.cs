@@ -15,4 +15,10 @@ internal sealed class McpApplicationInfo : ApplicationInfoBase
     public McpApplicationInfo() : base( typeof(McpApplicationInfo).Assembly, MetalamaProduct.Profile ) { }
 
     public override string Name => "Metalama.Mcp";
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The server is counted separately from the compiler, because it is also used on code that does not use Metalama.
+    /// </remarks>
+    public override string UsageAnalyticsActionName => "mcp";
 }

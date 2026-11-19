@@ -133,7 +133,13 @@ internal sealed partial class ServerProcess : IAsyncDisposable
         var standardError = new ConcurrentQueue<string>();
 
         List<string> arguments = [ServerPath];
-        var environment = new Dictionary<string, string?> { ["METALAMA_MCP_TEST_CERTIFICATE"] = testCertificate ?? _testCertificatePath.Value };
+        var environment = new Dictionary<string, string?>
+        {
+            ["METALAMA_MCP_TEST_CERTIFICATE"] = testCertificate ?? _testCertificatePath.Value,
+
+            // The tests must never send telemetry, show a notification or open the welcome page.
+            ["METALAMA_TELEMETRY_OPT_OUT"] = "1"
+        };
 
         if ( noHttp )
         {

@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
+using Metalama.Introspection.Navigation.Telemetry;
 using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
 using SharpCrafters.Backstage.Utilities;
@@ -110,6 +111,9 @@ namespace {nameSpace}
             catch ( Exception e )
             {
                 Logger?.Error?.Log( e.ToString() );
+
+                // The scratchpad has no workspace, so the working directory of LINQPad determines the telemetry policy.
+                IntrospectionTelemetry.ReportException( e, null );
 
                 throw;
             }
