@@ -371,8 +371,6 @@ if (node.Kind() == SyntaxKind.Block && node is BlockSyntax block)
 | `UnionDeclaration` | `UnionDeclarationSyntax` (latest Roslyn variant only, inside `#if ROSLYN_5_12_0_OR_GREATER`) |
 | `EnumDeclaration` | `EnumDeclarationSyntax` |
 | `DelegateDeclaration` | `DelegateDeclarationSyntax` |
-
-No row is added for unions to the table "DeclarationKind → IDeclaration Types" or to the multi-kind table of "Pitfall 1". The C# 15 work adds neither a `TypeKind` value nor a `DeclarationKind` value for a union (#1941). A union is a named type whose `TypeKind` is `Struct`, and `INamedType.IsUnion` tells it apart. Closedness is also a flag, `INamedType.IsClosed`, and not a kind (#1939).
 | `NamespaceDeclaration` | `NamespaceDeclarationSyntax` |
 | `FileScopedNamespaceDeclaration` | `FileScopedNamespaceDeclarationSyntax` |
 | `Block` | `BlockSyntax` |
@@ -405,6 +403,8 @@ No row is added for unions to the table "DeclarationKind → IDeclaration Types"
 | `ArrowExpressionClause` | `ArrowExpressionClauseSyntax` |
 | `SimpleLambdaExpression` | `SimpleLambdaExpressionSyntax` |
 | `ParenthesizedLambdaExpression` | `ParenthesizedLambdaExpressionSyntax` |
+
+No row is added for unions to the table "DeclarationKind → IDeclaration Types" or to the multi-kind table of "Pitfall 1". The C# 15 work adds neither a `TypeKind` value nor a `DeclarationKind` value for a union (#1941). `INamedType.IsUnion` identifies a union in both authoring forms. A type declared with the `union` keyword has the `TypeKind` value `Struct`. A class that is declared as a union by an attribute keeps the `TypeKind` value `Class`. `UnionTypeTests.IsUnionIsTrueForBothAuthoringForms` verifies that `IsUnion` is `true` for both forms. Code that detects a union must therefore test `IsUnion` and must not restrict the test to structs. Closedness is also a flag, `INamedType.IsClosed`, and not a kind (#1939).
 
 ---
 

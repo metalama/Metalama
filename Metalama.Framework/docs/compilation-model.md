@@ -83,8 +83,9 @@ The named type builder, `NamedTypeBuilder`, carries two properties that describe
 - `IsClosed` is the closedness flag (#1950). It is a flag and not a type kind. `NamedTypeBuilderData.IsClosed` stores it.
   The setter refuses the value `true` in a Roslyn variant that predates C# 15, because that variant cannot emit the
   `closed` modifier.
-- `IsUnion` is `true` for `UnionBuilder` alone. The language reports a union as a struct, so the type kind of a union
-  is `TypeKind.Struct`, and `IsUnion` tells it apart. `UnionBuilder.Cases` is the case list (#1951), in the order in
+- `IsUnion` is `true` for `UnionBuilder` alone. `UnionBuilder` emits the form of a union that uses the `union`
+  keyword. The language reports that form as a struct, so its type kind is `TypeKind.Struct`, and `IsUnion` tells it
+  apart. A union that is declared in source as a class with an attribute keeps the type kind `TypeKind.Class`. `UnionBuilder.Cases` is the case list (#1951), in the order in
   which the aspect added the cases. When the builder is frozen, `UnionBuilder` creates one constructor per case and the
   `Value` property, and `UnionBuilderData` stores them as `CaseConstructors` and `ValueProperty`. The section
   "Declarations Registered Without Injected Syntax" describes how these members reach the code model.
@@ -287,13 +288,14 @@ Special methods for parameter management:
 
 ### Declarations Registered Without Injected Syntax
 
-A declaration can be registered in the code model as a builder without any syntax being injected for it. The
-transformation that registers it implements `IIntroduceDeclarationTransformation` and does not implement
-`IInjectMemberTransformation`. Both emitters select the transformations to emit by `IInjectMemberTransformation`:
-`LinkerInjectionStep` at build time and `DesignTimeSyntaxTreeGenerator` at design time. A transformation that does not
-implement it is therefore added to the code model by `AddDeclaration` and emitted by neither.
+A namespace or a member that the compiler synthesizes can be registered in the code model as a builder without any
+syntax being injected for it. The transformation that registers it implements `IIntroduceDeclarationTransformation`
+and does not implement `IInjectMemberTransformation`. The absence of `IInjectMemberTransformation` alone does not
+mean that no syntax is emitted: `IntroduceAttributeTransformation` has the same combination of interfaces, and its
+attribute is emitted by a separate rewriting path of the linker. This section therefore covers only the two
+transformations below.
 
-Two transformations have this shape:
+The two transformations are the following:
 
 - `IntroduceNamespaceTransformation` registers an introduced namespace. A namespace is not a member. The namespace declaration
   is emitted by the code that wraps an introduced type in its namespace.
@@ -302,6 +304,11 @@ Two transformations have this shape:
   of each case. The same transformation registers the `Invoke` method of an introduced delegate, the members that a
   record declaration implies, and the parameterless constructor of an introduced struct. Section 4.2 of
   [`introducing-types.md`](introducing-types.md) lists these members.
+
+The emitters exclude a synthesized member explicitly, through `IIntroduceDeclarationTransformation.IsCompilerSynthesized`.
+At design time, `DesignTimeSyntaxTreeGenerator` removes every transformation whose `IsCompilerSynthesized` is `true`
+before it groups the transformations by target file. At build time, `LinkerInjectionStep` indexes such a
+transformation only in the map from builder data to transformation, and injects no member for it.
 
 A member must be registered because the introduction pipeline does not read the final compilation from Roslyn again,
 so an aspect sees only the members of the code model. A member must not be emitted because the compiler creates it from
