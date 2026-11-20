@@ -22,7 +22,22 @@ namespace Metalama.Framework.Tests.Workspaces
 {
     public sealed class WorkspaceTests : UnitTestClass
     {
-        private static readonly ImmutableDictionary<string, string> _buildProperties = ImmutableDictionary<string, string>.Empty
+        /// <summary>
+        /// The MSBuild properties that every test of this class passes when it loads a workspace.
+        /// </summary>
+        /// <remarks>
+        /// The first test that loads a project builds the project that resolves the compile-time reference assemblies.
+        /// This build is cached per Metalama version, so one test pays the full cost of the restore. On a loaded build agent,
+        /// this cost can exceed the default timeout of 120 seconds, and the load then fails with <c>LAMA0083</c>.
+        /// The timeout is therefore raised to 10 minutes.
+        /// </remarks>
+        private static readonly ImmutableDictionary<string, string> _defaultProperties = ImmutableDictionary<string, string>.Empty
+            .Add( "MetalamaReferenceAssemblyRestoreTimeout", "600000" );
+
+        /// <summary>
+        /// The properties of <see cref="_defaultProperties"/>, and empty values for the properties that MSBuild would otherwise read from the environment variables of the test process.
+        /// </summary>
+        private static readonly ImmutableDictionary<string, string> _buildProperties = _defaultProperties
             .Add( "DOTNET_ROOT_X64", "" )
             .Add( "MSBUILD_EXE_PATH", "" )
             .Add( "MSBuildSDKsPath", "" );
@@ -84,7 +99,7 @@ namespace Metalama.Framework.Tests.Workspaces
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( projectPath );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -183,7 +198,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( projectPath );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -217,7 +232,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( projectPath );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -251,7 +266,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( projectPath );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -288,7 +303,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( projectPath );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -337,7 +352,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( projectPath1, projectPath2 );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath1, projectPath2], _defaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -495,17 +510,37 @@ class MyClass {}" );
                 $"Msbuild failed when processing the file '{projectPath}' with message: {projectPath}: (0, 0): {message}" );
 
         /// <summary>
-        /// Asserts that the workspace loaded without a diagnostic. The assertions project the diagnostics to their
-        /// messages, because the failure output of xUnit shows only the first properties of an object and the message
-        /// of a workspace diagnostic is not among them.
+        /// Asserts that the workspace loaded without a diagnostic.
         /// </summary>
+        /// <remarks>
+        /// The failure message of <see cref="Assert.Empty(System.Collections.IEnumerable)"/> truncates each element of the collection, so the cause of a
+        /// diagnostic would be lost. The method therefore writes the complete messages to the test output and includes them
+        /// in the failure message.
+        /// </remarks>
         private static void CheckWorkspace( Workspace workspace )
         {
-            Assert.Empty( workspace.WorkspaceDiagnostics.Select( d => $"{d.Severity}: {d.Message}" ) );
+            AssertNoMessage( "workspace diagnostics", workspace.WorkspaceDiagnostics.Select( d => $"{d.Severity}: {d.Message}" ) );
 
-            Assert.Empty(
+            AssertNoMessage(
+                "compilation errors",
                 workspace.Projects.SelectMany( c => c.RoslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) )
                     .Select( d => d.ToString() ) );
+
+            static void AssertNoMessage( string kind, IEnumerable<string> messages )
+            {
+                var messageList = messages.ToList();
+
+                if ( messageList.Count == 0 )
+                {
+                    return;
+                }
+
+                var text = $"The workspace has {messageList.Count} {kind}:{Environment.NewLine}{string.Join( Environment.NewLine, messageList )}";
+
+                TestContext.Current.TestOutputHelper?.WriteLine( text );
+
+                Assert.Fail( text );
+            }
         }
 
         private static async Task<string> CreatePlainProjectAsync( MetalamaTestContext testContext, string name )
