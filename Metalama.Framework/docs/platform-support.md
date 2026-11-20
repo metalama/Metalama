@@ -335,7 +335,8 @@ out of the set, the lowest Visual Studio in the set is the Visual Studio 2026 lo
 Roslyn minor versions track Visual Studio minor versions, so 18.11 carries Roslyn 5.11. The measurement of the
 18.11.0 preview on 2026-10-13 confirms it, and so does the measurement of the released 18.11.4 on 2026-11-19,
 which presents Roslyn `5.11.0-1.26424.5`. Visual Studio 2026 18.12 carries Roslyn 5.12, measured on 2026-11-13.
-No Visual Studio in the set presents a Roslyn version between 5.0 and 5.9.
+The latest variant is 5.12, so 18.11 is below it and loads the Roslyn 5.0 variant, as `RoslynVariantPolicy`
+maps every host from Roslyn 5.0 to 5.11. Only 18.12 and later load the latest variant.
 
 The other-design-time-host sub-axis is not settled by a calendar, because Rider and the C# Dev Kit publish none,
 and the doctrine substitutes the current release for rules 1 to 3. Their Roslyn version is therefore a
@@ -350,8 +351,8 @@ identity falls back to the next lower variant, or to nothing at all when none ex
 
 | Rider and C# Dev Kit Roslyn, measured at general availability | Variants to ship | `RoslynApiMinVersion` |
 | --- | --- | --- |
-| 5.10 or above | the latest variant alone | 5.10 |
-| 5.0 to 5.9 | a Roslyn 5.0 variant and the latest variant | 5.0 |
+| 5.12 or above | the latest variant alone | 5.12 |
+| 5.0 to 5.11 | a Roslyn 5.0 variant and the latest variant | 5.0 |
 | below 5.0 | the Roslyn 4.12 variant and the latest variant | 4.12 |
 
 The default is a single variant, and the failure of getting this wrong is the silent one described at the top of
@@ -361,8 +362,8 @@ loses the features guarded by the newer variant's preprocessor symbols without r
 The measurement of 2026-09-01 puts Rider 2026.2.0.2 at Roslyn 5.0.0, which is the middle row. For PB-2027.0
 therefore:
 
-- Ship a Roslyn 5.0 variant alongside the latest variant. The 5.0 to 5.9 range is not empty: Rider sits at its
-  lower bound, so without that variant every Rider user falls back to a Roslyn 4 payload.
+- Ship a Roslyn 5.0 variant alongside the latest variant. The 5.0 to 5.11 range is not empty: Rider sits at its
+  lower bound and Visual Studio 18.11 at its upper bound, so without that variant every Rider user falls back to a Roslyn 4 payload.
 - Drop the `Roslyn.4.12.0` variant. No host in the set is below Roslyn 5.0 once Visual Studio 2022 and the .NET 8
   and .NET 9 SDKs are out.
 - Set `RoslynApiMinVersion` to `5.0.0`.
@@ -423,11 +424,22 @@ Two further points bear on any change to the floors.
   `net10.0` the assembly belongs to the shared framework, so NuGet prunes the asset and the runtime provides it.
   A core flavour that has to embed it again would have to name an asset folder of that package, and that path
   does not follow this baseline.
-- The extension loader compares target framework names as strings. `TargetedAssemblyReference` and
-  `ExtensionLoaderBase` each derive a target framework name from the same .NET Framework Boolean as
-  `ResourceExtractor`, then compare it for equality against the `TargetFramework` metadata of
-  `MetalamaExtensionAssembly`. Both carry the Core name as a literal. When the Core flavour moves, those literals
-  move with it, otherwise no extension loads on .NET.
+- The extension loader compares target framework names as strings. `TargetedAssemblyReference.CurrentTargetFramework`
+  derives a target framework name from the same .NET Framework Boolean as `ResourceExtractor`, and
+  `SatisfiesCurrentProcess` compares it for equality against the `TargetFramework` metadata of
+  `MetalamaExtensionAssembly`. `ExtensionLoaderBase` holds a second copy of the literal, which feeds only its trace
+  message. When the Core flavour moves, those literals move with it, otherwise no extension loads on .NET and
+  nothing is reported. A host on .NET 11 still asks for the `net10.0` extension assemblies.
+- The remaining `net10.0` literals of this repository are not the .NET SDK pin, which is in `global.json` and
+  `eng/src/Program.cs`, and they fall into two groups that move for different reasons. The first group names the
+  Core flavour of our own outputs: the two project files above, `TargetedAssemblyReference` and
+  `ExtensionLoaderBase`. It moves only with the embedded Core flavour. The second group is the target framework of
+  the processes that register the MSBuild of a .NET SDK in-process: `Metalama.Framework.Workspaces`,
+  `Metalama.LinqPad` (`net10.0-windows`) and the design-time host simulator, with `eng/src/DesignTimeSolution.cs`.
+  The major version of the host runtime decides which SDK that registration may use, so a `net10.0` host needs a
+  .NET 10 SDK. The conditions of `Metalama.Framework/Directory.Build.props` and
+  `Metalama.Introspection/Directory.Build.props` that name `net10.0` only restrict code analysis to one inner build
+  and belong to neither group.
 
 ## What this means in Metalama.Compiler
 
@@ -442,8 +454,11 @@ Concretely, under PB-2027.0:
   is `net10.0`. `NetVS` and `NetVSShared` may hold their upstream values, because every project that reads them is
   in `Ide.slnf` and only `Metalama.Compiler.slnf` is built. The one in-solution reference, in
   `Metalama.Compiler.Arm64.Package.csproj`, is a condition on a `net472` project and is false either way.
-- The toolset and the `Metalama.Compiler.Sdk` tasks ship `net472` and `net10.0`. `net11.0` is not needed, because
-  the `net10.0` compiler declares `rollForward=Major` and runs on .NET 11.
+- The toolset and the `Metalama.Compiler.Sdk` tasks ship `net472` and `net10.0`. `net11.0` is not needed, for two
+  different reasons. The `net10.0` compiler is an application and declares `rollForward=Major`, which selects .NET
+  11 only when no .NET 10 runtime is installed; otherwise the compiler runs on .NET 10. The tasks are a library
+  that MSBuild loads into its own process, so they run on the runtime of that MSBuild, and their framework
+  references bind against the higher versions present there. No roll-forward policy is involved.
 - A host runtime below the SDK floor must be reported, not left to fail while loading an assembly. The toolset
   does this with `LAMA0622`, from `MetalamaCompilerCheckHostRuntime` in `build/Metalama.Compiler.targets`.
 
@@ -457,6 +472,43 @@ Two places in that repository will drift when the floor next moves:
 
 The companion change for PB-2027.0 in that repository is
 [metalama/Metalama.Compiler#211](https://github.com/metalama/Metalama.Compiler/pull/211).
+
+## What this means in Metalama.Premium
+
+The baseline reaches `metalama/Metalama.Premium` in two places: the extension assemblies that the core extension
+loader selects by the Core flavour name, and the licensing build tasks, which follow the .NET SDK axis. Neither has
+a test, so both are drift points when the floors next move.
+
+The Core flavour literal is repeated in eight build files. Four of them carry the `TargetFramework` metadata that
+`TargetedAssemblyReference` compares for string equality:
+
+- `src/Metalama.Extensions.CodeFixes.Package/build/Metalama.Extensions.CodeFixes.props`
+- `src/Metalama.Extensions.Validation.Package/build/Metalama.Extensions.Validation.props`
+- `src/Metalama.Extensions.CodeFixes/MetalamaExtensionAssemblies.props`
+- `src/Metalama.Extensions.Validation/MetalamaExtensionAssemblies.props`
+
+Four more must agree with them, because they produce or package the directories those items name:
+
+- `src/Metalama.Extensions.CodeFixes.Package/Metalama.Extensions.CodeFixes.Package.csproj` and
+  `src/Metalama.Extensions.Validation.Package/Metalama.Extensions.Validation.Package.csproj`, through their packaged
+  file paths.
+- `src/Metalama.Extensions.CodeFixes.Package.Resources/Metalama.Extensions.CodeFixes.Package.Resources.csproj` and
+  `src/Metalama.Extensions.Validation.Package.Resources/Metalama.Extensions.Validation.Package.Resources.csproj`,
+  through their target frameworks.
+
+A value left behind is not reported. The loader drops an extension assembly whose metadata does not match, so
+reference validation and code fixes stop running with no error. The aspect testing targets filter extension
+assemblies by target framework compatibility rather than by equality, so a stale lower value passes the build-time
+filter and fails only the run-time comparison.
+
+`src/Metalama.Licensing/build/Metalama.Licensing.targets` selects `tasks/net10.0` or `tasks/net472` from
+`$(MSBuildRuntimeType)` alone. Like `Metalama.Compiler.Sdk.props`, it has no version guard and no equivalent of
+`LAMA0622`: the `_MetalamaLicensingBuildRuntimeVersion` property it computes is never read. On an MSBuild below
+.NET 10 the task fails to load with a raw `MSB4062`, after `LAMA0601` has warned about the SDK. Three sites carry
+the name and must move together: this selection, the two packed directories in
+`src/Metalama.Licensing/Metalama.Licensing.csproj`, and the target frameworks of
+`src/Metalama.Licensing.BuildTasks/Metalama.Licensing.BuildTasks.csproj`. `Metalama.Licensing` contributes no
+platform requirement of its own.
 
 ## Verification checklist before the 2027.0 general availability date
 

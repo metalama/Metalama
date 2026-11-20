@@ -240,6 +240,12 @@ Create `build/MyExtension.props`:
 
 **Critical:** Always specify the `TargetFramework` metadata on `MetalamaExtensionAssembly` items. If omitted, the assembly will be loaded for **all** target frameworks, which can cause assembly version conflicts or runtime errors.
 
+The value is compared for string equality, not for compatibility. At run time, `TargetedAssemblyReference` compares
+it with the Core flavour name of the current platform baseline, which is `net472` in a .NET Framework process and
+`net10.0` in every other process, including one that runs on .NET 11. A value that is merely compatible, such as
+`net11.0` or `net9.0`, never matches: the loader drops the assembly and reports nothing. The Core flavour name is
+set by [`platform-support.md`](platform-support.md), and it moves only when the embedded Core flavour moves.
+
 ### buildTransitive Pattern
 
 The `buildTransitive/MyExtension.props` registers the extension assemblies for transitive consumers. You have two options:

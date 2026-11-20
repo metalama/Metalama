@@ -8,6 +8,14 @@ When loading and running Metalama using this package, you can get the object mod
 
 It also allows you to query code metrics.
 
+## Requirements
+
+The package targets `net10.0`. Before it loads a project, it registers the MSBuild of a .NET SDK in the current
+process, and it chooses the highest SDK that the runtime of the process can load. The major version of the host
+runtime therefore decides which SDK can be used: a process that runs on .NET 10 needs a .NET 10 SDK, and it can't
+use a .NET 11 SDK, because the MSBuild of that SDK targets .NET 11. On a machine that has only the .NET 11 SDK,
+install the .NET 10 SDK, or run your application on .NET 11.
+
 ## Principal APIs
 
 - The [Workspace](https://doc.metalama.net/api/metalama-framework-workspaces-workspace) type is your entry point. It allows you to load a project or solution.

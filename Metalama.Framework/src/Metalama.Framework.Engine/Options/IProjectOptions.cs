@@ -91,7 +91,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     string? ProjectName { get; }
 
     /// <summary>
-    /// Gets the short target framework name, for instance <c>net8.0</c>.
+    /// Gets the short target framework name, for instance <c>net10.0</c>.
     /// </summary>
     string? TargetFramework { get; }
 
@@ -101,7 +101,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     string? TargetFrameworkMoniker { get; }
 
     /// <summary>
-    /// Gets a semicolon-separated list of all target frameworks of the project, for instance <c>net8.0;net472</c>.
+    /// Gets a semicolon-separated list of all target frameworks of the project, for instance <c>net10.0;net472</c>.
     /// When the project targets a single framework, this is the same as <see cref="TargetFramework"/>.
     /// </summary>
     string? AllTargetFrameworks { get; }

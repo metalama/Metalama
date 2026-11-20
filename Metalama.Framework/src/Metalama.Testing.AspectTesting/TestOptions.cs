@@ -317,8 +317,8 @@ public class TestOptions
 
     /// <summary>
     /// Gets or sets the semicolon-separated list of all target frameworks for the project,
-    /// for instance <c>net8.0;net472</c>. Used to test behavior that depends on target runtime capabilities.
-    /// To set this option in a test, add this comment to your test file: <c>// @TargetFrameworks(net8.0;net472)</c>.
+    /// for instance <c>net10.0;net472</c>. Used to test behavior that depends on target runtime capabilities.
+    /// To set this option in a test, add this comment to your test file: <c>// @TargetFrameworks(net10.0;net472)</c>.
     /// </summary>
     public string? TargetFrameworks { get; set; }
 
