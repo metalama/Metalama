@@ -8,9 +8,11 @@ using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis.CSharp;
 using SharpCrafters.Backstage.Utilities;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.Versioning;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest
@@ -214,6 +216,75 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             }
 
             return manifest;
+        }
+
+        /// <summary>
+        /// Tries to deserialize a manifest from a stream. When the manifest cannot be deserialized, the method returns
+        /// <c>false</c> and returns the Metalama version that the manifest names, if the JSON contains one.
+        /// </summary>
+        /// <remarks>
+        /// A manifest that was produced by an incompatible version of Metalama can contain values that the current
+        /// version cannot read. An example is a member of <see cref="RoslynApiVersion"/> that was removed from the
+        /// enumeration. The caller then reports that the dependency must be recompiled. See issue #2400.
+        /// </remarks>
+        public static bool TryDeserialize(
+            Stream stream,
+            [NotNullWhen( true )] out CompileTimeProjectManifest? manifest,
+            out string? metalamaVersion )
+        {
+            using var manifestReader = new StreamReader( stream, Encoding.UTF8 );
+            var manifestJson = manifestReader.ReadToEnd();
+            stream.Close();
+
+            try
+            {
+                manifest = FromJson( manifestJson );
+            }
+            catch ( JsonException )
+            {
+                manifest = null;
+                metalamaVersion = ReadMetalamaVersion( manifestJson );
+
+                return false;
+            }
+
+            // Assert that files are properly deserialized.
+            foreach ( var file in manifest.Files )
+            {
+                if ( file.SourcePath == null! || file.TransformedPath == null! )
+                {
+                    throw new AssertionFailedException( "Deserialization error." );
+                }
+            }
+
+            metalamaVersion = manifest.MetalamaVersion;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Reads the <c>metalamaVersion</c> property of a manifest without deserializing the other properties, and
+        /// returns <c>null</c> when the JSON is invalid or does not contain the property.
+        /// </summary>
+        private static string? ReadMetalamaVersion( string manifestJson )
+        {
+            try
+            {
+                using var document = JsonDocument.Parse( manifestJson );
+
+                if ( document.RootElement.ValueKind == JsonValueKind.Object
+                     && document.RootElement.TryGetProperty( "metalamaVersion", out var versionElement )
+                     && versionElement.ValueKind == JsonValueKind.String )
+                {
+                    return versionElement.GetString();
+                }
+
+                return null;
+            }
+            catch ( JsonException )
+            {
+                return null;
+            }
         }
 
         public static CompileTimeProjectManifest FromJson( string json ) => ManifestSerializer.Deserialize<CompileTimeProjectManifest>( json );
