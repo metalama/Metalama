@@ -627,7 +627,18 @@ internal sealed partial class CompileTimeProjectRepository
             // Read manifest.
             var manifestEntry = archive.GetEntry( "manifest.json" ).AssertNotNull();
 
-            var manifest = CompileTimeProjectManifest.Deserialize( manifestEntry.Open() );
+            // A manifest that cannot be deserialized was produced by an incompatible version of Metalama. See issue #2400.
+            if ( !CompileTimeProjectManifest.TryDeserialize( manifestEntry.Open(), out var manifest, out var metalamaVersion ) )
+            {
+                diagnosticAdder.Report(
+                    GeneralDiagnosticDescriptors.DependencyMustBeRecompiled.CreateRoslynDiagnostic(
+                        null,
+                        (runTimeAssemblyIdentity, metalamaVersion ?? "(unknown version)") ) );
+
+                project = null;
+
+                return false;
+            }
 
             // Check the manifest version.
             if ( manifest.ManifestVersion != CompileTimeProjectManifest.CurrentManifestVersion )
