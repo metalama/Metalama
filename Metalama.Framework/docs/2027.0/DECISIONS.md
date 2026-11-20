@@ -240,6 +240,20 @@ a union in such an editor therefore already sees the error, reported by the host
 language feature it does not offer. A Metalama diagnostic would restate what the editor already shows, in a place
 where the user can act on it only by changing the integrated development environment.
 
+### The case types of a union
+
+In the latest variant, `SourceUnionFacet` reads the case types of a union, and their order, from
+`ITypeSymbol.UnionCaseTypes`. It pairs each case type with the first creation member whose parameter has that type.
+The Roslyn 5.0 variant does not declare `UnionCaseTypes`, so `UnionFacet` derives the case types from the members of
+the type there. `UnionFacts` in `Metalama.Framework.Analyzers` applies the same rules to find the creation members,
+because that assembly is not built per variant. The unit test
+`UnionTypeTests.DerivedCaseTypesAreTheCaseTypesOfTheCompiler` compares the derivation with `UnionCaseTypes` in the
+latest variant, so that a difference between the two is detected. See issue #2401.
+
+The compiler reports the case types without a nullable annotation. In the latest variant, `IUnionCase.Type` therefore
+does not carry the annotation of the source, for example `string` and not `string?`. The annotated type is the type
+of the parameter of `IUnionCase.CreationMember`.
+
 ## 7. The Roslyn variant set of 2027.0
 
 The variant set stays at two. The lower variant is `Roslyn.5.0.0`, and the latest variant is renumbered from 5.10.0

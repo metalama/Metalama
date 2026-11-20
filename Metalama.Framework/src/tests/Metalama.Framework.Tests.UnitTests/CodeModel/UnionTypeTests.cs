@@ -13,6 +13,7 @@ using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
 #if ROSLYN_5_12_0_OR_GREATER
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -547,10 +548,78 @@ public sealed class UnionTypeTests : UnitTestClass
             unions,
             union =>
             {
-                var expected = union.GetSymbol().UnionCaseTypes;
+                var expected = union.GetSymbol().AssertNotNull().UnionCaseTypes;
                 var actual = union.Facets.Union!.Cases.SelectAsArray( c => c.Type.GetSymbol() );
 
                 Assert.Equal( expected, actual, SymbolEqualityComparer.IncludeNullability );
+            } );
+    }
+
+    /// <summary>
+    /// Verifies that the derivation of the case types from the members of a union agrees with
+    /// <c>ITypeSymbol.UnionCaseTypes</c>, so that a difference between the derivation and the compiler is detected.
+    /// The Roslyn 5.0 variant and <c>UnionFacts</c> in <c>Metalama.Framework.Analyzers</c> still rely on the
+    /// derivation. See issue #2401.
+    /// </summary>
+    /// <remarks>
+    /// The symbols are compared without their nullable annotations. The compiler reports the case types without an
+    /// annotation, while the derivation takes the type of the parameter of the creation member, which keeps the
+    /// annotation of the source.
+    /// </remarks>
+    [Theory]
+    [InlineData( _unionCode )]
+    [InlineData( _providerUnionCode )]
+    [InlineData( _inheritedProviderUnionCode )]
+    [InlineData( _notAProviderUnionCode )]
+    [InlineData( _overloadedUnionCode )]
+    [InlineData( _inheritedValueUnionCode )]
+    [InlineData( _specialCaseTypesUnionCode )]
+    public void DerivedCaseTypesAreTheCaseTypesOfTheCompiler( string code )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = CreateUnionCompilation( testContext, code );
+
+        var unions = compilation.AllTypes.Where( t => t.IsUnion ).ToList();
+
+        Assert.NotEmpty( unions );
+
+        Assert.All(
+            unions,
+            union =>
+            {
+                var expected = union.GetSymbol().AssertNotNull().UnionCaseTypes;
+                var derivedCases = ((UnionFacet) union.Facets.Union!).GetCasesFromMembers();
+
+                Assert.Equal( expected, derivedCases.SelectAsArray( c => c.Type.GetSymbol() ), SymbolEqualityComparer.Default );
+                Assert.Equal( Enumerable.Range( 0, expected.Length ), derivedCases.SelectAsArray( c => c.Index ) );
+            } );
+    }
+
+    /// <summary>
+    /// Verifies that the case types of a constructed generic union are the case types of the compiler after the
+    /// substitution of the type arguments, and that each case keeps the creation member of its type.
+    /// </summary>
+    [Fact]
+    public void CaseTypesOfConstructedGenericUnionAreSubstituted()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = CreateUnionCompilation( testContext, _specialCaseTypesUnionCode );
+
+        var option = compilation.Types.OfName( "Option" ).Single();
+        var constructedOption = option.MakeGenericInstance( [compilation.Factory.GetSpecialType( Code.SpecialType.Int32 )] );
+
+        var cases = constructedOption.Facets.Union!.Cases;
+
+        Assert.Equal( ["int", "None"], cases.SelectAsArray( c => c.Type.ToString() ) );
+
+        Assert.All(
+            cases,
+            unionCase =>
+            {
+                var creationMember = Assert.IsAssignableFrom<IConstructor>( unionCase.CreationMember );
+
+                Assert.Same( constructedOption, creationMember.DeclaringType );
+                Assert.Equal( unionCase.Type, creationMember.Parameters.Single().Type );
             } );
     }
 
