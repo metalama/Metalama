@@ -723,5 +723,17 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Warning,
                 "Cannot write the introspection file.",
                 _helpLinkFormat );
+
+        internal static readonly DiagnosticDefinition<(string Name, string DeclaredTargets, string CurrentRoslynVersion, string CurrentTargetFramework)>
+            ExtensionAssemblyNotAvailableForCurrentProcess =
+                new(
+                    "LAMA0093",
+                    _category,
+                    "The extension assembly '{0}' is ignored because none of its references targets the Roslyn version and the target framework of the "
+                    + "current process. The extension declares the following targets: {1}. The current process uses Roslyn {2} and the target framework "
+                    + "'{3}'. The package of the extension may have been built for a Roslyn version that this version of Metalama does not support.",
+                    Warning,
+                    "An extension assembly has no reference for the Roslyn version and the target framework of the current process.",
+                    _helpLinkFormat );
     }
 }

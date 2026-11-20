@@ -16,12 +16,15 @@ namespace Metalama.Framework.Engine.Options;
 [JsonObject]
 public sealed record TargetedAssemblyReference( string Name, string? Path, string? TargetFramework, Version? TargetRoslynVersion )
 {
-    private static readonly string _targetFramework =
+    /// <summary>
+    /// Gets the target framework of the current process, which <see cref="SatisfiesCurrentProcess"/> compares with <see cref="TargetFramework"/>.
+    /// </summary>
+    internal static string CurrentTargetFramework { get; } =
         RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net10.0";
 
     public bool SatisfiesCurrentProcess
         => (this.TargetRoslynVersion == null || this.TargetRoslynVersion.Equals( RoslynApiVersion.Current.ToVersion() ))
-           && (this.TargetFramework == null || this.TargetFramework == _targetFramework);
+           && (this.TargetFramework == null || this.TargetFramework == CurrentTargetFramework);
 
     public static TargetedAssemblyReference FromPath( string path ) => new( System.IO.Path.GetFileNameWithoutExtension( path ), path, null, null );
 

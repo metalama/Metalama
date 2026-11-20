@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using SharpCrafters.Backstage.Diagnostics;
 using System;
 using System.Collections.Generic;
@@ -33,8 +34,54 @@ public class ExtensionLoaderBase
         this._logger.Trace?.Log( $"Getting extension assemblies for target framework '{targetFramework}'." );
 
         return assemblyReferences
-            .Where( a => a.SatisfiesCurrentProcess )
+            .Where(
+                a =>
+                {
+                    if ( a.SatisfiesCurrentProcess )
+                    {
+                        return true;
+                    }
+
+                    this._logger.Trace?.Log( $"Skipping the extension assembly reference '{a}' because it does not satisfy the current process." );
+
+                    return false;
+                } )
             .Select( a => a.Path.AssertNotNull() );
+    }
+
+    /// <summary>
+    /// Reports a warning for each extension assembly name that has no reference satisfying the current process.
+    /// </summary>
+    /// <remarks>
+    /// An extension package can declare one reference per Roslyn version and target framework, and exactly one of them is expected to satisfy
+    /// the current process. When none does, for instance because the package was built for a Roslyn version that this version of Metalama
+    /// no longer supports, the extension would otherwise be ignored without any diagnostic.
+    /// </remarks>
+    private void ReportUnsatisfiedExtensionAssemblies( IEnumerable<TargetedAssemblyReference> assemblyReferences, IDiagnosticAdder diagnosticAdder )
+    {
+        foreach ( var group in assemblyReferences.GroupBy( a => a.Name, StringComparer.OrdinalIgnoreCase ) )
+        {
+            if ( group.Any( a => a.SatisfiesCurrentProcess ) )
+            {
+                continue;
+            }
+
+            var declaredTargets = string.Join(
+                ", ",
+                group.Select(
+                    a => $"Roslyn {a.TargetRoslynVersion?.ToString() ?? "any"} and target framework '{a.TargetFramework ?? "any"}'" ) );
+
+            var currentRoslynVersion = RoslynApiVersion.Current.ToVersion().ToString();
+
+            this._logger.Warning?.Log(
+                $"The extension assembly '{group.Key}' has no reference for Roslyn {currentRoslynVersion} and target framework "
+                + $"'{TargetedAssemblyReference.CurrentTargetFramework}'. Declared targets: {declaredTargets}." );
+
+            diagnosticAdder.Report(
+                GeneralDiagnosticDescriptors.ExtensionAssemblyNotAvailableForCurrentProcess.CreateRoslynDiagnostic(
+                    null,
+                    (group.Key, declaredTargets, currentRoslynVersion, TargetedAssemblyReference.CurrentTargetFramework) ) );
+        }
     }
 
     internal IEnumerable<ExportExtensionAttribute> DiscoverExtensionTypes(
@@ -63,7 +110,11 @@ public class ExtensionLoaderBase
 
         var assemblies = new List<Assembly>();
 
-        foreach ( var path in this.GetExtensionAssemblyPaths( assemblyReferences ) )
+        var assemblyReferenceList = assemblyReferences.ToReadOnlyList();
+
+        this.ReportUnsatisfiedExtensionAssemblies( assemblyReferenceList, diagnosticAdder );
+
+        foreach ( var path in this.GetExtensionAssemblyPaths( assemblyReferenceList ) )
         {
             try
             {
