@@ -12,6 +12,7 @@ using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
 #if ROSLYN_5_12_0_OR_GREATER
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.Utilities;
