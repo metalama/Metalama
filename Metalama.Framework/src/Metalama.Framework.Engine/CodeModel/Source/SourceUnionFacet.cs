@@ -65,7 +65,8 @@ internal sealed class SourceUnionFacet : UnionFacet
 
     /// <summary>
     /// Reads the cases of the union from <c>Microsoft.CodeAnalysis.ITypeSymbol.UnionCaseTypes</c>, or returns
-    /// <c>null</c> when the type is not backed by a symbol or when a case type has no creation member.
+    /// <c>null</c> when the type is not backed by a symbol, when a case type has no creation member, or when a
+    /// creation member has a parameter type that is not a case type.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -79,6 +80,11 @@ internal sealed class SourceUnionFacet : UnionFacet
     /// <para>
     /// A case type that has no creation member occurs only in code that the compiler rejects. The method then
     /// returns <c>null</c>, and the caller derives the cases from the members of the type.
+    /// </para>
+    /// <para>
+    /// The symbol describes the original compilation and does not include the members that an aspect introduces.
+    /// When an aspect introduces a creation member whose parameter type is not a case type of the compiler, the
+    /// method also returns <c>null</c>, so that the derivation reports the case that the introduced member adds.
     /// </para>
     /// </remarks>
     private IReadOnlyList<IUnionCase>? GetCasesFromCompiler()
@@ -106,6 +112,12 @@ internal sealed class SourceUnionFacet : UnionFacet
             }
 
             cases.Add( new UnionCase( caseType, cases.Count, creationMember ) );
+        }
+
+        // An introduced creation member can add a case that the symbol does not report.
+        if ( !creationMembers.All( member => cases.Any( unionCase => comparer.Equals( member.Parameters[0].Type, unionCase.Type ) ) ) )
+        {
+            return null;
         }
 
         return cases;

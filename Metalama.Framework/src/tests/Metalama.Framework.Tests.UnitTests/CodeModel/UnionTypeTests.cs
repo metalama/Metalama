@@ -625,6 +625,33 @@ public sealed class UnionTypeTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the cases of the attribute form of a union include the case that an introduced public
+    /// single-parameter constructor adds. <c>ITypeSymbol.UnionCaseTypes</c> describes the original compilation and
+    /// does not report that case, so the facet must derive the cases from the members of the type.
+    /// </summary>
+    [Fact]
+    public void CasesOfAttributeUnionIncludeTheCaseOfAnIntroducedConstructor()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = ((CompilationModel) CreateUnionCompilation( testContext )).CreateMutableClone();
+
+        var attributeUnion = compilation.Types.OfName( "AttributeUnion" ).Single();
+        var int32Type = compilation.Factory.GetSpecialType( Code.SpecialType.Int32 );
+
+        var constructorBuilder = new ConstructorBuilder( null!, attributeUnion ) { Accessibility = Code.Accessibility.Public };
+        constructorBuilder.AddParameter( "value", int32Type );
+        constructorBuilder.Freeze();
+        compilation.AddTransformation( constructorBuilder.CreateTransformation() );
+
+        var cases = attributeUnion.Facets.Union!.Cases;
+
+        Assert.Equal( ["Circle", "Rectangle", "int"], cases.SelectAsArray( c => c.Type.ToString() ) );
+        Assert.Equal( [0, 1, 2], cases.SelectAsArray( c => c.Index ) );
+        var introducedConstructor = Assert.IsAssignableFrom<IConstructor>( cases[2].CreationMember );
+        Assert.Equal( "value", introducedConstructor.Parameters.Single().Name );
+    }
+
+    /// <summary>
     /// Unions whose case types are not plain named types: a type parameter, a nullable value type, a nullable
     /// reference type, an array, a constructed generic type, a tuple and another union.
     /// </summary>

@@ -244,6 +244,10 @@ where the user can act on it only by changing the integrated development environ
 
 In the latest variant, `SourceUnionFacet` reads the case types of a union, and their order, from
 `ITypeSymbol.UnionCaseTypes`. It pairs each case type with the first creation member whose parameter has that type.
+The symbol describes the original compilation and does not include the members that an aspect introduces. When a
+creation member has a parameter type that is not a case type of the compiler, for example a public single-parameter
+constructor that an aspect introduces into the attribute form of a union, `SourceUnionFacet` derives the case types
+from the members of the type instead.
 The Roslyn 5.0 variant does not declare `UnionCaseTypes`, so `UnionFacet` derives the case types from the members of
 the type there. `UnionFacts` in `Metalama.Framework.Analyzers` applies the same rules to find the creation members,
 because that assembly is not built per variant. The unit test
