@@ -266,16 +266,10 @@
          and therefore selects the Roslyn 5.12 variant. 10.0.10 is the NuGet version whose lib/net462 asset
          carries 10.0.0.10, and it is also the version that Roslyn 5.12.0 requires. No headroom: do not take a
          version above 10.0.10.
-         Metalama.Vsx constrains these values at its build and not at its deployment.
-         It does not constrain them at deployment. Metalama.Vsx merges SharpCrafters.Backstage, SharpCrafters.Common, Metalama.Backstage, Metalama.Backstage.Tools
-         and Metalama.Framework.DesignTime.Rpc into a single Metalama.Repacked assembly with its own identity, so
-         an installed extension carries its own copy of that code and the versions pinned here do not reach it.
-         Nor does it ship these three packages: an installed Metalama.Vsx 2026.1.5 holds 65 files, among which
-         System.IO.Pipelines, System.Diagnostics.DiagnosticSource, Microsoft.Bcl.AsyncInterfaces and
-         System.Threading.Tasks.Extensions do not appear. Visual Studio provides them, under the redirects above.
-         It does constrain them at its build. That repository enables central transitive pinning, so its own pins
-         must not be below what these packages require, or it fails to restore with NU1605. A change here
-         therefore belongs in a pull request on metalama/Metalama.Vsx as well.
+         Metalama.Vsx does not constrain them at deployment: it does not reference Metalama.Framework.DesignTime.Rpc
+         (metalama/Metalama.Vsx#95) and does not ship these packages, which Visual Studio provides under the
+         redirects above. Its test project restores Metalama.DesignTime.Hosting under central transitive pinning,
+         so when it moves to a Metalama build that raises these values, its own pins must be raised with it.
          Measured for #1903; see Directory.Packages.md. -->
     <PackageVersion Include="System.IO.Pipelines" Version="10.0.10" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="10.0.10" />

@@ -10,6 +10,8 @@ using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 using Metalama.Framework.DesignTime.Contracts.Notifications;
 using Metalama.Framework.DesignTime.Contracts.Preview;
 using Metalama.Framework.DesignTime.Contracts.ServiceHub;
+using Metalama.Framework.DesignTime.Contracts.Workspaces;
+using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.VersionNeutral;
 using Metalama.Framework.DesignTime.VisualStudio.AspectExplorer;
 using Metalama.Framework.DesignTime.VisualStudio.Classification;
@@ -35,6 +37,9 @@ namespace Metalama.Framework.DesignTime.VisualStudio.Services
                 nameof(IDesignTimeNotificationService) => new DesignTimeNotificationService( this.ServiceProvider ),
                 nameof(IServiceHubLocator) => new ServiceHubLocator( this.ServiceProvider ),
                 nameof(IAspectDatabaseService) => new AspectDatabaseService( this.ServiceProvider ),
+
+                // The Visual Studio extension gives the workspace of Visual Studio to the workspace provider of the user process.
+                nameof(IWorkspaceReceiver) => this.ServiceProvider.GetRequiredService<LocalWorkspaceProvider>(),
 
                 // When components implement several services, we ask for the primary interface so we ensure there 
                 // is a single instance of the component.

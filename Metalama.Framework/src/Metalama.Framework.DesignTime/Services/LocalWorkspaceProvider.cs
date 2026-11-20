@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 using Metalama.Framework.DesignTime.Contracts.Workspaces;
 using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.Engine.Options;
@@ -14,7 +15,11 @@ namespace Metalama.Framework.DesignTime.Services;
 /// <summary>
 /// An implementation of <see cref="WorkspaceProvider"/> that expects the UI services to be in the same process and to call <see cref="TrySetWorkspace"/>.
 /// </summary>
-public sealed class LocalWorkspaceProvider : WorkspaceProvider, IWorkspaceReceiver
+/// <remarks>
+/// In the Visual Studio user process, the <see cref="ICompilerServiceProvider"/> serves this class as <see cref="IWorkspaceReceiver"/>,
+/// through which the Visual Studio extension gives the <c>VisualStudioWorkspace</c>.
+/// </remarks>
+public sealed class LocalWorkspaceProvider : WorkspaceProvider, IWorkspaceReceiver, ICompilerService
 {
     private readonly TaskCompletionSource<Workspace?> _workspace = new();
     private readonly IProjectOptionsFactory? _projectOptionsFactory;
