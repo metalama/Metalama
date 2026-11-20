@@ -243,5 +243,58 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
+
+#if ROSLYN_5_12_0_OR_GREATER
+        /// <summary>
+        /// Verifies that renaming a union declaration is a change of declaration and not a change of a member body.
+        /// </summary>
+        /// <remarks>
+        /// The test is compiled only in the latest Roslyn variant, because the lower variant does not parse a union
+        /// declaration.
+        /// </remarks>
+        [Fact]
+        public void IsDifferent_RenameUnion()
+        {
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "union U1( int, string );", cancellationToken: TestContext.Current.CancellationToken );
+
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "union U2( int, string );", cancellationToken: TestContext.Current.CancellationToken );
+
+            Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
+        }
+
+        /// <summary>
+        /// Verifies that changing the case types of a union declaration is a change of declaration.
+        /// </summary>
+        [Fact]
+        public void IsDifferent_ChangeUnionCaseTypes()
+        {
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "union U( int, string );", cancellationToken: TestContext.Current.CancellationToken );
+
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "union U( int, long );", cancellationToken: TestContext.Current.CancellationToken );
+
+            Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
+        }
+
+        /// <summary>
+        /// Verifies that changing the label of a labeled <c>break</c> statement is a change of a method body only.
+        /// </summary>
+        /// <remarks>
+        /// The test is compiled only in the latest Roslyn variant, because <c>BreakStatementSyntax.Name</c> exists only
+        /// there.
+        /// </remarks>
+        [Fact]
+        public void IsDifferent_ChangeBreakLabel()
+        {
+            var syntaxTree1 = CSharpSyntaxTree.ParseText(
+                "class C { void M() { a: b: while ( true ) { break a; } } }",
+                cancellationToken: TestContext.Current.CancellationToken );
+
+            var syntaxTree2 = CSharpSyntaxTree.ParseText(
+                "class C { void M() { a: b: while ( true ) { break b; } } }",
+                cancellationToken: TestContext.Current.CancellationToken );
+
+            Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
+        }
+#endif
     }
 }

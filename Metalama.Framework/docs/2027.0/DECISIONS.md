@@ -212,14 +212,50 @@ code must keep working once the syntax model is regenerated from the stable gram
 ## 6. The C# 15 Roslyn interfaces are reached through the payload variant mechanism
 
 The engine keeps using preprocessor blocks and one implementation assembly per Roslyn version, which is the
-mechanism already in place. A symbol in the manner of `ROSLYN_5_12_0_OR_GREATER` is defined by the latest variant
-props file, and the sources that name `UnionDeclarationSyntax`, `SyntaxKind.UnionDeclaration`,
-`SyntaxKind.ClosedKeyword`, `ITypeSymbol.IsUnion`, `ITypeSymbol.UnionCaseTypes` and `ITypeSymbol.IsClosed` are
-compiled only in that variant. The alternatives of numeric syntax kinds and of a reflection shim are rejected.
+mechanism already in place. The latest variant props file, `eng/RoslynVersions/Roslyn.5.12.0.props`, defines
+`ROSLYN_5_12_0_OR_GREATER`. The sources that read or emit a Roslyn member that the C# 15 language feature set
+introduced are compiled only in that variant. The alternatives of numeric syntax kinds and of a reflection shim are
+rejected.
 
-The note in `eng/RoslynVersions/Roslyn.5.0.0.props` and in `eng/RoslynVersions/Roslyn.5.10.0.props` that no
-production source branches on the variant, and the corresponding paragraph of `Directory.Packages.md`, are
-superseded and must be rewritten.
+### The members that the variant symbol guards
+
+The list of members is closed. Production source may name the following members only inside a block that the
+variant symbol guards:
+
+- `UnionDeclarationSyntax`, and the `VisitUnionDeclaration` method of `CSharpSyntaxVisitor`,
+  `CSharpSyntaxVisitor<TResult>` and `CSharpSyntaxRewriter`.
+- `SyntaxKind.UnionDeclaration`, `SyntaxKind.UnionKeyword` and `SyntaxKind.ClosedKeyword`.
+- `ITypeSymbol.IsUnion`, `ITypeSymbol.UnionCaseTypes` and `ITypeSymbol.IsClosed`.
+- The `Name` property of `BreakStatementSyntax` and of `ContinueStatementSyntax`, which holds the label of a labeled
+  `break` or `continue` statement.
+
+Roslyn 5.12.0 publishes `ITypeSymbol.UnionCaseTypes`, but no production source reads it today. `UnionFacet` and
+`UnionFacts` derive the case types from the members of the type. Issue #2401 tracks reading the member in the latest
+variant.
+
+A member is added to the list by the pull request that first names it in production source. That pull request
+updates this section in the same change. A member that is not in the list must not be guarded by the variant
+symbol. If the code needs a member that only a later Roslyn declares, the latest variant is renumbered first, as
+section 7 describes.
+
+The comments in `eng/RoslynVersions/Roslyn.5.0.0.props` and `eng/RoslynVersions/Roslyn.5.12.0.props`, the
+paragraph of `Directory.Packages.md` and the paragraph of `Metalama.Framework/docs/testing.md` describe this
+policy. They replace the earlier statement that no production source branches on the variant.
+
+### The assemblies that the variant symbol does not reach
+
+`Metalama.Framework.Sdk` is built once, against `RoslynApiMinVersion`. It is not built per Roslyn version, so it
+cannot name a member of the list. Its public application programming interface, including the visitors of
+`Metalama.Framework.Sdk/Utilities/Roslyn`, therefore does not name the new kinds. A visitor that derives from
+`SafeSyntaxVisitor` or `SafeSyntaxRewriter` and does not override `VisitUnionDeclaration` receives a union
+declaration through `DefaultVisit`. This is the decision for 2027.0: the public application programming interface
+of the software development kit is not extended to the new kinds.
+
+The policy does not apply to `Metalama.Extensions.Metrics`. That package references `Metalama.Framework.Sdk` and is
+built once, against the same minimal Roslyn. The metric visitors receive a union declaration and a labeled jump
+statement through `DefaultVisit`, which counts their child nodes. Issue #1217 tracks the request that the metrics
+extension support several Roslyn versions. If that issue is implemented, the package adopts the variant mechanism
+and this list.
 
 ### The divergence that the mechanism creates
 
