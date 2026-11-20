@@ -229,9 +229,8 @@ variant symbol guards:
 - The `Name` property of `BreakStatementSyntax` and of `ContinueStatementSyntax`, which holds the label of a labeled
   `break` or `continue` statement.
 
-Roslyn 5.12.0 publishes `ITypeSymbol.UnionCaseTypes`, but no production source reads it today. `UnionFacet` and
-`UnionFacts` derive the case types from the members of the type. Issue #2401 tracks reading the member in the latest
-variant.
+Roslyn 5.12.0 publishes `ITypeSymbol.UnionCaseTypes`. In the latest variant, `SourceUnionFacet` reads it, as the
+section "The case types of a union" below describes. See issue #2401.
 
 A member is added to the list by the pull request that first names it in production source. That pull request
 updates this section in the same change. A member that is not in the list must not be guarded by the variant
@@ -275,6 +274,24 @@ Metalama refuses the preview language version: `CompileTimeAspectPipeline.Verify
 a union in such an editor therefore already sees the error, reported by the host for syntax it cannot parse or for a
 language feature it does not offer. A Metalama diagnostic would restate what the editor already shows, in a place
 where the user can act on it only by changing the integrated development environment.
+
+### The case types of a union
+
+In the latest variant, `SourceUnionFacet` reads the case types of a union, and their order, from
+`ITypeSymbol.UnionCaseTypes`. It pairs each case type with the first creation member whose parameter has that type.
+The symbol describes the original compilation and does not include the members that an aspect introduces. When a
+creation member has a parameter type that is not a case type of the compiler, for example a public single-parameter
+constructor that an aspect introduces into the attribute form of a union, `SourceUnionFacet` derives the case types
+from the members of the type instead.
+The Roslyn 5.0 variant does not declare `UnionCaseTypes`, so `UnionFacet` derives the case types from the members of
+the type there. `UnionFacts` in `Metalama.Framework.Analyzers` applies the same rules to find the creation members,
+because that assembly is not built per variant. The unit test
+`UnionTypeTests.DerivedCaseTypesAreTheCaseTypesOfTheCompiler` compares the derivation with `UnionCaseTypes` in the
+latest variant, so that a difference between the two is detected. See issue #2401.
+
+The compiler reports the case types without a nullable annotation. In the latest variant, `IUnionCase.Type` therefore
+does not carry the annotation of the source, for example `string` and not `string?`. The annotated type is the type
+of the parameter of `IUnionCase.CreationMember`.
 
 ## 7. The Roslyn variant set of 2027.0
 

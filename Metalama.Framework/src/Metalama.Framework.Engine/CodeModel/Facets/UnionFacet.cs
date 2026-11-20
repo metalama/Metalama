@@ -19,11 +19,17 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// facet of a type whose structure is never read costs one allocation and no resolution.
 /// </para>
 /// <para>
-/// The structure is derived from the members of the type and not from
-/// <c>Microsoft.CodeAnalysis.ITypeSymbol.UnionCaseTypes</c>, which the Roslyn 5.0 variant does not declare. The
-/// derivation reproduces the rules that the compiler applies: the member provider interface, the suitable creation
-/// members, the deduplication of the case types and the lookup of the <c>Value</c> property in the hierarchy.
-/// Roslyn 5.12 publishes the member, and issue #2401 tracks reading it in the latest variant.
+/// The structure is derived from the members of the type. The derivation reproduces the rules that the compiler
+/// applies: the member provider interface, the suitable creation members, the deduplication of the case types and
+/// the lookup of the <c>Value</c> property in the hierarchy.
+/// </para>
+/// <para>
+/// In the latest Roslyn variant, <see cref="Source.SourceUnionFacet"/> reads the case types from
+/// <c>Microsoft.CodeAnalysis.ITypeSymbol.UnionCaseTypes</c> and uses the derivation only to find the creation member
+/// of each case. The Roslyn 5.0 variant does not declare that member, so it derives the case types. The derivation is
+/// also kept because <c>UnionFacts</c> in <c>Metalama.Framework.Analyzers</c> applies the same rules to find the
+/// creation members, and that assembly is not built per Roslyn variant. A unit test compares the derivation with the compiler in the latest
+/// variant. See issue #2401.
 /// </para>
 /// </remarks>
 internal abstract class UnionFacet : IUnionFacet
@@ -62,8 +68,8 @@ internal abstract class UnionFacet : IUnionFacet
     public abstract UnionKind UnionKind { get; }
 
     /// <summary>
-    /// Gets the cases of the union, which the derived class derives from the members of a union read from source and
-    /// reads from the builder data of an introduced one.
+    /// Gets the cases of the union, which the derived class reads from the compiler or derives from the members of a
+    /// union read from source, and which it reads from the builder data of an introduced union.
     /// </summary>
     public abstract IReadOnlyList<IUnionCase> Cases { get; }
 
@@ -81,9 +87,16 @@ internal abstract class UnionFacet : IUnionFacet
     private INamedType? MemberProviderInterface => this.GetMemberProviderInterface();
 
     /// <summary>
-    /// Derives the cases of the union from its members, which is how a union read from source reports them.
+    /// Derives the cases of the union from its members. A union read from source reports them in this way in the
+    /// Roslyn 5.0 variant.
     /// </summary>
-    protected IReadOnlyList<IUnionCase> GetCasesFromMembers()
+    /// <remarks>
+    /// <para>
+    /// This method is internal and not protected, so that a unit test can compare its result with
+    /// <c>Microsoft.CodeAnalysis.ITypeSymbol.UnionCaseTypes</c> in the latest Roslyn variant.
+    /// </para>
+    /// </remarks>
+    internal IReadOnlyList<IUnionCase> GetCasesFromMembers()
     {
         var cases = new List<IUnionCase>();
 
@@ -123,7 +136,7 @@ internal abstract class UnionFacet : IUnionFacet
     /// and it may inherit a creation member from an interface that its own member provider interface extends.
     /// </para>
     /// </remarks>
-    private IEnumerable<IMethodBase> GetCreationMembers()
+    protected IEnumerable<IMethodBase> GetCreationMembers()
     {
         var memberProviderInterface = this.MemberProviderInterface;
 

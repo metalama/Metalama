@@ -12,8 +12,9 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The three values are resolved by <see cref="UnionFacet"/> when it builds the case list, because none of them can
-/// be computed from another one. The type of the case is the type of the single parameter of the creation member.
+/// The three values are resolved by <see cref="UnionFacet"/> or by its derived class when it builds the case list,
+/// because none of them can be computed from another one. The type of the case is the type that the compiler
+/// reports in the latest Roslyn variant, and the type of the single parameter of the creation member otherwise.
 /// </para>
 /// </remarks>
 internal sealed class UnionCase : IUnionCase
