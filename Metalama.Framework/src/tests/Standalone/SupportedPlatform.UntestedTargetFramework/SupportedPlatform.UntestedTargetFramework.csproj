@@ -8,8 +8,8 @@
         <TargetFramework>net8.0</TargetFramework>
         <OutputType>Library</OutputType>
 
-        <!-- The root Directory.Build.props of this repository turns the check off while the repository itself still
-             targets .NET 8. Every scenario of this family turns it back on explicitly. -->
+        <!-- True is the default. Every scenario of this family sets the property explicitly, so that the scenario
+             does not depend on the default of the package. -->
         <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
     </PropertyGroup>
 

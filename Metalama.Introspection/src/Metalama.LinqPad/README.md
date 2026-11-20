@@ -2,6 +2,13 @@
 
 The `Metalama.LinqPad` package allows you to load any C# project or solution into LINQPad and exposes its code model to queries. This package contains an optional driver, samples, and dumping methods.
 
+## Requirements
+
+The driver targets `net10.0-windows` and loads projects through `Metalama.Framework.Workspaces`, which registers the
+MSBuild of a .NET SDK in the LINQPad process. The major version of the runtime that LINQPad runs the query on
+therefore decides which SDK can be used: on .NET 10, a .NET 10 SDK must be installed, even if a .NET 11 SDK is
+present, because the MSBuild of the .NET 11 SDK targets .NET 11.
+
 ## Documentation
 
 * [Metalama.LinqPad conceptual documentation](https://doc.postsharp.net/metalama/conceptual/introspection/linqpad).

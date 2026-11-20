@@ -21,7 +21,7 @@ into a `CompileTimeDomain`, which owns a `MetalamaAssemblyLoadContext` (a .NET `
 ## The doctrine
 
 1. **Run-time TFMs are a run-time concern of the user project.** A user library (for example
-   `Metalama.Patterns.Contracts`, which multi-targets `net472;net8.0;netstandard2.0`) declares whichever TFMs it
+   `Metalama.Patterns.Contracts`, which multi-targets `net472;net10.0;netstandard2.0`) declares whichever TFMs it
    wants to support **at run time**. Declaring a TFM says nothing about the compile-time process — the author is
    not thinking about Metalama's compile-time compilation when choosing TFMs.
 
@@ -92,7 +92,7 @@ into a `CompileTimeDomain`, which owns a `MetalamaAssemblyLoadContext` (a .NET `
 ## Why this matters: cross-project inheritance
 
 The delicate case is inheritance across a project boundary between two different TFMs. Consider an upstream
-project `U` (e.g. `net472`, using copy `A` of a shared library) and a downstream project `D` (e.g. `net8.0`,
+project `U` (e.g. `net472`, using copy `A` of a shared library) and a downstream project `D` (e.g. `net10.0`,
 using copy `B`) where `D` references `U` and inherits an aspect or hierarchical options from it.
 
 `D`'s own compile-time closure resolves the shared library to copy `B` (by run-time identity, via its
