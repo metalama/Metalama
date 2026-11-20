@@ -198,6 +198,12 @@ namespace Metalama.Framework.Analyzers.Durability
                     reportedProperties.Add( declaredMember );
                 }
 
+                // An advice member, such as an introduced field, is code generated into the target, not state of the type.
+                if ( IsAdviceMember( declaredMember ) )
+                {
+                    continue;
+                }
+
                 AnalyzeMember( context, durabilityContext, type, declaredMember, field.Type );
             }
 
@@ -209,7 +215,8 @@ namespace Metalama.Framework.Analyzers.Durability
                 if ( member is not IPropertySymbol { IsStatic: false, IsAbstract: false, IsExtern: false } property
                      || reportedProperties.Contains( property )
                      || (isUnion && UnionFacts.IsValueStorage( property ))
-                     || !SymbolFacts.IsAutomaticallyImplemented( property ) )
+                     || !SymbolFacts.IsAutomaticallyImplemented( property )
+                     || IsAdviceMember( property ) )
                 {
                     continue;
                 }
