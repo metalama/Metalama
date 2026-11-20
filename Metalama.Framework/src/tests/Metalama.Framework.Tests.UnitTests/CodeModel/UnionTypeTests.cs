@@ -12,6 +12,7 @@ using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
 #if ROSLYN_5_12_0_OR_GREATER
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -339,37 +340,8 @@ public sealed class UnionTypeTests : UnitTestClass
         // IUnionMembers, declares the Value property and one static abstract Create method per case, and the union
         // implements it. A union that declares the Create methods without the interface is reported as having no
         // creation member, which is CS9385.
-        const string code = """
-                            using System.Runtime.CompilerServices;
-
-                            [Union]
-                            class ProviderUnion : IUnion, ProviderUnion.IUnionMembers
-                            {
-                                private ProviderUnion( object value ) { this.Value = value; }
-
-                                public object Value { get; }
-
-                                public static ProviderUnion Create( Circle circle ) => new ProviderUnion( circle );
-
-                                public static ProviderUnion Create( Rectangle rectangle ) => new ProviderUnion( rectangle );
-
-                                public interface IUnionMembers
-                                {
-                                    object Value { get; }
-
-                                    static abstract ProviderUnion Create( Circle circle );
-
-                                    static abstract ProviderUnion Create( Rectangle rectangle );
-                                }
-                            }
-
-                            record Circle( double Radius );
-
-                            record Rectangle( double Width, double Height );
-                            """;
-
         using var testContext = this.CreateTestContext();
-        var compilation = CreateUnionCompilation( testContext, code );
+        var compilation = CreateUnionCompilation( testContext, _providerUnionCode );
 
         var providerUnion = compilation.Types.OfName( "ProviderUnion" ).Single();
 
@@ -407,40 +379,8 @@ public sealed class UnionTypeTests : UnitTestClass
     [Fact]
     public void CasesOfUnionWithMemberProviderIncludeThoseOfTheInheritedInterfaces()
     {
-        const string code = """
-                            using System.Runtime.CompilerServices;
-
-                            [Union]
-                            class InheritedProviderUnion : IUnion, InheritedProviderUnion.IUnionMembers
-                            {
-                                private InheritedProviderUnion( object value ) { this.Value = value; }
-
-                                public object Value { get; }
-
-                                public static InheritedProviderUnion Create( Circle circle ) => new InheritedProviderUnion( circle );
-
-                                public static InheritedProviderUnion Create( Rectangle rectangle ) => new InheritedProviderUnion( rectangle );
-
-                                public interface IUnionMembersBase
-                                {
-                                    static abstract InheritedProviderUnion Create( Rectangle rectangle );
-                                }
-
-                                public interface IUnionMembers : IUnionMembersBase
-                                {
-                                    object Value { get; }
-
-                                    static abstract InheritedProviderUnion Create( Circle circle );
-                                }
-                            }
-
-                            record Circle( double Radius );
-
-                            record Rectangle( double Width, double Height );
-                            """;
-
         using var testContext = this.CreateTestContext();
-        var compilation = CreateUnionCompilation( testContext, code );
+        var compilation = CreateUnionCompilation( testContext, _inheritedProviderUnionCode );
 
         var inheritedProviderUnion = compilation.Types.OfName( "InheritedProviderUnion" ).Single();
         var cases = inheritedProviderUnion.Facets.Union!.Cases;
@@ -461,29 +401,8 @@ public sealed class UnionTypeTests : UnitTestClass
     [Fact]
     public void NestedInterfaceThatTheUnionDoesNotImplementIsNotAMemberProvider()
     {
-        const string code = """
-                            using System.Runtime.CompilerServices;
-
-                            [Union]
-                            class NotAProviderUnion : IUnion
-                            {
-                                public NotAProviderUnion( Circle circle ) { this.Value = circle; }
-
-                                public object Value { get; }
-
-                                public interface IUnionMembers
-                                {
-                                    static abstract NotAProviderUnion Create( Rectangle rectangle );
-                                }
-                            }
-
-                            record Circle( double Radius );
-
-                            record Rectangle( double Width, double Height );
-                            """;
-
         using var testContext = this.CreateTestContext();
-        var compilation = CreateUnionCompilation( testContext, code );
+        var compilation = CreateUnionCompilation( testContext, _notAProviderUnionCode );
 
         var cases = compilation.Types.OfName( "NotAProviderUnion" ).Single().Facets.Union!.Cases;
 
@@ -499,28 +418,8 @@ public sealed class UnionTypeTests : UnitTestClass
     [Fact]
     public void CasesAreTheDeduplicatedTypesOfTheSuitableCreationMembers()
     {
-        const string code = """
-                            using System.Runtime.CompilerServices;
-
-                            [Union]
-                            class OverloadedUnion : IUnion
-                            {
-                                public OverloadedUnion( Circle circle ) { this.Value = circle; }
-
-                                public OverloadedUnion( in Circle circle ) { this.Value = circle; }
-
-                                public OverloadedUnion( ref Rectangle rectangle ) { this.Value = rectangle; }
-
-                                public object Value { get; }
-                            }
-
-                            record Circle( double Radius );
-
-                            record Rectangle( double Width, double Height );
-                            """;
-
         using var testContext = this.CreateTestContext();
-        var compilation = CreateUnionCompilation( testContext, code );
+        var compilation = CreateUnionCompilation( testContext, _overloadedUnionCode );
 
         var overloadedUnion = compilation.Types.OfName( "OverloadedUnion" ).Single();
         var cases = overloadedUnion.Facets.Union!.Cases;
@@ -542,25 +441,8 @@ public sealed class UnionTypeTests : UnitTestClass
     [Fact]
     public void ValuePropertyIsResolvedInTheBaseTypes()
     {
-        const string code = """
-                            using System.Runtime.CompilerServices;
-
-                            class UnionBase
-                            {
-                                public object Value { get; protected set; }
-                            }
-
-                            [Union]
-                            class InheritedValueUnion : UnionBase, IUnion
-                            {
-                                public InheritedValueUnion( Circle circle ) { this.Value = circle; }
-                            }
-
-                            record Circle( double Radius );
-                            """;
-
         using var testContext = this.CreateTestContext();
-        var compilation = CreateUnionCompilation( testContext, code );
+        var compilation = CreateUnionCompilation( testContext, _inheritedValueUnionCode );
 
         var inheritedValueUnion = compilation.Types.OfName( "InheritedValueUnion" ).Single();
         var valueProperty = inheritedValueUnion.Facets.Union!.ValueProperty;
@@ -636,6 +518,65 @@ public sealed class UnionTypeTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the case types of every union of this class are the case types that the compiler reports
+    /// through <c>ITypeSymbol.UnionCaseTypes</c>, in the same order. See issue #2401.
+    /// </summary>
+    /// <remarks>
+    /// The symbols are compared with their nullable annotations. The compiler reports the case types without a
+    /// nullable annotation, while the creation member of a case declares its parameter with one. The comparison
+    /// therefore tells whether the facet reads the case types from the compiler or from the creation members.
+    /// </remarks>
+    [Theory]
+    [InlineData( _unionCode )]
+    [InlineData( _providerUnionCode )]
+    [InlineData( _inheritedProviderUnionCode )]
+    [InlineData( _notAProviderUnionCode )]
+    [InlineData( _overloadedUnionCode )]
+    [InlineData( _inheritedValueUnionCode )]
+    [InlineData( _specialCaseTypesUnionCode )]
+    public void CaseTypesAreTheCaseTypesOfTheCompiler( string code )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = CreateUnionCompilation( testContext, code );
+
+        var unions = compilation.AllTypes.Where( t => t.IsUnion ).ToList();
+
+        Assert.NotEmpty( unions );
+
+        Assert.All(
+            unions,
+            union =>
+            {
+                var expected = union.GetSymbol().UnionCaseTypes;
+                var actual = union.Facets.Union!.Cases.SelectAsArray( c => c.Type.GetSymbol() );
+
+                Assert.Equal( expected, actual, SymbolEqualityComparer.IncludeNullability );
+            } );
+    }
+
+    /// <summary>
+    /// Unions whose case types are not plain named types: a type parameter, a nullable value type, a nullable
+    /// reference type, an array, a constructed generic type, a tuple and another union.
+    /// </summary>
+    private const string _specialCaseTypesUnionCode = """
+                                                      #nullable enable
+
+                                                      using System.Collections.Generic;
+
+                                                      union Option<T>( T, None );
+
+                                                      union Numeric( int, long? );
+
+                                                      union Text( string?, char[] );
+
+                                                      union Collection( List<int>, (int, string) );
+
+                                                      union Nested( Numeric, Text );
+
+                                                      record None;
+                                                      """;
+
+    /// <summary>
     /// Verifies the acceptance criterion that <see cref="IMemberOrNamedType.IsPartial"/> is true for a partial union. The
     /// property answers from the modifiers of the primary declaration only when the syntax kind of that declaration
     /// is one that <c>SyntaxKindExtensions.IsTypeDeclaration</c> admits, and the union kind was missing from that
@@ -650,6 +591,140 @@ public sealed class UnionTypeTests : UnitTestClass
         Assert.True( compilation.Types.OfName( "PartialShape" ).Single().IsPartial );
         Assert.False( compilation.Types.OfName( "Shape" ).Single().IsPartial );
     }
+
+    /// <summary>
+    /// A union whose creation members are the <c>Create</c> methods of a union member provider interface.
+    /// </summary>
+    private const string _providerUnionCode = """
+                            using System.Runtime.CompilerServices;
+
+                            [Union]
+                            class ProviderUnion : IUnion, ProviderUnion.IUnionMembers
+                            {
+                                private ProviderUnion( object value ) { this.Value = value; }
+
+                                public object Value { get; }
+
+                                public static ProviderUnion Create( Circle circle ) => new ProviderUnion( circle );
+
+                                public static ProviderUnion Create( Rectangle rectangle ) => new ProviderUnion( rectangle );
+
+                                public interface IUnionMembers
+                                {
+                                    object Value { get; }
+
+                                    static abstract ProviderUnion Create( Circle circle );
+
+                                    static abstract ProviderUnion Create( Rectangle rectangle );
+                                }
+                            }
+
+                            record Circle( double Radius );
+
+                            record Rectangle( double Width, double Height );
+                            """;
+
+    /// <summary>
+    /// A union whose member provider interface inherits one of its <c>Create</c> methods from another interface.
+    /// </summary>
+    private const string _inheritedProviderUnionCode = """
+                            using System.Runtime.CompilerServices;
+
+                            [Union]
+                            class InheritedProviderUnion : IUnion, InheritedProviderUnion.IUnionMembers
+                            {
+                                private InheritedProviderUnion( object value ) { this.Value = value; }
+
+                                public object Value { get; }
+
+                                public static InheritedProviderUnion Create( Circle circle ) => new InheritedProviderUnion( circle );
+
+                                public static InheritedProviderUnion Create( Rectangle rectangle ) => new InheritedProviderUnion( rectangle );
+
+                                public interface IUnionMembersBase
+                                {
+                                    static abstract InheritedProviderUnion Create( Rectangle rectangle );
+                                }
+
+                                public interface IUnionMembers : IUnionMembersBase
+                                {
+                                    object Value { get; }
+
+                                    static abstract InheritedProviderUnion Create( Circle circle );
+                                }
+                            }
+
+                            record Circle( double Radius );
+
+                            record Rectangle( double Width, double Height );
+                            """;
+
+    /// <summary>
+    /// A union that declares a nested interface named <c>IUnionMembers</c> without implementing it.
+    /// </summary>
+    private const string _notAProviderUnionCode = """
+                            using System.Runtime.CompilerServices;
+
+                            [Union]
+                            class NotAProviderUnion : IUnion
+                            {
+                                public NotAProviderUnion( Circle circle ) { this.Value = circle; }
+
+                                public object Value { get; }
+
+                                public interface IUnionMembers
+                                {
+                                    static abstract NotAProviderUnion Create( Rectangle rectangle );
+                                }
+                            }
+
+                            record Circle( double Radius );
+
+                            record Rectangle( double Width, double Height );
+                            """;
+
+    /// <summary>
+    /// A union with two constructors that take the same type and one constructor whose parameter is passed by <c>ref</c>.
+    /// </summary>
+    private const string _overloadedUnionCode = """
+                            using System.Runtime.CompilerServices;
+
+                            [Union]
+                            class OverloadedUnion : IUnion
+                            {
+                                public OverloadedUnion( Circle circle ) { this.Value = circle; }
+
+                                public OverloadedUnion( in Circle circle ) { this.Value = circle; }
+
+                                public OverloadedUnion( ref Rectangle rectangle ) { this.Value = rectangle; }
+
+                                public object Value { get; }
+                            }
+
+                            record Circle( double Radius );
+
+                            record Rectangle( double Width, double Height );
+                            """;
+
+    /// <summary>
+    /// A union that inherits its <c>Value</c> property from a base class.
+    /// </summary>
+    private const string _inheritedValueUnionCode = """
+                            using System.Runtime.CompilerServices;
+
+                            class UnionBase
+                            {
+                                public object Value { get; protected set; }
+                            }
+
+                            [Union]
+                            class InheritedValueUnion : UnionBase, IUnion
+                            {
+                                public InheritedValueUnion( Circle circle ) { this.Value = circle; }
+                            }
+
+                            record Circle( double Radius );
+                            """;
 
     /// <summary>
     /// Creates a compilation of <paramref name="code"/>, which defaults to <see cref="_unionCode"/>, together with
