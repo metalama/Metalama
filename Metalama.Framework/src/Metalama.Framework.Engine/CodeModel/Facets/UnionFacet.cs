@@ -20,10 +20,10 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// </para>
 /// <para>
 /// The structure is derived from the members of the type and not from
-/// <c>Microsoft.CodeAnalysis.ITypeSymbol.UnionCaseTypes</c>, which the consumed Roslyn build does not publish. The
+/// <c>Microsoft.CodeAnalysis.ITypeSymbol.UnionCaseTypes</c>, which the Roslyn 5.0 variant does not declare. The
 /// derivation reproduces the rules that the compiler applies: the member provider interface, the suitable creation
 /// members, the deduplication of the case types and the lookup of the <c>Value</c> property in the hierarchy.
-/// Reading the Roslyn member instead becomes possible with issue #1936.
+/// Roslyn 5.12 publishes the member, and issue #2401 tracks reading it in the latest variant.
 /// </para>
 /// </remarks>
 internal abstract class UnionFacet : IUnionFacet
