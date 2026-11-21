@@ -90,12 +90,11 @@ namespace Metalama.Testing.AspectTesting
                 // item group can include the test project assembly, which breaks isolation.
                 var testAssemblyFileName = Path.GetFileName( assembly.Location );
 
-                return lines.SelectAsReadOnlyCollection(
+                var references = lines.SelectAsReadOnlyCollection(
                         t => TargetedAssemblyReference.ParsePipeSeparatedString( t, path => FindImplementationAssembly( projectDirectory, path ) ) )
-                    .Where(
-                        t => t.SatisfiesCurrentProcess
-                             && !string.Equals( Path.GetFileName( t.Path ), testAssemblyFileName, StringComparison.OrdinalIgnoreCase ) )
-                    .ToImmutableArray();
+                    .Where( t => !string.Equals( Path.GetFileName( t.Path ), testAssemblyFileName, StringComparison.OrdinalIgnoreCase ) );
+
+                return TargetedAssemblyReference.SelectForCurrentProcess( references ).ToImmutableArray();
             }
 
             ImmutableArray<string> ReadStringsFromFile( string propertyName )
