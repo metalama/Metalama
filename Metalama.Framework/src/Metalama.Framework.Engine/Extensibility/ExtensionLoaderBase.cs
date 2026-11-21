@@ -33,33 +33,40 @@ public class ExtensionLoaderBase
 
         this._logger.Trace?.Log( $"Getting extension assemblies for target framework '{targetFramework}'." );
 
-        return assemblyReferences
-            .Where(
-                a =>
-                {
-                    if ( a.SatisfiesCurrentProcess )
-                    {
-                        return true;
-                    }
+        var assemblyReferenceList = assemblyReferences.ToReadOnlyList();
+        var selectedReferences = TargetedAssemblyReference.SelectForCurrentProcess( assemblyReferenceList ).ToReadOnlyList();
 
-                    this._logger.Trace?.Log( $"Skipping the extension assembly reference '{a}' because it does not satisfy the current process." );
+        if ( this._logger.Trace != null )
+        {
+            foreach ( var skippedReference in assemblyReferenceList.Except( selectedReferences ) )
+            {
+                this._logger.Trace.Log(
+                    $"Skipping the extension assembly reference '{skippedReference}' because it does not satisfy the current process, "
+                    + "or because another reference of the same extension targets a higher Roslyn version." );
+            }
+        }
 
-                    return false;
-                } )
-            .Select( a => a.Path.AssertNotNull() );
+        return selectedReferences.SelectAsArray( a => a.Path.AssertNotNull() );
     }
 
     /// <summary>
-    /// Reports a warning for each extension assembly name that has no reference satisfying the current process.
+    /// Reports a warning for each extension that has no reference satisfying the current process.
     /// </summary>
     /// <remarks>
-    /// An extension package can declare one reference per Roslyn version and target framework, and exactly one of them is expected to satisfy
-    /// the current process. When none does, for instance because the package was built for a Roslyn version that this version of Metalama
-    /// no longer supports, the extension would otherwise be ignored without any diagnostic.
+    /// <para>
+    /// An extension package can declare one reference per Roslyn version and target framework. A reference satisfies the current process
+    /// when it targets the target framework of the current process and a Roslyn version lower than or equal to the one of the current process.
+    /// When no reference satisfies the current process, for instance because the package was built only for a Roslyn version that is
+    /// higher than the one of the current process, the extension would otherwise be ignored without any diagnostic.
+    /// </para>
+    /// <para>
+    /// The references are grouped by the name that <see cref="TargetedAssemblyReference.GetExtensionName"/> returns, so that the references
+    /// of an extension whose assembly names end with the Roslyn version belong to the same group.
+    /// </para>
     /// </remarks>
     private void ReportUnsatisfiedExtensionAssemblies( IEnumerable<TargetedAssemblyReference> assemblyReferences, IDiagnosticAdder diagnosticAdder )
     {
-        foreach ( var group in assemblyReferences.GroupBy( a => a.Name, StringComparer.OrdinalIgnoreCase ) )
+        foreach ( var group in assemblyReferences.GroupBy( a => a.GetExtensionName(), StringComparer.OrdinalIgnoreCase ) )
         {
             if ( group.Any( a => a.SatisfiesCurrentProcess ) )
             {
