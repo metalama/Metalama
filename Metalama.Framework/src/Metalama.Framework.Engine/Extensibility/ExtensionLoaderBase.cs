@@ -50,16 +50,22 @@ public class ExtensionLoaderBase
     }
 
     /// <summary>
-    /// Reports a warning for each extension assembly name that has no reference satisfying the current process.
+    /// Reports a warning for each extension that has no reference satisfying the current process.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// An extension package can declare one reference per Roslyn version and target framework, and exactly one of them is expected to satisfy
     /// the current process. When none does, for instance because the package was built for a Roslyn version that this version of Metalama
     /// no longer supports, the extension would otherwise be ignored without any diagnostic.
+    /// </para>
+    /// <para>
+    /// The references are grouped by the name that <see cref="GetExtensionName"/> returns, so that the references of an extension whose assembly
+    /// names end with the Roslyn version belong to the same group.
+    /// </para>
     /// </remarks>
     private void ReportUnsatisfiedExtensionAssemblies( IEnumerable<TargetedAssemblyReference> assemblyReferences, IDiagnosticAdder diagnosticAdder )
     {
-        foreach ( var group in assemblyReferences.GroupBy( a => a.Name, StringComparer.OrdinalIgnoreCase ) )
+        foreach ( var group in assemblyReferences.GroupBy( GetExtensionName, StringComparer.OrdinalIgnoreCase ) )
         {
             if ( group.Any( a => a.SatisfiesCurrentProcess ) )
             {
@@ -82,6 +88,30 @@ public class ExtensionLoaderBase
                     null,
                     (group.Key, declaredTargets, currentRoslynVersion, TargetedAssemblyReference.CurrentTargetFramework) ) );
         }
+    }
+
+    /// <summary>
+    /// Gets the name of the extension that an extension assembly reference belongs to.
+    /// </summary>
+    /// <remarks>
+    /// An extension can build one assembly per Roslyn version and give each assembly a different name that ends with the Roslyn version,
+    /// for instance <c>Metalama.Extensions.Validation.Engine.5.0.0</c> and <c>Metalama.Extensions.Validation.Engine.5.12.0</c>.
+    /// When the name of the reference ends with a dot followed by <see cref="TargetedAssemblyReference.TargetRoslynVersion"/>,
+    /// this method returns the name without this suffix. Otherwise, it returns <see cref="TargetedAssemblyReference.Name"/>.
+    /// </remarks>
+    private static string GetExtensionName( TargetedAssemblyReference reference )
+    {
+        if ( reference.TargetRoslynVersion != null )
+        {
+            var suffix = "." + reference.TargetRoslynVersion;
+
+            if ( reference.Name.Length > suffix.Length && reference.Name.EndsWith( suffix, StringComparison.OrdinalIgnoreCase ) )
+            {
+                return reference.Name.Substring( 0, reference.Name.Length - suffix.Length );
+            }
+        }
+
+        return reference.Name;
     }
 
     internal IEnumerable<ExportExtensionAttribute> DiscoverExtensionTypes(

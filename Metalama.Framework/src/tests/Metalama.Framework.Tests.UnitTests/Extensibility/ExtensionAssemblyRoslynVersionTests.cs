@@ -109,6 +109,57 @@ public sealed class ExtensionAssemblyRoslynVersionTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that no warning is reported when the assembly names of an extension end with the Roslyn version, and one of them targets the
+    /// current Roslyn version. Metalama Premium names its engine assemblies this way, for instance
+    /// <c>Metalama.Extensions.Validation.Engine.5.0.0</c> and <c>Metalama.Extensions.Validation.Engine.5.12.0</c>.
+    /// </summary>
+    [Fact]
+    public void VersionedAssemblyNamesWithCurrentRoslynVersion_DoesNotReportWarning()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var currentTargetFramework = TargetedAssemblyReference.CurrentTargetFramework;
+
+        var diagnostics = GetExtensionTypes(
+            testContext,
+            CreateVersionedReference( testContext, new Version( 1, 0, 0 ), "net472" ),
+            CreateVersionedReference( testContext, new Version( 1, 0, 0 ), "net10.0" ),
+            CreateVersionedReference( testContext, RoslynApiVersion.Current.ToVersion(), currentTargetFramework ) );
+
+        Assert.DoesNotContain( diagnostics, d => d.Id == _warningId );
+
+        // The loader selects the reference for the current Roslyn version and tries to load it. The file does not exist, so loading fails.
+        var error = Assert.Single( diagnostics );
+        Assert.Equal( GeneralDiagnosticDescriptors.CannotLoadExtensionAssembly.Id, error.Id );
+    }
+
+    /// <summary>
+    /// Verifies that a single warning, which names the extension without the Roslyn version, is reported when the assembly names of an extension
+    /// end with the Roslyn version and none of them targets the current Roslyn version.
+    /// </summary>
+    [Fact]
+    public void VersionedAssemblyNamesWithAnotherRoslynVersion_ReportsSingleWarning()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var currentTargetFramework = TargetedAssemblyReference.CurrentTargetFramework;
+
+        var diagnostics = GetExtensionTypes(
+            testContext,
+            CreateVersionedReference( testContext, new Version( 1, 0, 0 ), currentTargetFramework ),
+            CreateVersionedReference( testContext, new Version( 2, 0, 0 ), currentTargetFramework ) );
+
+        var warning = Assert.Single( diagnostics );
+        Assert.Equal( _warningId, warning.Id );
+
+        var message = warning.GetMessage();
+
+        Assert.Contains( $"'{_extensionName}'", message, StringComparison.Ordinal );
+        Assert.Contains( "Roslyn 1.0.0", message, StringComparison.Ordinal );
+        Assert.Contains( "Roslyn 2.0.0", message, StringComparison.Ordinal );
+    }
+
+    /// <summary>
     /// Creates a reference to <see cref="_extensionName"/> in a directory that is specific to the Roslyn version and the target framework.
     /// </summary>
     private static TargetedAssemblyReference CreateReference( MetalamaTestContext testContext, Version roslynVersion, string? targetFramework )
@@ -117,6 +168,20 @@ public sealed class ExtensionAssemblyRoslynVersionTests : UnitTestClass
             Path.Combine( testContext.BaseDirectory, "extensions", roslynVersion.ToString(), targetFramework ?? "any", _extensionName + ".dll" ),
             targetFramework,
             roslynVersion );
+
+    /// <summary>
+    /// Creates a reference to an assembly whose name is <see cref="_extensionName"/> followed by a dot and the Roslyn version.
+    /// </summary>
+    private static TargetedAssemblyReference CreateVersionedReference( MetalamaTestContext testContext, Version roslynVersion, string targetFramework )
+    {
+        var name = _extensionName + "." + roslynVersion;
+
+        return new TargetedAssemblyReference(
+            name,
+            Path.Combine( testContext.BaseDirectory, "extensions", targetFramework, name + ".dll" ),
+            targetFramework,
+            roslynVersion );
+    }
 
     /// <summary>
     /// Discovers the extension types of the given references with <see cref="ExtensionLoader"/>, and returns the reported diagnostics.
