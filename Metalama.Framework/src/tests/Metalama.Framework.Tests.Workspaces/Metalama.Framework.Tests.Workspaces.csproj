@@ -30,5 +30,15 @@
         <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- The directory that TeamCity publishes as the "dumps" artifact. CrashDumpConfiguration configures the .NET
+             runtime to write the crash dumps of the child processes of the tests, including the Roslyn BuildHost, to
+             this directory. -->
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>DumpDirectory</_Parameter1>
+            <_Parameter2>$(RepoDirectory)artifacts\dumps</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
 
 </Project>
