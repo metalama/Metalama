@@ -38,22 +38,33 @@ public sealed class ExtensionAssemblyRoslynVersionTests : UnitTestClass
     private const string _warningId = "LAMA0093";
 
     /// <summary>
+    /// A Roslyn version that is higher than the Roslyn version of the current process.
+    /// </summary>
+    private static readonly Version _higherRoslynVersion = new( 99, 0, 0 );
+
+    /// <summary>
+    /// A Roslyn version that is higher than <see cref="_higherRoslynVersion"/>.
+    /// </summary>
+    private static readonly Version _evenHigherRoslynVersion = new( 100, 0, 0 );
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ExtensionAssemblyRoslynVersionTests"/> class.
     /// </summary>
     public ExtensionAssemblyRoslynVersionTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
 
     /// <summary>
-    /// Verifies that a warning is reported when every reference of an extension assembly targets another Roslyn version.
+    /// Verifies that a warning is reported when every reference of an extension assembly targets a Roslyn version that is higher than the
+    /// Roslyn version of the current process.
     /// </summary>
     [Fact]
-    public void ExtensionDeclaredForAnotherRoslynVersion_ReportsWarning()
+    public void ExtensionDeclaredForHigherRoslynVersion_ReportsWarning()
     {
         using var testContext = this.CreateTestContext();
 
         var diagnostics = GetExtensionTypes(
             testContext,
-            CreateReference( testContext, new Version( 1, 0, 0 ), null ),
-            CreateReference( testContext, new Version( 2, 0, 0 ), TargetedAssemblyReference.CurrentTargetFramework ) );
+            CreateReference( testContext, _higherRoslynVersion, null ),
+            CreateReference( testContext, _evenHigherRoslynVersion, TargetedAssemblyReference.CurrentTargetFramework ) );
 
         var warning = Assert.Single( diagnostics, d => d.Id == _warningId );
 
@@ -63,8 +74,8 @@ public sealed class ExtensionAssemblyRoslynVersionTests : UnitTestClass
 
         // The message names the extension, the targets that it declares, and the Roslyn version and the target framework of the current process.
         Assert.Contains( _extensionName, message, StringComparison.Ordinal );
-        Assert.Contains( "Roslyn 1.0.0", message, StringComparison.Ordinal );
-        Assert.Contains( "Roslyn 2.0.0", message, StringComparison.Ordinal );
+        Assert.Contains( "Roslyn " + _higherRoslynVersion, message, StringComparison.Ordinal );
+        Assert.Contains( "Roslyn " + _evenHigherRoslynVersion, message, StringComparison.Ordinal );
         Assert.Contains( "Roslyn " + RoslynApiVersion.Current.ToVersion(), message, StringComparison.Ordinal );
         Assert.Contains( $"'{TargetedAssemblyReference.CurrentTargetFramework}'", message, StringComparison.Ordinal );
 
@@ -88,7 +99,8 @@ public sealed class ExtensionAssemblyRoslynVersionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that no warning is reported when one of the references of an extension assembly satisfies the current process.
+    /// Verifies that the reference for the Roslyn version of the current process is selected when the extension also has a reference for an
+    /// older Roslyn version.
     /// </summary>
     [Fact]
     public void ExtensionDeclaredForCurrentRoslynVersion_DoesNotReportWarning()
@@ -109,6 +121,106 @@ public sealed class ExtensionAssemblyRoslynVersionTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that no warning is reported when the assembly names of an extension end with the Roslyn version, and one of them targets the
+    /// current Roslyn version. Metalama Premium names its engine assemblies this way, for instance
+    /// <c>Metalama.Extensions.Validation.Engine.5.0.0</c> and <c>Metalama.Extensions.Validation.Engine.5.12.0</c>.
+    /// </summary>
+    [Fact]
+    public void VersionedAssemblyNamesWithCurrentRoslynVersion_DoesNotReportWarning()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var currentTargetFramework = TargetedAssemblyReference.CurrentTargetFramework;
+
+        var diagnostics = GetExtensionTypes(
+            testContext,
+            CreateVersionedReference( testContext, new Version( 1, 0, 0 ), "net472" ),
+            CreateVersionedReference( testContext, new Version( 1, 0, 0 ), "net10.0" ),
+            CreateVersionedReference( testContext, RoslynApiVersion.Current.ToVersion(), currentTargetFramework ) );
+
+        Assert.DoesNotContain( diagnostics, d => d.Id == _warningId );
+
+        // The loader selects the reference for the current Roslyn version and tries to load it. The file does not exist, so loading fails.
+        var error = Assert.Single( diagnostics );
+        Assert.Equal( GeneralDiagnosticDescriptors.CannotLoadExtensionAssembly.Id, error.Id );
+    }
+
+    /// <summary>
+    /// Verifies that a single warning, which names the extension without the Roslyn version, is reported when the assembly names of an extension
+    /// end with the Roslyn version and all of them target a Roslyn version that is higher than the Roslyn version of the current process.
+    /// </summary>
+    [Fact]
+    public void VersionedAssemblyNamesWithHigherRoslynVersion_ReportsSingleWarning()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var currentTargetFramework = TargetedAssemblyReference.CurrentTargetFramework;
+
+        var diagnostics = GetExtensionTypes(
+            testContext,
+            CreateVersionedReference( testContext, _higherRoslynVersion, currentTargetFramework ),
+            CreateVersionedReference( testContext, _evenHigherRoslynVersion, currentTargetFramework ) );
+
+        var warning = Assert.Single( diagnostics );
+        Assert.Equal( _warningId, warning.Id );
+
+        var message = warning.GetMessage();
+
+        Assert.Contains( $"'{_extensionName}'", message, StringComparison.Ordinal );
+        Assert.Contains( "Roslyn " + _higherRoslynVersion, message, StringComparison.Ordinal );
+        Assert.Contains( "Roslyn " + _evenHigherRoslynVersion, message, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that, when an extension has no reference for the Roslyn version of the current process, the reference for the highest older
+    /// Roslyn version is selected, and the references for a higher Roslyn version are ignored.
+    /// </summary>
+    [Fact]
+    public void VersionedAssemblyNamesWithOlderRoslynVersions_SelectsHighestOlderVersion()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var currentTargetFramework = TargetedAssemblyReference.CurrentTargetFramework;
+        var olderRoslynVersion = new Version( 1, 0, 0 );
+        var highestOlderRoslynVersion = new Version( 2, 0, 0 );
+
+        var diagnostics = GetExtensionTypes(
+            testContext,
+            CreateVersionedReference( testContext, olderRoslynVersion, currentTargetFramework ),
+            CreateVersionedReference( testContext, highestOlderRoslynVersion, currentTargetFramework ),
+            CreateVersionedReference( testContext, _higherRoslynVersion, currentTargetFramework ) );
+
+        Assert.DoesNotContain( diagnostics, d => d.Id == _warningId );
+
+        // The loader tries to load only the reference for the highest older Roslyn version. The file does not exist, so loading fails.
+        var error = Assert.Single( diagnostics );
+        Assert.Equal( GeneralDiagnosticDescriptors.CannotLoadExtensionAssembly.Id, error.Id );
+        Assert.Contains( $"{_extensionName}.{highestOlderRoslynVersion}.dll", error.GetMessage(), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="TargetedAssemblyReference.SelectForCurrentProcess"/> keeps the references that do not declare a Roslyn version,
+    /// selects the highest Roslyn version separately for each extension, and preserves the order of the references.
+    /// </summary>
+    [Fact]
+    public void SelectForCurrentProcess_SelectsHighestVersionPerExtension()
+    {
+        var currentTargetFramework = TargetedAssemblyReference.CurrentTargetFramework;
+
+        var unversioned = new TargetedAssemblyReference( "Unversioned", "Unversioned.dll", null, null );
+        var firstOld = new TargetedAssemblyReference( "First.1.0.0", "First.1.0.0.dll", currentTargetFramework, new Version( 1, 0, 0 ) );
+        var firstNew = new TargetedAssemblyReference( "First.2.0.0", "First.2.0.0.dll", currentTargetFramework, new Version( 2, 0, 0 ) );
+        var secondOld = new TargetedAssemblyReference( "Second", "1.0.0/Second.dll", currentTargetFramework, new Version( 1, 0, 0 ) );
+        var secondOtherFramework = new TargetedAssemblyReference( "Second", "3.0.0/Second.dll", "net1.0", new Version( 3, 0, 0 ) );
+        var secondHigher = new TargetedAssemblyReference( "Second", "99.0.0/Second.dll", currentTargetFramework, _higherRoslynVersion );
+
+        var selected = TargetedAssemblyReference.SelectForCurrentProcess(
+            new[] { firstOld, unversioned, secondOld, firstNew, secondOtherFramework, secondHigher } );
+
+        Assert.Equal( new[] { unversioned, secondOld, firstNew }, selected );
+    }
+
+    /// <summary>
     /// Creates a reference to <see cref="_extensionName"/> in a directory that is specific to the Roslyn version and the target framework.
     /// </summary>
     private static TargetedAssemblyReference CreateReference( MetalamaTestContext testContext, Version roslynVersion, string? targetFramework )
@@ -117,6 +229,20 @@ public sealed class ExtensionAssemblyRoslynVersionTests : UnitTestClass
             Path.Combine( testContext.BaseDirectory, "extensions", roslynVersion.ToString(), targetFramework ?? "any", _extensionName + ".dll" ),
             targetFramework,
             roslynVersion );
+
+    /// <summary>
+    /// Creates a reference to an assembly whose name is <see cref="_extensionName"/> followed by a dot and the Roslyn version.
+    /// </summary>
+    private static TargetedAssemblyReference CreateVersionedReference( MetalamaTestContext testContext, Version roslynVersion, string targetFramework )
+    {
+        var name = _extensionName + "." + roslynVersion;
+
+        return new TargetedAssemblyReference(
+            name,
+            Path.Combine( testContext.BaseDirectory, "extensions", targetFramework, name + ".dll" ),
+            targetFramework,
+            roslynVersion );
+    }
 
     /// <summary>
     /// Discovers the extension types of the given references with <see cref="ExtensionLoader"/>, and returns the reported diagnostics.
