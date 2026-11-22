@@ -149,20 +149,28 @@ namespace Metalama.Framework.Engine.Templating
 
                 this._cancellationToken.ThrowIfCancellationRequested();
 
-                // We want children to be processed before parents, so that errors are reported on parent (declaring) symbols.
-                // This allows to reduce redundant messages.
-                base.VisitCore( node );
-
                 // If the scope is null (e.g. in a using directive), we should not analyze.
                 if ( !this._currentScope.HasValue )
                 {
+                    base.VisitCore( node );
+
                     return;
                 }
 
-                // Otherwise, we have to check references.
-
+                // Otherwise, we have to check references. The semantic model is queried before the children are visited.
+                // The first query in a member body makes Roslyn bind the whole body and run the nullability analysis, which
+                // is recursive and uses an amount of stack that grows with the depth of the deepest expression of the body.
+                // Querying a parent before its children makes this first query happen at the outermost expression, at a
+                // shallow depth of the walk. For most nodes, the later queries read the bound nodes that Roslyn has cached
+                // (issue #2412).
                 this._observer?.OnSemanticModelUsed();
                 var referencedSymbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
+
+                // We want children to be processed before parents, so that errors are reported on parent (declaring) symbols.
+                // This allows to reduce redundant messages. The visit of the children restores the current scope, the current
+                // declaration and the current template information when it returns, so the values read below are the same
+                // as before the visit.
+                base.VisitCore( node );
 
                 if ( referencedSymbol != null && referencedSymbol.Kind != SymbolKind.TypeParameter )
                 {
