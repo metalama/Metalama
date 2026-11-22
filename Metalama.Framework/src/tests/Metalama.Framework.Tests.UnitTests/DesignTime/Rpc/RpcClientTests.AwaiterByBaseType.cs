@@ -6,7 +6,6 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -21,17 +20,39 @@ public sealed partial class RpcClientTests
     /// released when the connection registers a client of a derived type. Before the fix, the connection looked up
     /// the awaiter by the exact type of the client, so the caller waited until the test context was cancelled.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test waits until the server has created its pipe before the client connects. On .NET Framework,
+    /// <c>NamedPipeClientStream.ConnectAsync</c> runs a synchronous retry loop on a thread pool thread until the pipe
+    /// exists, and the server creates the pipe in a task that also requires a thread pool thread. When the thread pool
+    /// of the test process is saturated, the server task can be delayed for longer than a short test timeout, and the
+    /// test then fails although the code under test is correct.
+    /// </para>
+    /// <para>
+    /// For the same reason, the test uses the default timeout of the test context. A shorter timeout is not reliable,
+    /// because the timer that signals it also runs on the thread pool.
+    /// </para>
+    /// </remarks>
     [Fact]
     public async Task GetOrWaitForClient_RequestedByBaseType_SignaledWhenDerivedClientConnects()
     {
-        // A short timeout bounds the wait when the awaiter is not signaled.
-        using var testContext = this.CreateRpcTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
+        using var testContext = this.CreateRpcTestContext();
         var ct = testContext.CancellationToken;
 
         var pipeName = $"{nameof(RpcClientTests)}_{Guid.NewGuid()}";
 
+        // The server reaches this synchronization point after it has created the pipe and before it waits for a client.
+        var serverPipeCreated = $"ServerEndpoint.BeforeWaitForConnection:{pipeName}";
+        testContext.SyncProvider.EnableSyncPoint( serverPipeCreated );
+
         using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
+
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( serverPipeCreated, ct );
+
+        // The server reaches the synchronization point again each time it accepts a client, so the test disables it
+        // instead of releasing it once.
+        testContext.SyncProvider.DisableSyncPoint( serverPipeCreated );
 
         using var clientEndpoint = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
 
