@@ -31,13 +31,13 @@ namespace Metalama.Framework.Tests.Workspaces
         /// this cost can exceed the default timeout of 120 seconds, and the load then fails with <c>LAMA0083</c>.
         /// The timeout is therefore raised to 10 minutes.
         /// </remarks>
-        private static readonly ImmutableDictionary<string, string> _defaultProperties = ImmutableDictionary<string, string>.Empty
+        internal static readonly ImmutableDictionary<string, string> DefaultProperties = ImmutableDictionary<string, string>.Empty
             .Add( "MetalamaReferenceAssemblyRestoreTimeout", "600000" );
 
         /// <summary>
-        /// The properties of <see cref="_defaultProperties"/>, and empty values for the properties that MSBuild would otherwise read from the environment variables of the test process.
+        /// The properties of <see cref="DefaultProperties"/>, and empty values for the properties that MSBuild would otherwise read from the environment variables of the test process.
         /// </summary>
-        private static readonly ImmutableDictionary<string, string> _buildProperties = _defaultProperties
+        private static readonly ImmutableDictionary<string, string> _buildProperties = DefaultProperties
             .Add( "DOTNET_ROOT_X64", "" )
             .Add( "MSBUILD_EXE_PATH", "" )
             .Add( "MSBuildSDKsPath", "" );
@@ -99,7 +99,7 @@ namespace Metalama.Framework.Tests.Workspaces
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], DefaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -135,7 +135,7 @@ namespace Metalama.Framework.Tests.Workspaces
             Assert.Empty( workspace.Advice );
         }
 
-        private static async Task<string> CreateMetalamaEnabledProjectAsync(
+        internal static async Task<string> CreateMetalamaEnabledProjectAsync(
             MetalamaTestContext testContext,
             string code,
             string? projectName = null,
@@ -198,7 +198,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], DefaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -232,7 +232,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], DefaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -266,7 +266,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], DefaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -303,7 +303,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], DefaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -352,7 +352,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath1, projectPath2], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath1, projectPath2], DefaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -517,7 +517,7 @@ class MyClass {}" );
         /// diagnostic would be lost. The method therefore writes the complete messages to the test output and includes them
         /// in the failure message.
         /// </remarks>
-        private static void CheckWorkspace( Workspace workspace )
+        internal static void CheckWorkspace( Workspace workspace )
         {
             AssertNoMessage( "workspace diagnostics", workspace.WorkspaceDiagnostics.Select( d => $"{d.Severity}: {d.Message}" ) );
 
