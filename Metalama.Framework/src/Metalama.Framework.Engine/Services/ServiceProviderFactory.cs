@@ -16,6 +16,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Introspection.References;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Queries.Aspects;
 using Metalama.Framework.Engine.Queries.Options;
 using Metalama.Framework.Engine.ReflectionMocks;
@@ -198,6 +199,16 @@ public static class ServiceProviderFactory
 
         return projectServiceProvider;
     }
+
+    /// <summary>
+    /// Adds the service that reports an unexpected exception of Metalama: it writes a crash report, reports the exception to
+    /// telemetry, and creates a diagnostic. The compiler registers this service itself. A host of the introspection API, such as
+    /// a workspace, calls this method so that the exceptions that Metalama contains, for instance in the reference indexer, are
+    /// reported.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider of a project, as returned by <see cref="WithProjectScopedServices(IServiceProvider{IGlobalService},IProjectOptions,Compilation)"/>.</param>
+    public static ServiceProvider<IProjectService> WithExceptionHandler( this ServiceProvider<IProjectService> serviceProvider )
+        => serviceProvider.WithServiceConditional<ICompileTimeExceptionHandler>( sp => new CompileTimeExceptionHandler( sp ) );
 
     internal static ServiceProvider<IProjectService> WithCompileTimeProjectServices(
         this ProjectServiceProvider serviceProvider,

@@ -405,7 +405,9 @@ namespace Metalama.Framework.Workspaces
                 var projectServiceProvider = collection.ServiceProvider.Underlying
                     .WithService( additionalServiceCollection, true )
                     .WithProjectScopedServices( projectOptions, compilation )
-                    .WithService( _ => new WorkspaceIntrospectionService( workspace ) );
+                    .WithExceptionHandler()
+                    .WithService( _ => new WorkspaceIntrospectionService( workspace ) )
+                    .WithService( _ => new WorkspaceReferenceDiagnosticSink() );
 
                 // Create our workspace project.
                 var ourProject = new Project(

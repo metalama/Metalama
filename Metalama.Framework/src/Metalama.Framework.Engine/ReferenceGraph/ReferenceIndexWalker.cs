@@ -5,10 +5,12 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Testing;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SharpCrafters.Common.Testing.Hooks;
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -27,6 +29,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     private readonly ReferenceIndexerOptions _options;
     private readonly SemanticModelProvider? _semanticModelProvider;
     private readonly IReferenceIndexObserver? _observer;
+    private readonly ITestFaultInjector? _faultInjector;
 
     private SemanticModel? _semanticModel;
     private SyntaxTree? _syntaxTree;
@@ -46,6 +49,9 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         this._options = options;
         this._symbolClassifier = serviceProvider.GetService<ISymbolClassificationService>(); // May be absent in the introspection scenario.
         this._observer = serviceProvider.GetService<IReferenceIndexObserver>();
+
+        // Resolved untyped, because ITestFaultInjector is shared with the other layers and therefore cannot derive from IGlobalService.
+        this._faultInjector = (ITestFaultInjector?) serviceProvider.Global.Underlying.GetService( typeof(ITestFaultInjector) );
     }
 
     public ReferenceIndexWalker(
@@ -62,6 +68,9 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         this._semanticModelProvider = semanticModelProvider;
         this._symbolClassifier = serviceProvider.GetService<ISymbolClassificationService>(); // May be absent in the introspection scenario.
         this._observer = serviceProvider.GetService<IReferenceIndexObserver>();
+
+        // Resolved untyped, because ITestFaultInjector is shared with the other layers and therefore cannot derive from IGlobalService.
+        this._faultInjector = (ITestFaultInjector?) serviceProvider.Global.Underlying.GetService( typeof(ITestFaultInjector) );
     }
 
     public ReferenceIndexWalker(
@@ -79,6 +88,9 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         this._syntaxTree = semanticModel.SyntaxTree;
         this._symbolClassifier = serviceProvider.GetService<ISymbolClassificationService>(); // May be absent in the introspection scenario.
         this._observer = serviceProvider.GetService<IReferenceIndexObserver>();
+
+        // Resolved untyped, because ITestFaultInjector is shared with the other layers and therefore cannot derive from IGlobalService.
+        this._faultInjector = (ITestFaultInjector?) serviceProvider.Global.Underlying.GetService( typeof(ITestFaultInjector) );
     }
 
     public void Visit( SemanticModel semanticModel )
@@ -146,6 +158,48 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
                 this.Visit( node );
 
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Visits a node and contains any exception to that node, so that one defect does not discard the index of the whole syntax tree.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When an exception occurs, the walker restores its state as it was before the node, skips the rest of the node and its
+    /// descendants, and reports the exception to <see cref="ReferenceIndexBuilder.ReportSkippedNode"/>. The walker then continues
+    /// with the next sibling. Because every visit of a child goes through this method, the innermost node whose processing failed
+    /// is the one that is skipped.
+    /// </para>
+    /// <para>
+    /// A cancellation is not contained. The fault injection point returned by <see cref="FaultInjectionPoints.GetReferenceIndexWalkerVisit"/>
+    /// lets tests throw an exception from the nodes of a chosen kind.
+    /// </para>
+    /// </remarks>
+    protected override void VisitCore( SyntaxNode? node )
+    {
+        if ( node == null )
+        {
+            return;
+        }
+
+        var previousDeclarationSymbol = this._currentDeclarationSymbol;
+        var previousDeclarationNode = this._currentDeclarationNode;
+        var previousReferenceKinds = this._currentReferenceKinds;
+
+        try
+        {
+            this._faultInjector?.InjectFault( FaultInjectionPoints.GetReferenceIndexWalkerVisit( node.Kind() ) );
+
+            base.VisitCore( node );
+        }
+        catch ( Exception e ) when ( e is not OperationCanceledException )
+        {
+            this._currentDeclarationSymbol = previousDeclarationSymbol;
+            this._currentDeclarationNode = previousDeclarationNode;
+            this._currentReferenceKinds = previousReferenceKinds;
+
+            this._referenceIndexBuilder.ReportSkippedNode( node, e );
         }
     }
 
@@ -413,6 +467,7 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
                 this.Visit( parameter );
             }
 
+            this.Visit( node.ConstraintClauses );
             this.Visit( node.AttributeLists );
 
             if ( this._options.MustDescendIntoImplementation() )
@@ -740,13 +795,30 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     {
         this.IndexReference( node, GetTypeIdentifier( node.Type ), ReferenceKinds.ObjectCreation );
 
+        // The expression binds to the constructor, so the type arguments of the created type must be visited separately.
+        var createdTypeName = node.Type.Kind() switch
+        {
+            SyntaxKind.QualifiedName => ((QualifiedNameSyntax) node.Type).Right,
+            SyntaxKind.AliasQualifiedName => ((AliasQualifiedNameSyntax) node.Type).Name,
+            _ => node.Type
+        };
+
+        if ( createdTypeName.IsKind( SyntaxKind.GenericName ) )
+        {
+            foreach ( var typeArgument in ((GenericNameSyntax) createdTypeName).TypeArgumentList.Arguments )
+            {
+                this.VisitTypeReference( typeArgument, ReferenceKinds.TypeArgument );
+            }
+        }
+
         this.Visit( node.ArgumentList );
         this.Visit( node.Initializer );
     }
 
     public override void VisitArrayCreationExpression( ArrayCreationExpressionSyntax node )
     {
-        this.IndexReference( node, GetTypeIdentifier( node.Type ), ReferenceKinds.ArrayCreation );
+        // The expression itself binds to no symbol, so the reference is the element type of the array.
+        this.VisitTypeReference( node.Type.ElementType, ReferenceKinds.ArrayCreation );
 
         // The rank sizes are expressions, for instance invocations, and must be visited like any other expression.
         foreach ( var rankSpecifier in node.Type.RankSpecifiers )
@@ -907,9 +979,11 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             {
                 this.IndexSymbol( symbolInfo.Symbol, nodeForReference, referenceKind, isMemberAccessKind );
             }
-            else if ( referenceKind == ReferenceKinds.NameOf && symbolInfo.CandidateReason == CandidateReason.MemberGroup )
+            else if ( (referenceKind == ReferenceKinds.NameOf && symbolInfo.CandidateReason == CandidateReason.MemberGroup)
+                      || symbolInfo.CandidateReason == CandidateReason.Inaccessible )
             {
                 // The argument of nameof can be a method group, which binds to no single method. It references every method of the group.
+                // In code that does not compile, a name can bind only to inaccessible declarations. The code still references them.
                 foreach ( var candidate in symbolInfo.CandidateSymbols )
                 {
                     this.IndexSymbol( candidate, nodeForReference, referenceKind, isMemberAccessKind );
@@ -1059,7 +1133,9 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         {
             if ( this._semanticModel == null )
             {
-                this._semanticModel = this._semanticModelProvider.AssertNotNull().GetSemanticModel( this._syntaxTree.AssertNotNull(), true );
+                // The semantic model must respect accessibility. A model that ignores it also sees the internal types of referenced
+                // assemblies, so a name that the compiler binds can be ambiguous in that model and not bind at all (see issue #2415).
+                this._semanticModel = this._semanticModelProvider.AssertNotNull().GetSemanticModel( this._syntaxTree.AssertNotNull() );
                 this._observer?.OnSemanticModelResolved( this._semanticModel );
             }
 

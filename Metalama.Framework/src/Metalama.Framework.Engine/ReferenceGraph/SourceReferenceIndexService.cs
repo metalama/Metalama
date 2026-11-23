@@ -44,6 +44,8 @@ public static class SourceReferenceIndexService
     /// <param name="serviceProvider">The service provider of the pipeline execution.</param>
     /// <param name="sourceCompilation">The source compilation of the pipeline.</param>
     /// <param name="requirements">The requirements that each extension returned.</param>
+    /// <param name="reportDiagnostic">Receives the diagnostics of the syntax nodes that the indexer skipped because of an exception,
+    /// once, after the index is built.</param>
     /// <exception cref="ArgumentException">A declaration root does not belong to a syntax tree of <paramref name="sourceCompilation"/>.</exception>
     /// <remarks>
     /// The index covers <paramref name="sourceCompilation"/>, which is the source compilation of the pipeline. The declaration roots must
@@ -52,7 +54,8 @@ public static class SourceReferenceIndexService
     internal static SourceReferenceIndex Create(
         in ProjectServiceProvider serviceProvider,
         CompilationModel sourceCompilation,
-        IEnumerable<SourceIndexRequirements> requirements )
+        IEnumerable<SourceIndexRequirements> requirements,
+        Action<Diagnostic>? reportDiagnostic = null )
     {
         var nonEmptyRequirements = requirements.Where( r => !r.IsEmpty ).ToList();
 
@@ -77,7 +80,7 @@ public static class SourceReferenceIndexService
             }
         }
 
-        return new SourceReferenceIndex( serviceProvider, sourceCompilation, options, nonEmptyRequirements.Count > 0, rootsByTree );
+        return new SourceReferenceIndex( serviceProvider, sourceCompilation, options, nonEmptyRequirements.Count > 0, rootsByTree, reportDiagnostic );
     }
 
     /// <summary>

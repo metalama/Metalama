@@ -72,7 +72,8 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 using var sourceReferenceIndex = SourceReferenceIndexService.Create(
                     pipelineConfiguration.ServiceProvider,
                     input.FirstCompilationModel.AssertNotNull(),
-                    extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList() );
+                    extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList(),
+                    extensionDiagnostics.Report );
 
                 var extensionTransformationContext = new ExtensionTransformationContext(
                     pipelineConfiguration,

@@ -736,5 +736,20 @@ namespace Metalama.Framework.Engine.Diagnostics
                     Warning,
                     "An extension assembly has no reference that the current process can load.",
                     _helpLinkFormat );
+
+        /// <summary>
+        /// Reported for a syntax node that the reference indexer skipped because an unexpected exception occurred while the node
+        /// was processed. The references in the node are missing from the index.
+        /// </summary>
+        internal static readonly DiagnosticDefinition<(string NodeKind, string Message)> ReferenceIndexerSkippedNode =
+            new(
+                "LAMA0094",
+                _category,
+                "Metalama could not index the references in this {0} because of an unexpected exception: {1} "
+                + "The references in this code are missing from the reference index, so validators and introspection queries that depend "
+                + "on references may return incomplete results.",
+                Warning,
+                "The reference indexer skipped a syntax node because of an unexpected exception.",
+                _helpLinkFormat );
     }
 }

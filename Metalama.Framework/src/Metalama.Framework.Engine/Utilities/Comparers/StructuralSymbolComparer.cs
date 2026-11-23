@@ -720,7 +720,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                     break;
 
-                case SymbolKind.NamedType when currentX is INamedTypeSymbol namedTypeX && currentY is INamedTypeSymbol namedTypeY:
+                case SymbolKind.NamedType or SymbolKind.ErrorType when currentX is INamedTypeSymbol namedTypeX && currentY is INamedTypeSymbol namedTypeY:
                     result = this.CompareNamedTypes( namedTypeX, namedTypeY, StructuralComparerOptions.Type );
 
                     if ( result != 0 )
@@ -796,7 +796,8 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
 
                 break;
 
-            case SymbolKind.NamedType when symbol is INamedTypeSymbol type:
+            // An error type is an INamedTypeSymbol, and the comparison methods compare it as a named type, so it must be hashed as one.
+            case SymbolKind.NamedType or SymbolKind.ErrorType when symbol is INamedTypeSymbol type:
                 if ( options.HasFlagFast( StructuralComparerOptions.Name ) )
                 {
                     h = HashCode.Combine( h, type.Name );
@@ -933,7 +934,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             {
                 switch ( current.Kind )
                 {
-                    case SymbolKind.NamedType when current is INamedTypeSymbol namedType:
+                    case SymbolKind.NamedType or SymbolKind.ErrorType when current is INamedTypeSymbol namedType:
                         h = HashCode.Combine( h, namedType.Name, namedType.Arity );
 
                         break;

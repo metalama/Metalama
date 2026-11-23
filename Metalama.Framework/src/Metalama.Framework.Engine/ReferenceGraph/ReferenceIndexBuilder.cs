@@ -3,13 +3,104 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using SharpCrafters.Backstage.Diagnostics;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 
 namespace Metalama.Framework.Engine.ReferenceGraph;
 
+/// <summary>
+/// The base class of the builders of reference indexes, which receive the references found by <see cref="ReferenceIndexWalker"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// When an exception occurs while the walker processes a syntax node, the walker skips the node and calls
+/// <see cref="ReportSkippedNode"/>, so that one defect does not discard the whole index. The builder reports each distinct
+/// exception once through <see cref="ICompileTimeExceptionHandler"/>, which writes the crash report, reports the exception to
+/// telemetry, and reports the diagnostic LAMA0049. The builder also adds the diagnostic LAMA0094 to <see cref="Diagnostics"/>
+/// for each skipped node.
+/// </para>
+/// <para>
+/// The builder does not know where diagnostics must be reported. The code that creates the builder reads
+/// <see cref="Diagnostics"/> and reports them where it can.
+/// </para>
+/// </remarks>
 public abstract class ReferenceIndexBuilder
 {
+    private readonly ProjectServiceProvider _serviceProvider;
+    private readonly ILogger _logger;
+    private readonly ConcurrentQueue<Diagnostic> _diagnostics = new();
+    private readonly ConcurrentDictionary<string, bool> _reportedExceptions = new( StringComparer.Ordinal );
+    private int _skippedNodeCount;
+
+    private protected ReferenceIndexBuilder( ProjectServiceProvider serviceProvider )
+    {
+        this._serviceProvider = serviceProvider;
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( "ReferenceIndex" );
+    }
+
+    /// <summary>
+    /// Gets the service provider of the project whose references are indexed.
+    /// </summary>
+    private protected ProjectServiceProvider ServiceProvider => this._serviceProvider;
+
+    /// <summary>
+    /// Gets the diagnostics that report the syntax nodes that the walker skipped because of an exception.
+    /// </summary>
+    internal IReadOnlyCollection<Diagnostic> Diagnostics => this._diagnostics;
+
+    /// <summary>
+    /// Gets the number of syntax nodes that the walker skipped because of an exception. When the number is not zero, the index
+    /// is incomplete.
+    /// </summary>
+    internal int SkippedNodeCount => Volatile.Read( ref this._skippedNodeCount );
+
+    /// <summary>
+    /// Records that the walker skipped a syntax node because an exception occurred while the node was processed.
+    /// </summary>
+    /// <remarks>
+    /// This method must not throw, because it is called while an exception is handled. It can be called concurrently.
+    /// </remarks>
+    internal void ReportSkippedNode( SyntaxNode node, Exception exception )
+    {
+        Interlocked.Increment( ref this._skippedNodeCount );
+
+        try
+        {
+            var reportedException = SyntaxProcessingException.ShouldWrapException( exception, node )
+                ? new SyntaxProcessingException( exception, node )
+                : exception;
+
+            this._logger.Warning?.Log( $"The reference indexer skipped a node because of an exception: {reportedException}" );
+
+            // A defect usually fails on every node of the same shape. The exception is reported once per distinct message, so that
+            // the crash reports and the telemetry are not flooded.
+            if ( this._reportedExceptions.TryAdd( $"{exception.GetType().FullName}: {exception.Message}", true ) )
+            {
+                this._serviceProvider.GetService<ICompileTimeExceptionHandler>()
+                    ?.ReportException( reportedException, this._diagnostics.Enqueue, canIgnoreException: true, out _ );
+            }
+
+            this._diagnostics.Enqueue(
+                GeneralDiagnosticDescriptors.ReferenceIndexerSkippedNode.CreateRoslynDiagnostic(
+                    node.GetLocation(),
+                    (node.Kind().ToString(), exception.Message) ) );
+        }
+        catch ( Exception reportingException )
+        {
+            this._logger.Error?.Log( $"Cannot report the exception of the reference indexer: {reportingException}" );
+        }
+    }
+
     internal void AddReference( ISymbol? referencedSymbol, ISymbol? referencingSymbol, SyntaxNodeOrToken node, ReferenceKinds referenceKind )
     {
         if ( referencedSymbol == null || referencingSymbol == null )
@@ -47,6 +138,11 @@ public abstract class ReferenceIndexBuilder
             case SymbolKind.Label:
             case SymbolKind.Preprocessing:
             case SymbolKind.DynamicType:
+                return false;
+
+            // An error type is the result of a name that the compiler could not bind. It is not a declaration, so no query can
+            // find a reference to it, and unrelated error types can be equal under a structural comparison.
+            case SymbolKind.ErrorType:
                 return false;
         }
 

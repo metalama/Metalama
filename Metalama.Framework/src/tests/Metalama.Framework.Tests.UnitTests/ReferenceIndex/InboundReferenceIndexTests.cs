@@ -236,6 +236,48 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["A", "B", "B.M(A):a", "B.this[A]:a", "C.M(B):b", "C.this[B]:b"], result.Observer.ResolvedSymbolNames );
     }
 
+    /// <summary>
+    /// Verifies that a type in a constraint of a type parameter of a method is indexed.
+    /// </summary>
+    [Fact]
+    public void MethodTypeConstraint()
+    {
+        var code = new Dictionary<string, string>() { ["A.cs"] = "class A;", ["B.cs"] = "class B { void M<T>() where T : A {} }" };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.TypeConstraint );
+
+        Assert.Equal( ["B.M<T>()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that a type argument of the type created by an object creation expression is indexed.
+    /// </summary>
+    [Fact]
+    public void TypeArgumentOfObjectCreation()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A;", ["B.cs"] = "class B { void M() { _ = new System.Collections.Generic.List<A>(); } }"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.TypeArgument );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that the element type of an array creation expression is indexed.
+    /// </summary>
+    [Fact]
+    public void ArrayCreation()
+    {
+        var code = new Dictionary<string, string>() { ["A.cs"] = "class A;", ["B.cs"] = "class B { void M() { _ = new A[1]; } }" };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.ArrayCreation );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
     [Fact]
     public void TypeConstraint()
     {

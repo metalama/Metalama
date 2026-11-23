@@ -24,6 +24,7 @@ internal sealed class OutboundReferenceIndexBuilder : ReferenceIndexBuilder
     private bool _frozen;
 
     public OutboundReferenceIndexBuilder( ProjectServiceProvider serviceProvider )
+        : base( serviceProvider )
     {
         this._serviceProvider = serviceProvider;
         this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();

@@ -13,6 +13,7 @@ using Metalama.Framework.Introspection;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
@@ -69,7 +70,12 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
                     cancellationToken ),
                 cancellationToken );
 
-            return this._referenceIndex = builder.ToReadOnly();
+            var index = builder.ToReadOnly();
+
+            // The index is built once per compilation, so the diagnostics of the skipped nodes are reported once.
+            this.ReportDiagnostics( compilationModel.Project.ServiceProvider, index.Diagnostics );
+
+            return this._referenceIndex = index;
         }
     }
 
@@ -103,6 +109,8 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
         var builder = new OutboundReferenceIndexBuilder( this._serviceProvider );
         builder.IndexDeclaration( origin, cancellationToken );
 
+        this.ReportDiagnostics( this._serviceProvider, builder.Diagnostics.ToImmutableArray() );
+
         return builder.GetReferences()
             .GroupBy( r => new SymbolPair( r.ReferencedSymbol, r.ReferencingSymbol ) )
             .Select(
@@ -111,6 +119,18 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
                     group.Key.Referencing,
                     group,
                     this._compilation ) );
+    }
+
+    /// <summary>
+    /// Reports the diagnostics of the syntax nodes that the reference indexer skipped to <see cref="IIntrospectionReferenceDiagnosticSink"/>,
+    /// when the host registered one.
+    /// </summary>
+    private void ReportDiagnostics( ProjectServiceProvider serviceProvider, ImmutableArray<Diagnostic> diagnostics )
+    {
+        if ( !diagnostics.IsEmpty )
+        {
+            serviceProvider.GetService<IIntrospectionReferenceDiagnosticSink>()?.Report( this._compilation, diagnostics );
+        }
     }
 
     private sealed record SymbolPair( ISymbol Referenced, ISymbol Referencing )
