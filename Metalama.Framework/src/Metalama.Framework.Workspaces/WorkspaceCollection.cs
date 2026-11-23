@@ -111,10 +111,12 @@ namespace Metalama.Framework.Workspaces
         /// returns a workspace that the collection already holds.
         /// </summary>
         /// <remarks>
-        /// Metalama.LinqPad handles this event to report its usage telemetry, because the queries of the user load the
-        /// workspaces themselves. An exception thrown by a handler is ignored and does not fail the load.
+        /// A host of the introspection API can handle this event to report its usage telemetry. Metalama.LinqPad does so, because
+        /// the queries of the user load the workspaces themselves. An exception thrown by a handler is ignored and does not fail
+        /// the load.
         /// </remarks>
-        internal event Action<Workspace, TimeSpan>? WorkspaceLoaded;
+        /// <seealso cref="IWorkspaceHostInfo"/>
+        public event Action<Workspace, TimeSpan>? WorkspaceLoaded;
 
         [Obsolete( "Errors are now always ignored." )]
         public bool IgnoreLoadErrors { get; set; }

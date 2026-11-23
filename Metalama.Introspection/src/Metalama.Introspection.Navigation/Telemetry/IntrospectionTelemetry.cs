@@ -25,7 +25,7 @@ namespace Metalama.Introspection.Navigation.Telemetry;
 /// <para>
 /// Every report goes through an <see cref="ITelemetryContext"/>, so that the consent of the user, the opt-out of the
 /// repository (<c>metalama.json</c>) and the process-level gates apply. The reports about a workspace use the context that
-/// the workspace opened when it was loaded (<see cref="Workspace.TelemetryContext"/>). Only an exception that occurs outside
+/// the workspace opened when it was loaded (<see cref="IWorkspaceHostInfo.TelemetryContext"/>). Only an exception that occurs outside
 /// of a workspace, for instance while a workspace is loaded, opens a context for a directory. Nothing is sent for a directory
 /// that is not in a git repository.
 /// </para>
@@ -69,7 +69,7 @@ internal static class IntrospectionTelemetry
         try
         {
             // The context of the workspace decides whether the usage session is metered.
-            var context = workspace.TelemetryContext;
+            var context = ((IWorkspaceHostInfo) workspace).TelemetryContext;
 
             if ( context == null )
             {
@@ -113,7 +113,7 @@ internal static class IntrospectionTelemetry
     {
         try
         {
-            if ( workspace.TelemetryContext is { } context && Classify( exception ) is { } classifiedException )
+            if ( ((IWorkspaceHostInfo) workspace).TelemetryContext is { } context && Classify( exception ) is { } classifiedException )
             {
                 context.ReportException( classifiedException );
             }

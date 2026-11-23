@@ -51,7 +51,7 @@ namespace Metalama.Framework.Workspaces
     /// <seealso cref="IProjectSet"/>
     /// <seealso href="@introspection-api"/>
     [PublicAPI]
-    public sealed class Workspace : IDisposable, IProjectSet, IWorkspaceLoadInfo
+    public sealed class Workspace : IDisposable, IProjectSet, IWorkspaceLoadInfo, IWorkspaceHostInfo
     {
         private static readonly ILogger _logger;
 
@@ -264,22 +264,15 @@ namespace Metalama.Framework.Workspaces
         private record LoadProjectSetResult( ProjectSet Projects, ImmutableList<WorkspaceDiagnostic> LoadDiagnostics, ITelemetryContext? TelemetryContext );
 
         /// <summary>
-        /// Gets the telemetry context of the workspace, or <see langword="null"/> when the telemetry service is not available.
+        /// Gets the telemetry context of the workspace. See <see cref="IWorkspaceHostInfo.TelemetryContext"/>.
         /// </summary>
-        /// <remarks>
-        /// <para>
-        /// The context is opened once per load of the workspace, and a reload opens a new one, so that a change of the
-        /// <c>metalama.json</c> file of the repository is taken into account. The context decides whether telemetry is collected
-        /// (consent, the opt-out of the repository, and the gates of the process). The hosts use it for the usage session of the
-        /// workspace and for the exceptions of the workspace, and the service provider of each project exposes it to the engine.
-        /// This is the equivalent of the context that the compiler opens for each project.
-        /// </para>
-        /// <para>
-        /// The policy of the context is resolved from the directory of the first loaded path. When the workspace contains a
-        /// project of another repository, the <c>metalama.json</c> file of that repository is not consulted.
-        /// </para>
-        /// </remarks>
         internal ITelemetryContext? TelemetryContext { get; private set; }
+
+        /// <inheritdoc />
+        string IWorkspaceHostInfo.Key => this.Key;
+
+        /// <inheritdoc />
+        ITelemetryContext? IWorkspaceHostInfo.TelemetryContext => this.TelemetryContext;
 
         /// <summary>
         /// Opens the telemetry context of a load of the workspace, and returns the warnings of the context, such as an invalid

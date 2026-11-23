@@ -64,7 +64,7 @@ internal static class DriverInitialization
     private static void OnWorkspaceLoaded( Workspace workspace, TimeSpan elapsed )
         => IntrospectionTelemetry.ReportWorkspaceLoaded(
             IntrospectionHost.LinqPad,
-            workspace.Key,
+            ((IWorkspaceHostInfo) workspace).Key,
             workspace.LoadedPaths,
             workspace,
             elapsed,
