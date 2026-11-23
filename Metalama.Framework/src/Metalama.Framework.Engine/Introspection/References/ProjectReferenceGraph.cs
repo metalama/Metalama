@@ -70,12 +70,7 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
                     cancellationToken ),
                 cancellationToken );
 
-            var index = builder.ToReadOnly();
-
-            // The index is built once per compilation, so the diagnostics of the skipped nodes are reported once.
-            this.ReportDiagnostics( compilationModel.Project.ServiceProvider, index.Diagnostics );
-
-            return this._referenceIndex = index;
+            return this._referenceIndex = builder.ToReadOnly();
         }
     }
 
@@ -96,12 +91,19 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
         };
 
         // Cache fast path.
-        if ( cache.TryGetValue( destination, out var result ) )
+        if ( !cache.TryGetValue( destination, out var result ) )
         {
-            return result;
+            result = cache.GetOrAdd( destination, _ => this.GetInboundReferencesCore( destination, childKinds, cancellationToken ) );
         }
 
-        return cache.GetOrAdd( destination, _ => this.GetInboundReferencesCore( destination, childKinds, cancellationToken ) );
+        // The result of every call depends on the index, so the diagnostics of an incomplete index are reported for every call, including
+        // the calls that the cache answers. The sink removes the duplicates. See issue #2415.
+        if ( this._referenceIndex is { SkippedNodeCount: > 0 } index )
+        {
+            this.ReportDiagnostics( this._compilation.Project.ServiceProvider, index.Diagnostics );
+        }
+
+        return result;
     }
 
     public IEnumerable<IIntrospectionReference> GetOutboundReferences( IDeclaration origin, CancellationToken cancellationToken = default )

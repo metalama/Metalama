@@ -79,6 +79,20 @@ public abstract class ReferenceIndexBuilder
     {
         Interlocked.Increment( ref this._skippedNodeCount );
 
+        // The diagnostic is queued before the exception is reported, so that a failure of the reporting channel cannot hide that the
+        // index is incomplete.
+        try
+        {
+            this._diagnostics.Enqueue(
+                GeneralDiagnosticDescriptors.ReferenceIndexerSkippedNode.CreateRoslynDiagnostic(
+                    node.GetLocation(),
+                    (node.Kind().ToString(), exception.Message) ) );
+        }
+        catch ( Exception diagnosticException )
+        {
+            this._logger.Error?.Log( $"Cannot create the diagnostic of a node that the reference indexer skipped: {diagnosticException}" );
+        }
+
         try
         {
             var reportedException = SyntaxProcessingException.ShouldWrapException( exception, node )
@@ -102,11 +116,6 @@ public abstract class ReferenceIndexBuilder
                     ((ITelemetryContext?) this._serviceProvider.Underlying.GetService( typeof(ITelemetryContext) ))?.ReportException( reportedException );
                 }
             }
-
-            this._diagnostics.Enqueue(
-                GeneralDiagnosticDescriptors.ReferenceIndexerSkippedNode.CreateRoslynDiagnostic(
-                    node.GetLocation(),
-                    (node.Kind().ToString(), exception.Message) ) );
         }
         catch ( Exception reportingException )
         {

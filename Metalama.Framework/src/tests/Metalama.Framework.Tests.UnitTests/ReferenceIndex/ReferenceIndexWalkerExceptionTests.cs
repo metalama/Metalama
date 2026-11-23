@@ -124,6 +124,24 @@ public sealed class ReferenceIndexWalkerExceptionTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the diagnostic of a skipped node is reported when the reporting channel of the exception throws.
+    /// </summary>
+    [Fact]
+    public void FailingExceptionHandler_DiagnosticStillReported()
+    {
+        var additionalServices = new AdditionalServiceCollection();
+        additionalServices.AddProjectService<ICompileTimeExceptionHandler>( new ThrowingExceptionHandler() );
+        using var testContext = this.CreateTestContext( additionalServices );
+        var compilation = testContext.CreateCompilationModel( testContext.CreateCSharpCompilation( _code ) );
+        testContext.FaultInjector.ArmFault( _expressionStatementFault, count: 1 );
+
+        var index = BuildIndex( testContext, compilation );
+
+        Assert.Equal( 1, index.SkippedNodeCount );
+        Assert.Equal( "LAMA0094", Assert.Single( index.Diagnostics ).Id );
+    }
+
+    /// <summary>
     /// Verifies that a cancellation is not contained.
     /// </summary>
     [Fact]
@@ -138,10 +156,11 @@ public sealed class ReferenceIndexWalkerExceptionTests : UnitTestClass
 
     /// <summary>
     /// Verifies that the introspection reference graph returns the references that it could index, and reports the diagnostics of the
-    /// skipped node once to <see cref="IIntrospectionReferenceDiagnosticSink"/>, although the index is queried twice.
+    /// skipped node to <see cref="IIntrospectionReferenceDiagnosticSink"/> for every query, including the query that the cache answers,
+    /// because the result of every query depends on the incomplete index.
     /// </summary>
     [Fact]
-    public void IntrospectionInboundReferences_ReportDiagnosticsOnce()
+    public void IntrospectionInboundReferences_ReportDiagnosticsOnEveryQuery()
     {
         var sink = new RecordingDiagnosticSink();
         var additionalServices = new AdditionalServiceCollection();
@@ -159,9 +178,13 @@ public sealed class ReferenceIndexWalkerExceptionTests : UnitTestClass
         Assert.Equal( ["N"], references1.SelectAsArray( r => ((INamedDeclaration) r.OriginDeclaration).Name ) );
         Assert.Equal( ["N"], references2.SelectAsArray( r => ((INamedDeclaration) r.OriginDeclaration).Name ) );
 
-        var report = Assert.Single( sink.Reports );
-        Assert.Same( compilation, report.Compilation );
-        Assert.Equal( "LAMA0094", Assert.Single( report.Diagnostics ).Id );
+        Assert.Equal( 2, sink.Reports.Count );
+
+        foreach ( var report in sink.Reports )
+        {
+            Assert.Same( compilation, report.Compilation );
+            Assert.Equal( "LAMA0094", Assert.Single( report.Diagnostics ).Id );
+        }
     }
 
     /// <summary>
@@ -271,6 +294,15 @@ public sealed class ReferenceIndexWalkerExceptionTests : UnitTestClass
             reportDiagnostic( Diagnostic.Create( _descriptor, Location.None ) );
             isHandled = true;
         }
+    }
+
+    /// <summary>
+    /// An exception handler that throws, as a reporting channel that fails.
+    /// </summary>
+    private sealed class ThrowingExceptionHandler : ICompileTimeExceptionHandler
+    {
+        public void ReportException( Exception exception, Action<Diagnostic> reportDiagnostic, bool canIgnoreException, out bool isHandled )
+            => throw new InvalidOperationException( "The reporting channel failed." );
     }
 
     /// <summary>

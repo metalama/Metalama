@@ -15,8 +15,15 @@ namespace Metalama.Framework.Engine.Introspection.References;
 /// diagnostics to the user.
 /// </summary>
 /// <remarks>
-/// When the service is not registered, the diagnostics are not shown, but the exceptions are still reported to the
-/// exception handler of the project, when one is registered.
+/// <para>
+/// The reference graph reports the diagnostics of an incomplete index for every query of inbound references, because every
+/// result depends on the index. The same diagnostics are therefore reported many times, and the implementation must remove the
+/// duplicates within the scope in which it shows them, such as one request of the host.
+/// </para>
+/// <para>
+/// When the service is not registered, the diagnostics are not shown, but the exceptions are still reported, through the
+/// reporting channel of the project.
+/// </para>
 /// </remarks>
 public interface IIntrospectionReferenceDiagnosticSink : IProjectService
 {

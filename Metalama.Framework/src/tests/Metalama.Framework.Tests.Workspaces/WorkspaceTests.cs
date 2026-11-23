@@ -246,6 +246,49 @@ class MyClass {}" );
             Assert.Equal( Path.GetDirectoryName( projectPath ), reported.Directory );
         }
 
+        /// <summary>
+        /// Verifies that the diagnostic sink of a workspace reports each diagnostic of the reference indexer once per scope of
+        /// <see cref="DiagnosticReporter"/>, and again after <see cref="DiagnosticReporter.ClearCounters"/> starts a new scope. See
+        /// issue #2415.
+        /// </summary>
+        [Fact]
+        public async Task ReferenceDiagnosticSink_ReportsOncePerScope()
+        {
+            using var testContext = this.CreateTestContext();
+
+            var projectPath = await CreateMetalamaEnabledProjectAsync( testContext, "class C;" );
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            var compilation = workspace.Projects.Single().SourceCode.Compilations.Single();
+
+            var descriptor = new DiagnosticDescriptor( "TEST0001", "Title", "The message", "Test", DiagnosticSeverity.Warning, true );
+            var diagnostics = ImmutableArray.Create( Diagnostic.Create( descriptor, Location.None ) );
+
+            var reported = new List<IIntrospectionDiagnostic>();
+            var previousReportAction = DiagnosticReporter.ReportAction;
+            DiagnosticReporter.ReportAction = reported.AddRange;
+
+            try
+            {
+                var sink = new WorkspaceReferenceDiagnosticSink();
+
+                DiagnosticReporter.ClearCounters();
+                sink.Report( compilation, diagnostics );
+                sink.Report( compilation, diagnostics );
+
+                Assert.Single( reported );
+
+                DiagnosticReporter.ClearCounters();
+                sink.Report( compilation, diagnostics );
+
+                Assert.Equal( 2, reported.Count );
+            }
+            finally
+            {
+                DiagnosticReporter.ReportAction = previousReportAction;
+            }
+        }
+
         [Fact]
         public async Task InboundDeclarationReferences()
         {

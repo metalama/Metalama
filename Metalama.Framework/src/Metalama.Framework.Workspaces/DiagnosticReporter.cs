@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Metalama.Framework.Workspaces;
 
@@ -35,13 +36,25 @@ public static class DiagnosticReporter
     /// </summary>
     public static int ReportedErrors { get; private set; }
 
+    private static int _scope;
+
     /// <summary>
-    /// Clears the <see cref="ReportedWarnings"/> and <see cref="ReportedErrors"/> counters.
+    /// Clears the <see cref="ReportedWarnings"/> and <see cref="ReportedErrors"/> counters, and starts a new reporting scope.
     /// </summary>
+    /// <remarks>
+    /// A host calls this method at the start of each request or query. The diagnostics of an incomplete reference index are
+    /// reported at most once per scope, so that each response that depends on the index lists them once.
+    /// </remarks>
     public static void ClearCounters()
     {
         ReportedWarnings = ReportedErrors = 0;
+        Interlocked.Increment( ref _scope );
     }
+
+    /// <summary>
+    /// Gets the number of the current reporting scope, which <see cref="ClearCounters"/> increments.
+    /// </summary>
+    internal static int Scope => Volatile.Read( ref _scope );
 
     /// <summary>
     /// Gets or sets the action to execute when diagnostics are reported. The default action is <see cref="ReportToConsole"/>.
