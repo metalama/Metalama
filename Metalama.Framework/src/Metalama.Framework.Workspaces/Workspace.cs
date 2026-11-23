@@ -259,6 +259,48 @@ namespace Metalama.Framework.Workspaces
 
         private record LoadProjectSetResult( ProjectSet Projects, ImmutableList<WorkspaceDiagnostic> LoadDiagnostics );
 
+        /// <summary>
+        /// The file name of the analyzer assembly that contains the Metalama source generator.
+        /// </summary>
+        private const string _metalamaSourceGeneratorAssemblyFileName = "Metalama.Framework.CompilerExtensions.dll";
+
+        /// <summary>
+        /// Removes the analyzer reference that contains the Metalama source generator from every project of a solution.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <see cref="Microsoft.CodeAnalysis.Project.GetCompilationAsync"/> runs the source generators of the project. The Metalama
+        /// source generator then runs the design-time pipeline of the version of Metalama that the project references, in the
+        /// current process. This pipeline is stored in a process-wide service of an assembly load context that is never unloaded,
+        /// and it keeps the last compilation of each project. A workspace that was disposed therefore stayed in memory until the
+        /// end of the process, and every load did the work of the design-time pipeline in addition to its own.
+        /// </para>
+        /// <para>
+        /// The workspace does not need the output of this generator, because it runs the compile-time pipeline itself to produce
+        /// <see cref="TransformedCode"/>. Without the generator, <see cref="SourceCode"/> no longer contains the partial
+        /// declarations that the design-time pipeline generates for the members that aspects introduce. The other source
+        /// generators of the project still run.
+        /// </para>
+        /// </remarks>
+        private static Solution RemoveMetalamaSourceGenerator( Solution solution )
+        {
+            foreach ( var project in solution.Projects )
+            {
+                foreach ( var analyzerReference in project.AnalyzerReferences )
+                {
+                    if ( string.Equals(
+                            Path.GetFileName( analyzerReference.FullPath ),
+                            _metalamaSourceGeneratorAssemblyFileName,
+                            StringComparison.OrdinalIgnoreCase ) )
+                    {
+                        solution = solution.RemoveAnalyzerReference( project.Id, analyzerReference );
+                    }
+                }
+            }
+
+            return solution;
+        }
+
         private static Task<LoadProjectSetResult> LoadProjectSetAsync(
             ImmutableArray<string> projects,
             ImmutableDictionary<string, string> properties,
@@ -348,7 +390,9 @@ namespace Metalama.Framework.Workspaces
             var nuGetAssetsDiagnostics = new NuGetAssetsDiagnostics();
 
             // Start all tasks in parallel because even that may be expensive.
-            var loadProjectTasks = roslynWorkspace.CurrentSolution.Projects.AsParallel().Select( GetOurProjectAsync ).ToArray();
+            var solution = RemoveMetalamaSourceGenerator( roslynWorkspace.CurrentSolution );
+
+            var loadProjectTasks = solution.Projects.AsParallel().Select( GetOurProjectAsync ).ToArray();
 
             var ourProjects = (await Task.WhenAll( loadProjectTasks )).ToImmutableArray();
 

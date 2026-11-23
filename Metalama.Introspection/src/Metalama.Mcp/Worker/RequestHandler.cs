@@ -116,6 +116,11 @@ internal sealed class RequestHandler : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the workspaces that the handler has loaded. Tests use it to check that an unloaded or reloaded workspace is released.
+    /// </summary>
+    internal WorkspaceRegistry Registry => this._registry;
+
     public void Dispose() => this._intelliSense.Dispose();
 
     private static string GetCode( JsonObject args ) => args["code"]?.GetValue<string>() ?? "";
