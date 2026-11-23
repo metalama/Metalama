@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -25,9 +26,13 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 /// <para>
 /// When an exception occurs while the walker processes a syntax node, the walker skips the node and calls
 /// <see cref="ReportSkippedNode"/>, so that one defect does not discard the whole index. The builder reports each distinct
-/// exception once through <see cref="ICompileTimeExceptionHandler"/>, which writes the crash report, reports the exception to
-/// telemetry, and reports the diagnostic LAMA0049. The builder also adds the diagnostic LAMA0094 to <see cref="Diagnostics"/>
-/// for each skipped node.
+/// exception once, and adds the diagnostic LAMA0094 to <see cref="Diagnostics"/> for each skipped node.
+/// </para>
+/// <para>
+/// The exception is reported to the reporting channel that the host of the project registered before the project was processed.
+/// In the compiler, it is <see cref="ICompileTimeExceptionHandler"/>, which writes the crash report, reports the exception to
+/// telemetry, and reports the diagnostic LAMA0049. In a workspace of the introspection API, it is the
+/// <see cref="ITelemetryContext"/> of the workspace. When neither is registered, the exception is only written to the log.
 /// </para>
 /// <para>
 /// The builder does not know where diagnostics must be reported. The code that creates the builder reads
@@ -86,8 +91,16 @@ public abstract class ReferenceIndexBuilder
             // the crash reports and the telemetry are not flooded.
             if ( this._reportedExceptions.TryAdd( $"{exception.GetType().FullName}: {exception.Message}", true ) )
             {
-                this._serviceProvider.GetService<ICompileTimeExceptionHandler>()
-                    ?.ReportException( reportedException, this._diagnostics.Enqueue, canIgnoreException: true, out _ );
+                if ( this._serviceProvider.GetService<ICompileTimeExceptionHandler>() is { } exceptionHandler )
+                {
+                    exceptionHandler.ReportException( reportedException, this._diagnostics.Enqueue, canIgnoreException: true, out _ );
+                }
+                else
+                {
+                    // Resolved untyped, because ITelemetryContext is a type of Backstage and not a service of the engine. The host
+                    // opens the context before the project is processed and registers it, as the compiler does.
+                    ((ITelemetryContext?) this._serviceProvider.Underlying.GetService( typeof(ITelemetryContext) ))?.ReportException( reportedException );
+                }
             }
 
             this._diagnostics.Enqueue(

@@ -7,6 +7,7 @@ using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -207,6 +208,42 @@ class MyClass {}" );
             Assert.Single( workspace.AspectInstances );
             var targetFramework = Assert.Single( workspace.SourceCode.TargetFrameworks );
             Assert.Equal( "net10.0", targetFramework );
+        }
+
+        /// <summary>
+        /// Verifies that a workspace opens one telemetry context when it is loaded, for the directory of the loaded project,
+        /// and that an exception contained by the reference indexer is reported to it through the service provider of the
+        /// project. See issue #2419.
+        /// </summary>
+        [Fact]
+        public async Task TelemetryContext_OpenedOnLoadAndUsedForContainedExceptions()
+        {
+            using var testContext = this.CreateTestContext();
+            testContext.ExpectsReportedExceptions = true;
+
+            var projectPath = await CreateMetalamaEnabledProjectAsync( testContext, "class A { static void F() {} void M() { F(); } }" );
+
+            var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
+
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+
+            CheckWorkspace( workspace );
+
+            var telemetryContext = workspace.TelemetryContext;
+            Assert.NotNull( telemetryContext );
+
+            // The walker fails on the invocation statement, and the reference index contains the failure. The name is the one that
+            // FaultInjectionPoints.GetReferenceIndexWalkerVisit returns, which this project cannot access.
+            testContext.FaultInjector.ArmFault( "ReferenceIndexWalker.Visit.ExpressionStatement" );
+
+            var methodF = workspace.Projects.Single().Types.Single().Methods.OfName( "F" ).Single();
+            Assert.Empty( methodF.GetInboundReferences( cancellationToken: testContext.CancellationToken ) );
+
+            var reported = Assert.Single( testContext.ReportedTelemetryExceptions );
+            // The exception is wrapped in a SyntaxProcessingException, whose message gives the kind of the node.
+            Assert.Contains( "while processing the ExpressionStatement", reported.Exception.Message, StringComparison.Ordinal );
+            Assert.Equal( TelemetryRouting.Repository, reported.Routing );
+            Assert.Equal( Path.GetDirectoryName( projectPath ), reported.Directory );
         }
 
         [Fact]

@@ -17,6 +17,8 @@ using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -115,6 +117,7 @@ namespace Metalama.Framework.Workspaces
             this.Key = key;
             this._filteredProjects = this._unfilteredProjects = projectSet.Projects;
             this._loadDiagnostics = projectSet.LoadDiagnostics;
+            this.TelemetryContext = projectSet.TelemetryContext;
             this._collection = collection;
             this._domain = domain;
             this._introspectionOptions = introspectionOptions;
@@ -205,6 +208,7 @@ namespace Metalama.Framework.Workspaces
             this._unfilteredProjects = result.Projects;
             this._filteredProjects = this._unfilteredProjects.GetSubset( this._projectFilter );
             this._loadDiagnostics = result.LoadDiagnostics;
+            this.TelemetryContext = result.TelemetryContext;
 
             return this;
         }
@@ -257,7 +261,55 @@ namespace Metalama.Framework.Workspaces
             dotNetTool.Execute( $"restore \"{Path.GetFileName( project )}\"", Path.GetDirectoryName( Path.GetFullPath( project ) ) );
         }
 
-        private record LoadProjectSetResult( ProjectSet Projects, ImmutableList<WorkspaceDiagnostic> LoadDiagnostics );
+        private record LoadProjectSetResult( ProjectSet Projects, ImmutableList<WorkspaceDiagnostic> LoadDiagnostics, ITelemetryContext? TelemetryContext );
+
+        /// <summary>
+        /// Gets the telemetry context of the workspace, or <see langword="null"/> when the telemetry service is not available.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The context is opened once per load of the workspace, and a reload opens a new one, so that a change of the
+        /// <c>metalama.json</c> file of the repository is taken into account. The context decides whether telemetry is collected
+        /// (consent, the opt-out of the repository, and the gates of the process). The hosts use it for the usage session of the
+        /// workspace and for the exceptions of the workspace, and the service provider of each project exposes it to the engine.
+        /// This is the equivalent of the context that the compiler opens for each project.
+        /// </para>
+        /// <para>
+        /// The policy of the context is resolved from the directory of the first loaded path. When the workspace contains a
+        /// project of another repository, the <c>metalama.json</c> file of that repository is not consulted.
+        /// </para>
+        /// </remarks>
+        internal ITelemetryContext? TelemetryContext { get; private set; }
+
+        /// <summary>
+        /// Opens the telemetry context of a load of the workspace, and returns the warnings of the context, such as an invalid
+        /// <c>metalama.json</c> file, as load diagnostics.
+        /// </summary>
+        private static (ITelemetryContext? Context, ImmutableList<WorkspaceDiagnostic> Warnings) OpenTelemetryContext(
+            WorkspaceCollection collection,
+            ImmutableArray<string> paths )
+        {
+            // The service is resolved from the service provider of the collection, as the engine resolves it, so that a host or a
+            // test can provide its own.
+            var telemetryService = collection.ServiceProvider.Underlying.GetBackstageService<ITelemetryService>();
+
+            if ( telemetryService == null )
+            {
+                return (null, ImmutableList<WorkspaceDiagnostic>.Empty);
+            }
+
+            var directory = paths.IsEmpty ? null : Path.GetDirectoryName( Path.GetFullPath( paths[0] ) );
+            var context = telemetryService.OpenContext( telemetryService.GetPolicy( directory ) );
+
+            var warnings = context.Warnings
+                .Select(
+                    w => new WorkspaceDiagnostic(
+                        WorkspaceDiagnosticKind.Warning,
+                        w.FilePath == null ? w.Message : $"{w.FilePath}: {w.Message}" ) )
+                .ToImmutableList();
+
+            return (context, warnings);
+        }
 
         private static Task<LoadProjectSetResult> LoadProjectSetAsync(
             ImmutableArray<string> projects,
@@ -269,10 +321,11 @@ namespace Metalama.Framework.Workspaces
             Future<Workspace> workspace,
             CancellationToken cancellationToken )
         {
+            var telemetry = OpenTelemetryContext( collection, projects );
+
             if ( projects.IsEmpty )
             {
-                return Task.FromResult(
-                    new LoadProjectSetResult( new ProjectSet( ImmutableArray<Project>.Empty, "Empty" ), ImmutableList<WorkspaceDiagnostic>.Empty ) );
+                return Task.FromResult( new LoadProjectSetResult( new ProjectSet( ImmutableArray<Project>.Empty, "Empty" ), telemetry.Warnings, telemetry.Context ) );
             }
 
             // We need to initialize MSBuild once per process. The initialization may depend on `global.json`.
@@ -284,7 +337,7 @@ namespace Metalama.Framework.Workspaces
             }
 
             // We can call the next method only after MSBuild initialization because it loads MSBuild assemblies.
-            return LoadProjectSetCoreAsync( projects, properties, collection, domain, introspectionOptions, restore, workspace, cancellationToken );
+            return LoadProjectSetCoreAsync( projects, properties, collection, domain, introspectionOptions, restore, workspace, telemetry, cancellationToken );
         }
 
         private static async Task<LoadProjectSetResult> LoadProjectSetCoreAsync(
@@ -295,6 +348,7 @@ namespace Metalama.Framework.Workspaces
             IIntrospectionOptionsProvider introspectionOptions,
             bool restore,
             Future<Workspace> workspace,
+            (ITelemetryContext? Context, ImmutableList<WorkspaceDiagnostic> Warnings) telemetry,
             CancellationToken cancellationToken )
         {
             var allProperties = properties
@@ -371,7 +425,7 @@ namespace Metalama.Framework.Workspaces
                 }
             }
 
-            return new LoadProjectSetResult( projectSet, diagnostics );
+            return new LoadProjectSetResult( projectSet, diagnostics.AddRange( telemetry.Warnings ), telemetry.Context );
 
             async Task<Project> GetOurProjectAsync( Microsoft.CodeAnalysis.Project roslynProject )
             {
@@ -405,9 +459,15 @@ namespace Metalama.Framework.Workspaces
                 var projectServiceProvider = collection.ServiceProvider.Underlying
                     .WithService( additionalServiceCollection, true )
                     .WithProjectScopedServices( projectOptions, compilation )
-                    .WithExceptionHandler()
                     .WithService( _ => new WorkspaceIntrospectionService( workspace ) )
                     .WithService( _ => new WorkspaceReferenceDiagnosticSink() );
+
+                // As the compiler does, the telemetry context is exposed untyped, because it is a type of Backstage and not a
+                // service of the engine.
+                if ( telemetry.Context != null )
+                {
+                    projectServiceProvider = projectServiceProvider.WithUntypedService( typeof(ITelemetryContext), telemetry.Context );
+                }
 
                 // Create our workspace project.
                 var ourProject = new Project(

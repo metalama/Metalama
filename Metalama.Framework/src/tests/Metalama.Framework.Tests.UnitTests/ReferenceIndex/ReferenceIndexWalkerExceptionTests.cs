@@ -17,6 +17,8 @@ using Metalama.Framework.Introspection;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -92,6 +94,33 @@ public sealed class ReferenceIndexWalkerExceptionTests : UnitTestClass
         // The exception is wrapped, so that the crash report gives the location of the node.
         Assert.IsType<SyntaxProcessingException>( Assert.Single( exceptionHandler.Exceptions ) );
         Assert.Single( index.Diagnostics, d => d.Id == RecordingExceptionHandler.DiagnosticId );
+    }
+
+    /// <summary>
+    /// Verifies that, when the project has no exception handler, an exception is reported once to the telemetry context that the
+    /// host registered in the service provider of the project, as a workspace does.
+    /// </summary>
+    [Fact]
+    public void NoExceptionHandler_ReportedToTelemetryContext()
+    {
+        var telemetryContext = new RecordingTelemetryContext();
+        var additionalServices = new AdditionalServiceCollection();
+        additionalServices.AddUntypedProjectService( typeof(ITelemetryContext), telemetryContext );
+        using var testContext = this.CreateTestContext( additionalServices );
+        var compilation = testContext.CreateCompilationModel( testContext.CreateCSharpCompilation( _code ) );
+        testContext.FaultInjector.ArmFault( _expressionStatementFault );
+
+        var builder = new InboundReferenceIndexBuilder( compilation.Project.ServiceProvider, ReferenceIndexerOptions.All, StructuralSymbolComparer.Default );
+
+        foreach ( var syntaxTree in compilation.PartialCompilation.SyntaxTreeCollection )
+        {
+            builder.IndexSyntaxTree( syntaxTree, compilation.CompilationContext.SemanticModelProvider, Xunit.TestContext.Current.CancellationToken );
+        }
+
+        var index = builder.ToReadOnly();
+
+        Assert.Equal( 3, index.SkippedNodeCount );
+        Assert.IsType<SyntaxProcessingException>( Assert.Single( telemetryContext.Exceptions ) );
     }
 
     /// <summary>
@@ -242,6 +271,34 @@ public sealed class ReferenceIndexWalkerExceptionTests : UnitTestClass
             reportDiagnostic( Diagnostic.Create( _descriptor, Location.None ) );
             isHandled = true;
         }
+    }
+
+    /// <summary>
+    /// A telemetry context that records the exceptions reported to it.
+    /// </summary>
+    private sealed class RecordingTelemetryContext : ITelemetryContext
+    {
+        public ConcurrentQueue<Exception> Exceptions { get; } = new();
+
+        public ImmutableArray<TelemetryContextWarning> Warnings => ImmutableArray<TelemetryContextWarning>.Empty;
+
+        public ITelemetryPolicy Policy => throw new NotSupportedException();
+
+        public IUsageSession StartUsageSession( string kind, string? projectName = null ) => throw new NotSupportedException();
+
+        public void ReportException(
+            Exception exception,
+            ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
+            bool writeLocalReport = true,
+            IExceptionAdapter? exceptionAdapter = null )
+            => this.Exceptions.Enqueue( exception );
+
+        public void ReportException(
+            ClassifiedException classifiedException,
+            ExceptionReportingKind exceptionReportingKind = ExceptionReportingKind.Exception,
+            bool writeLocalReport = true,
+            IExceptionAdapter? exceptionAdapter = null )
+            => this.Exceptions.Enqueue( classifiedException.Exception );
     }
 
     /// <summary>

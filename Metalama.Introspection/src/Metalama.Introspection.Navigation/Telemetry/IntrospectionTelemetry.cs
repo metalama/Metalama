@@ -23,9 +23,11 @@ namespace Metalama.Introspection.Navigation.Telemetry;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Every report goes through an <see cref="ITelemetryContext"/> opened for the directory of the workspace, so that the
-/// consent of the user, the opt-out of the repository (<c>metalama.json</c>) and the process-level gates apply. Nothing is
-/// sent for a directory that is not in a git repository.
+/// Every report goes through an <see cref="ITelemetryContext"/>, so that the consent of the user, the opt-out of the
+/// repository (<c>metalama.json</c>) and the process-level gates apply. The reports about a workspace use the context that
+/// the workspace opened when it was loaded (<see cref="Workspace.TelemetryContext"/>). Only an exception that occurs outside
+/// of a workspace, for instance while a workspace is loaded, opens a context for a directory. Nothing is sent for a directory
+/// that is not in a git repository.
 /// </para>
 /// <para>
 /// A usage report is produced at most once per workspace and per day. It contains counts and the names of
@@ -66,15 +68,13 @@ internal static class IntrospectionTelemetry
 
         try
         {
-            var telemetryService = BackstageServiceFactoryInitializer.ServiceProvider.GetBackstageService<ITelemetryService>();
+            // The context of the workspace decides whether the usage session is metered.
+            var context = workspace.TelemetryContext;
 
-            if ( telemetryService == null )
+            if ( context == null )
             {
                 return;
             }
-
-            var directory = GetDirectory( pathList );
-            var context = telemetryService.OpenContext( telemetryService.GetPolicy( directory ) );
 
             using var session = context.StartUsageSession( GetSessionKind( host ), $"<Metalama.{host}>:{workspaceKey}" );
 
@@ -99,7 +99,30 @@ internal static class IntrospectionTelemetry
         }
         catch ( Exception e ) when ( e is not OutOfMemoryException )
         {
-            ReportException( e, GetDirectory( pathList ) );
+            ReportWorkspaceException( e, workspace );
+        }
+    }
+
+    /// <summary>
+    /// Reports an unexpected exception that occurred while a workspace was used, through the telemetry context of the
+    /// workspace, unless the exception is attributable to the user or to the environment of the user.
+    /// </summary>
+    /// <param name="exception">The exception.</param>
+    /// <param name="workspace">The workspace whose use failed.</param>
+    public static void ReportWorkspaceException( Exception exception, Workspace workspace )
+    {
+        try
+        {
+            if ( workspace.TelemetryContext is { } context && Classify( exception ) is { } classifiedException )
+            {
+                context.ReportException( classifiedException );
+            }
+        }
+        catch ( Exception e ) when ( e is not OutOfMemoryException )
+        {
+            // Reporting must never fail the request that failed. The exception is written to the standard error stream,
+            // which the user can read in the log of the host.
+            Console.Error.WriteLine( $"Cannot report an exception to the telemetry: {e.Message}" );
         }
     }
 
@@ -120,14 +143,7 @@ internal static class IntrospectionTelemetry
     {
         try
         {
-            if ( IsUserAttributable( exception ) )
-            {
-                return;
-            }
-
-            var classifiedException = ExceptionClassifier.Classify( exception );
-
-            if ( !classifiedException.IsError )
+            if ( Classify( exception ) is not { } classifiedException )
             {
                 return;
             }
@@ -149,6 +165,23 @@ internal static class IntrospectionTelemetry
             // which the user can read in the log of the host.
             Console.Error.WriteLine( $"Cannot report an exception to the telemetry: {e.Message}" );
         }
+    }
+
+    /// <summary>
+    /// Classifies an exception, and returns <see langword="null"/> when the exception must not be reported: when it is
+    /// attributable to the user or to the environment of the user, or when <see cref="ExceptionClassifier"/> does not
+    /// classify it as an error, such as an input and output error.
+    /// </summary>
+    private static ClassifiedException? Classify( Exception exception )
+    {
+        if ( IsUserAttributable( exception ) )
+        {
+            return null;
+        }
+
+        var classifiedException = ExceptionClassifier.Classify( exception );
+
+        return classifiedException.IsError ? classifiedException : null;
     }
 
     /// <summary>
@@ -268,7 +301,4 @@ internal static class IntrospectionTelemetry
     }
 
     private static string GetSessionKind( IntrospectionHost host ) => $"{host}Usage";
-
-    private static string? GetDirectory( IReadOnlyList<string> paths )
-        => paths.Count == 0 ? null : Path.GetDirectoryName( Path.GetFullPath( paths[0] ) );
 }
