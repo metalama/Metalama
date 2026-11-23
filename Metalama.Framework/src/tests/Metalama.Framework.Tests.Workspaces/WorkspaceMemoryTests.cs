@@ -37,13 +37,18 @@ public sealed class WorkspaceMemoryTests : UnitTestClass
                                  {
                                    A f;
                                  }
+                                 partial class C
+                                 {
+                                   [System.Text.RegularExpressions.GeneratedRegex( "a+" )]
+                                   public static partial System.Text.RegularExpressions.Regex Pattern();
+                                 }
                                  """;
 
     [Fact]
     public async Task ReloadReleasesThePreviousCompilations()
     {
         using var testContext = this.CreateTestContext();
-        var projectPath = await WorkspaceTests.CreateMetalamaEnabledProjectAsync( testContext, _code );
+        var projectPath = await CreateProjectAsync( testContext );
         var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
         using var workspace = await workspaceCollection.LoadAsync(
@@ -67,7 +72,7 @@ public sealed class WorkspaceMemoryTests : UnitTestClass
     public async Task DisposeReleasesTheCompilations()
     {
         using var testContext = this.CreateTestContext();
-        var projectPath = await WorkspaceTests.CreateMetalamaEnabledProjectAsync( testContext, _code );
+        var projectPath = await CreateProjectAsync( testContext );
         var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
         var workspace = await workspaceCollection.LoadAsync(
@@ -98,6 +103,24 @@ public sealed class WorkspaceMemoryTests : UnitTestClass
     }
 
     /// <summary>
+    /// Creates a project that references the Metalama assemblies and uses the regular expression source generator of the
+    /// .NET SDK.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A workspace that removed every source generator, and not only the Metalama one, would fail
+    /// <see cref="WorkspaceTests.CheckWorkspace"/>, because the partial method that the regular expression source generator
+    /// implements would have no implementation.
+    /// </para>
+    /// <para>
+    /// The project does not reference the Metalama source generator: without the build properties of the Metalama package,
+    /// the generator considers Metalama disabled and does nothing. <c>Metalama.Mcp.Tests</c> loads a project that references
+    /// the Metalama package, and <see cref="SourceGeneratorFilterTests"/> tests the removal of the analyzer reference.
+    /// </para>
+    /// </remarks>
+    private static Task<string> CreateProjectAsync( MetalamaTestContext testContext ) => WorkspaceTests.CreateMetalamaEnabledProjectAsync( testContext, _code );
+
+    /// <summary>
     /// Builds the reference index of the only project of a workspace, which is its largest structure, and returns weak
     /// references to the code model and to the Roslyn compilation of the project.
     /// </summary>
@@ -113,6 +136,9 @@ public sealed class WorkspaceMemoryTests : UnitTestClass
         var references = typeA.GetInboundReferences().Select( r => r.OriginDeclaration.ToDisplayString() ).OrderBy( r => r ).ToList();
 
         Assert.Equal( ["B", "B.f"], references );
+
+        // The source generators other than the Metalama one still run.
+        Assert.Contains( project.RoslynCompilation.SyntaxTrees, t => t.FilePath.Contains( "RegexGenerator", StringComparison.Ordinal ) );
 
         return (new WeakReference( typeA.Compilation ), new WeakReference( project.RoslynCompilation ));
     }

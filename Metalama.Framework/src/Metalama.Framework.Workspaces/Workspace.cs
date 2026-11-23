@@ -282,7 +282,7 @@ namespace Metalama.Framework.Workspaces
         /// generators of the project still run.
         /// </para>
         /// </remarks>
-        private static Solution RemoveMetalamaSourceGenerator( Solution solution )
+        internal static Solution RemoveMetalamaSourceGenerator( Solution solution )
         {
             foreach ( var project in solution.Projects )
             {
