@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 
 namespace Metalama.Framework.Engine.ReferenceGraph;
@@ -22,6 +23,7 @@ public sealed class InboundReferenceIndexBuilder : ReferenceIndexBuilder
     private bool _frozen;
 
     public InboundReferenceIndexBuilder( ProjectServiceProvider serviceProvider, ReferenceIndexerOptions options, IEqualityComparer<ISymbol> symbolComparer )
+        : base( serviceProvider )
     {
         this._serviceProvider = serviceProvider;
         this._options = options;
@@ -48,7 +50,8 @@ public sealed class InboundReferenceIndexBuilder : ReferenceIndexBuilder
         // Recurse on the base type.
         var referencedSymbol = child.ReferencedSymbol;
 
-        if ( referencedSymbol.Kind == SymbolKind.NamedType && referencedSymbol is INamedTypeSymbol { BaseType: { } baseType }
+        // A base type that the compiler could not bind is an error type, which is not a declaration and is not indexed.
+        if ( referencedSymbol.Kind == SymbolKind.NamedType && referencedSymbol is INamedTypeSymbol { BaseType: { Kind: not SymbolKind.ErrorType } baseType }
                                                            && this._options.MustDescendIntoReferencedBaseTypes( ReferenceKinds.All ) )
         {
             this.AddToParent( child, baseType, ChildKinds.DerivedType );
@@ -160,6 +163,6 @@ public sealed class InboundReferenceIndexBuilder : ReferenceIndexBuilder
     {
         this._frozen = true;
 
-        return new InboundReferenceIndex( this._references );
+        return new InboundReferenceIndex( this._references, this.Diagnostics.ToImmutableArray(), this.SkippedNodeCount );
     }
 }

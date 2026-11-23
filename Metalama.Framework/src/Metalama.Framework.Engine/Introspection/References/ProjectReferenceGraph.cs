@@ -13,6 +13,7 @@ using Metalama.Framework.Introspection;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 
@@ -90,18 +91,27 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
         };
 
         // Cache fast path.
-        if ( cache.TryGetValue( destination, out var result ) )
+        if ( !cache.TryGetValue( destination, out var result ) )
         {
-            return result;
+            result = cache.GetOrAdd( destination, _ => this.GetInboundReferencesCore( destination, childKinds, cancellationToken ) );
         }
 
-        return cache.GetOrAdd( destination, _ => this.GetInboundReferencesCore( destination, childKinds, cancellationToken ) );
+        // The result of every call depends on the index, so the diagnostics of an incomplete index are reported for every call, including
+        // the calls that the cache answers. The sink removes the duplicates. See issue #2415.
+        if ( this._referenceIndex is { SkippedNodeCount: > 0 } index )
+        {
+            this.ReportDiagnostics( this._compilation.Project.ServiceProvider, index.Diagnostics );
+        }
+
+        return result;
     }
 
     public IEnumerable<IIntrospectionReference> GetOutboundReferences( IDeclaration origin, CancellationToken cancellationToken = default )
     {
         var builder = new OutboundReferenceIndexBuilder( this._serviceProvider );
         builder.IndexDeclaration( origin, cancellationToken );
+
+        this.ReportDiagnostics( this._serviceProvider, builder.Diagnostics.ToImmutableArray() );
 
         return builder.GetReferences()
             .GroupBy( r => new SymbolPair( r.ReferencedSymbol, r.ReferencingSymbol ) )
@@ -111,6 +121,18 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
                     group.Key.Referencing,
                     group,
                     this._compilation ) );
+    }
+
+    /// <summary>
+    /// Reports the diagnostics of the syntax nodes that the reference indexer skipped to <see cref="IIntrospectionReferenceDiagnosticSink"/>,
+    /// when the host registered one.
+    /// </summary>
+    private void ReportDiagnostics( ProjectServiceProvider serviceProvider, ImmutableArray<Diagnostic> diagnostics )
+    {
+        if ( !diagnostics.IsEmpty )
+        {
+            serviceProvider.GetService<IIntrospectionReferenceDiagnosticSink>()?.Report( this._compilation, diagnostics );
+        }
     }
 
     private sealed record SymbolPair( ISymbol Referenced, ISymbol Referencing )

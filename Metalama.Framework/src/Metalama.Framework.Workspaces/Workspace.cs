@@ -17,6 +17,8 @@ using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -49,7 +51,7 @@ namespace Metalama.Framework.Workspaces
     /// <seealso cref="IProjectSet"/>
     /// <seealso href="@introspection-api"/>
     [PublicAPI]
-    public sealed class Workspace : IDisposable, IProjectSet, IWorkspaceLoadInfo
+    public sealed class Workspace : IDisposable, IProjectSet, IWorkspaceLoadInfo, IWorkspaceHostInfo
     {
         private static readonly ILogger _logger;
 
@@ -115,6 +117,7 @@ namespace Metalama.Framework.Workspaces
             this.Key = key;
             this._filteredProjects = this._unfilteredProjects = projectSet.Projects;
             this._loadDiagnostics = projectSet.LoadDiagnostics;
+            this.TelemetryContext = projectSet.TelemetryContext;
             this._collection = collection;
             this._domain = domain;
             this._introspectionOptions = introspectionOptions;
@@ -205,6 +208,7 @@ namespace Metalama.Framework.Workspaces
             this._unfilteredProjects = result.Projects;
             this._filteredProjects = this._unfilteredProjects.GetSubset( this._projectFilter );
             this._loadDiagnostics = result.LoadDiagnostics;
+            this.TelemetryContext = result.TelemetryContext;
 
             return this;
         }
@@ -257,7 +261,48 @@ namespace Metalama.Framework.Workspaces
             dotNetTool.Execute( $"restore \"{Path.GetFileName( project )}\"", Path.GetDirectoryName( Path.GetFullPath( project ) ) );
         }
 
-        private record LoadProjectSetResult( ProjectSet Projects, ImmutableList<WorkspaceDiagnostic> LoadDiagnostics );
+        private record LoadProjectSetResult( ProjectSet Projects, ImmutableList<WorkspaceDiagnostic> LoadDiagnostics, ITelemetryContext? TelemetryContext );
+
+        /// <summary>
+        /// Gets the telemetry context of the workspace. See <see cref="IWorkspaceHostInfo.TelemetryContext"/>.
+        /// </summary>
+        internal ITelemetryContext? TelemetryContext { get; private set; }
+
+        /// <inheritdoc />
+        string IWorkspaceHostInfo.Key => this.Key;
+
+        /// <inheritdoc />
+        ITelemetryContext? IWorkspaceHostInfo.TelemetryContext => this.TelemetryContext;
+
+        /// <summary>
+        /// Opens the telemetry context of a load of the workspace, and returns the warnings of the context, such as an invalid
+        /// <c>metalama.json</c> file, as load diagnostics.
+        /// </summary>
+        private static (ITelemetryContext? Context, ImmutableList<WorkspaceDiagnostic> Warnings) OpenTelemetryContext(
+            WorkspaceCollection collection,
+            ImmutableArray<string> paths )
+        {
+            // The service is resolved from the service provider of the collection, as the engine resolves it, so that a host or a
+            // test can provide its own.
+            var telemetryService = collection.ServiceProvider.Underlying.GetBackstageService<ITelemetryService>();
+
+            if ( telemetryService == null )
+            {
+                return (null, ImmutableList<WorkspaceDiagnostic>.Empty);
+            }
+
+            var directory = paths.IsEmpty ? null : Path.GetDirectoryName( Path.GetFullPath( paths[0] ) );
+            var context = telemetryService.OpenContext( telemetryService.GetPolicy( directory ) );
+
+            var warnings = context.Warnings
+                .Select(
+                    w => new WorkspaceDiagnostic(
+                        WorkspaceDiagnosticKind.Warning,
+                        w.FilePath == null ? w.Message : $"{w.FilePath}: {w.Message}" ) )
+                .ToImmutableList();
+
+            return (context, warnings);
+        }
 
         /// <summary>
         /// The file name of the analyzer assembly that contains the Metalama source generator.
@@ -311,10 +356,11 @@ namespace Metalama.Framework.Workspaces
             Future<Workspace> workspace,
             CancellationToken cancellationToken )
         {
+            var telemetry = OpenTelemetryContext( collection, projects );
+
             if ( projects.IsEmpty )
             {
-                return Task.FromResult(
-                    new LoadProjectSetResult( new ProjectSet( ImmutableArray<Project>.Empty, "Empty" ), ImmutableList<WorkspaceDiagnostic>.Empty ) );
+                return Task.FromResult( new LoadProjectSetResult( new ProjectSet( ImmutableArray<Project>.Empty, "Empty" ), telemetry.Warnings, telemetry.Context ) );
             }
 
             // We need to initialize MSBuild once per process. The initialization may depend on `global.json`.
@@ -326,7 +372,7 @@ namespace Metalama.Framework.Workspaces
             }
 
             // We can call the next method only after MSBuild initialization because it loads MSBuild assemblies.
-            return LoadProjectSetCoreAsync( projects, properties, collection, domain, introspectionOptions, restore, workspace, cancellationToken );
+            return LoadProjectSetCoreAsync( projects, properties, collection, domain, introspectionOptions, restore, workspace, telemetry, cancellationToken );
         }
 
         private static async Task<LoadProjectSetResult> LoadProjectSetCoreAsync(
@@ -337,6 +383,7 @@ namespace Metalama.Framework.Workspaces
             IIntrospectionOptionsProvider introspectionOptions,
             bool restore,
             Future<Workspace> workspace,
+            (ITelemetryContext? Context, ImmutableList<WorkspaceDiagnostic> Warnings) telemetry,
             CancellationToken cancellationToken )
         {
             var allProperties = properties
@@ -415,7 +462,7 @@ namespace Metalama.Framework.Workspaces
                 }
             }
 
-            return new LoadProjectSetResult( projectSet, diagnostics );
+            return new LoadProjectSetResult( projectSet, diagnostics.AddRange( telemetry.Warnings ), telemetry.Context );
 
             async Task<Project> GetOurProjectAsync( Microsoft.CodeAnalysis.Project roslynProject )
             {
@@ -449,7 +496,15 @@ namespace Metalama.Framework.Workspaces
                 var projectServiceProvider = collection.ServiceProvider.Underlying
                     .WithService( additionalServiceCollection, true )
                     .WithProjectScopedServices( projectOptions, compilation )
-                    .WithService( _ => new WorkspaceIntrospectionService( workspace ) );
+                    .WithService( _ => new WorkspaceIntrospectionService( workspace ) )
+                    .WithService( _ => new WorkspaceReferenceDiagnosticSink() );
+
+                // As the compiler does, the telemetry context is exposed untyped, because it is a type of Backstage and not a
+                // service of the engine.
+                if ( telemetry.Context != null )
+                {
+                    projectServiceProvider = projectServiceProvider.WithUntypedService( typeof(ITelemetryContext), telemetry.Context );
+                }
 
                 // Create our workspace project.
                 var ourProject = new Project(

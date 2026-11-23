@@ -58,6 +58,11 @@ public sealed class SourceReferenceIndex : IDisposable
     private bool _isDisposed;
 
     /// <summary>
+    /// Receives the diagnostics of the syntax nodes that the indexer skipped, or <c>null</c> when the creator gave no sink.
+    /// </summary>
+    private readonly Action<Diagnostic>? _reportDiagnostic;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SourceReferenceIndex"/> class.
     /// </summary>
     internal SourceReferenceIndex(
@@ -65,9 +70,11 @@ public sealed class SourceReferenceIndex : IDisposable
         CompilationModel sourceCompilation,
         ReferenceIndexerOptions options,
         bool hasRequirements,
-        IReadOnlyDictionary<SyntaxTree, ImmutableArray<SyntaxNode>>? rootsByTree )
+        IReadOnlyDictionary<SyntaxTree, ImmutableArray<SyntaxNode>>? rootsByTree,
+        Action<Diagnostic>? reportDiagnostic = null )
     {
         this._serviceProvider = serviceProvider;
+        this._reportDiagnostic = reportDiagnostic;
         this._sourceCompilation = sourceCompilation;
         this.Options = options;
         this.HasRequirements = hasRequirements;
@@ -142,6 +149,17 @@ public sealed class SourceReferenceIndex : IDisposable
         try
         {
             var index = await this.BuildIndexAsync( sourceCompilation, cancellationToken );
+
+            // The diagnostics are reported before the index is published, while only the caller that started the build runs. The index
+            // is built once, so they are reported once.
+            if ( this._reportDiagnostic != null )
+            {
+                foreach ( var diagnostic in index.Diagnostics )
+                {
+                    this._reportDiagnostic( diagnostic );
+                }
+            }
+
             completionSource.TrySetResult( index );
 
             return index;

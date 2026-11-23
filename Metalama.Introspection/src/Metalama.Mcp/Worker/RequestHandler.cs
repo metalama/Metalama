@@ -86,7 +86,15 @@ internal sealed class RequestHandler : IDisposable
             // The exceptions that the user's query throws are caught by QueryAsync, so an exception that arrives here comes
             // from the worker or from the code model. IntrospectionTelemetry skips the ones that are attributable to the
             // user or to the environment, such as a missing .NET SDK.
-            IntrospectionTelemetry.ReportException( e, this.GetDirectory( method, args ) );
+            if ( method != WorkerMethods.Load && this._registry.TryGet( args["workspace"]?.GetValue<string>(), out var entry, out _ ) )
+            {
+                IntrospectionTelemetry.ReportWorkspaceException( e, entry.Workspace );
+            }
+            else
+            {
+                // No workspace is loaded yet, or the request targets none: the policy of the directory is used.
+                IntrospectionTelemetry.ReportException( e, this.GetDirectory( method, args ) );
+            }
 
             return Failure( FormatException( e ) );
         }

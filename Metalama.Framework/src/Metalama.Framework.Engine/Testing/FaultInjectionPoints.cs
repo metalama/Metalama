@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Microsoft.CodeAnalysis.CSharp;
 using SharpCrafters.Common.Testing.Hooks;
 
 namespace Metalama.Framework.Engine.Testing
@@ -30,5 +31,11 @@ namespace Metalama.Framework.Engine.Testing
         /// See #2049.
         /// </summary>
         public const string TransitiveManifestDeserialization = "TransitiveAspectsManifest.Deserialize";
+
+        /// <summary>
+        /// Gets the name of the injection point at the start of the visit of a syntax node of the given kind by the reference
+        /// index walker, so that a test can make the indexing of chosen nodes fail. See #2415.
+        /// </summary>
+        public static string GetReferenceIndexWalkerVisit( SyntaxKind kind ) => $"ReferenceIndexWalker.Visit.{kind}";
     }
 }
