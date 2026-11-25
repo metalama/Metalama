@@ -2,7 +2,7 @@
   <PropertyGroup>
     <BackstageVersion Condition="'$(BackstageVersion)' == ''">2027.0.10-preview</BackstageVersion>
     <MetalamaCompilerVersion Condition="'$(MetalamaCompilerVersion)' == ''">2027.0.6-preview</MetalamaCompilerVersion>
-    <MetalamaReleaseVersion>2027.0.8-preview</MetalamaReleaseVersion>
-    <MetalamaReleaseMainVersion>2027.0.8</MetalamaReleaseMainVersion>
+    <MetalamaReleaseVersion>2027.0.9-preview</MetalamaReleaseVersion>
+    <MetalamaReleaseMainVersion>2027.0.9</MetalamaReleaseMainVersion>
   </PropertyGroup>
 </Project>
