@@ -225,7 +225,7 @@ class MyClass {}" );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], DefaultProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -258,7 +258,7 @@ class MyClass {}" );
 
             var projectPath = await CreateMetalamaEnabledProjectAsync( testContext, "class C;" );
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _defaultProperties, cancellationToken: testContext.CancellationToken );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], DefaultProperties, cancellationToken: testContext.CancellationToken );
             var compilation = workspace.Projects.Single().SourceCode.Compilations.Single();
 
             var descriptor = new DiagnosticDescriptor( "TEST0001", "Title", "The message", "Test", DiagnosticSeverity.Warning, true );
