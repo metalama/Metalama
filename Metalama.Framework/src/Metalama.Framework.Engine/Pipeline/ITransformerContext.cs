@@ -6,6 +6,7 @@ using Metalama.Compiler;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Telemetry;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -20,6 +21,12 @@ internal interface ITransformerContext
     Compilation Compilation { get; }
 
     IProjectOptions ProjectOptions { get; }
+
+    /// <summary>
+    /// Gets the telemetry context that the compiler opened for the project before the transformation, or <see langword="null"/>
+    /// when the host did not open one.
+    /// </summary>
+    ITelemetryContext? TelemetryContext { get; }
 
     ImmutableArray<ManagedResource> Resources { get; }
 

@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Telemetry;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -30,6 +31,8 @@ internal sealed class TestTransformerContext : ITransformerContext
     public Compilation Compilation { get; }
 
     public IProjectOptions ProjectOptions { get; }
+
+    public ITelemetryContext? TelemetryContext => null;
 
     public ImmutableArray<ManagedResource> Resources => ImmutableArray<ManagedResource>.Empty;
 

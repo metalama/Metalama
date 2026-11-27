@@ -31,6 +31,7 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Services;
+using SharpCrafters.Backstage.Telemetry;
 using SharpCrafters.Common.Testing.Hooks;
 using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
@@ -98,6 +99,24 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     internal ProjectKey ProjectKey { get; }
 
     /// <summary>
+    /// Gets the telemetry context of the project, or <see langword="null"/> when the telemetry service is not available.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The context is opened once, when the pipeline is created, for the directory of the project. The
+    /// <see cref="DesignTimeAspectPipelineFactory"/> creates a new pipeline when the options of the project change, so a new
+    /// context is opened when the project directory changes. This is the equivalent of the context that the compiler opens for
+    /// each project. See #2421.
+    /// </para>
+    /// <para>
+    /// The context is registered untyped in the service provider of the project, because it is a type of Backstage and not a
+    /// service of the engine, and it is registered in the <see cref="DesignTimeExceptionHandler"/>, which reports the exceptions
+    /// of the project to it. The context references no compilation, so the pipeline can hold it.
+    /// </para>
+    /// </remarks>
+    internal ITelemetryContext? TelemetryContext { get; }
+
+    /// <summary>
     /// Gets the number of times the pipeline has been executed. Useful for testing purposes.
     /// </summary>
     internal int PipelineExecutionCount => this._pipelineExecutionCount;
@@ -117,6 +136,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         : base( GetServiceProvider( pipelineFactory.ServiceProvider, projectOptions, metadataReferences ) )
     {
         this.ProjectKey = projectKey;
+        this.TelemetryContext = (ITelemetryContext?) this.ServiceProvider.Underlying.GetService( typeof(ITelemetryContext) );
         this.MetadataReferences = metadataReferences;
         this._pipelineFactory = pipelineFactory;
         this._entryPointConsumer = (IDesignTimeEntryPointConsumer?) this.ServiceProvider.Global.Underlying.GetService( typeof(IDesignTimeEntryPointConsumer) );
@@ -124,6 +144,11 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         this._observer = this.ServiceProvider.GetService<IDesignTimeAspectPipelineObserver>();
         this._eventHub = this.ServiceProvider.Global.GetService<AnalysisProcessEventHub>();
         this._exceptionHandler = this.ServiceProvider.Global.GetRequiredService<DesignTimeExceptionHandler>();
+
+        if ( this.TelemetryContext != null )
+        {
+            this._exceptionHandler.RegisterProjectTelemetryContext( projectKey, this.TelemetryContext );
+        }
         this._applicationExitingToken = this.ServiceProvider.Global.GetRequiredService<ApplicationExitManager>().Token;
         this._disposeCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( this._applicationExitingToken );
         this._disposeCancellationToken = this._disposeCancellationTokenSource.Token;
@@ -164,7 +189,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
             this._fileSystemWatcher = new RecursiveFileSystemWatcher(
                 watchedDirectory,
                 watchedFilter,
-                e => this._exceptionHandler.ReportException( e, this.ProjectOptions, this.Logger ) );
+                e => this._exceptionHandler.ReportException( e, this.ProjectKey, this.ProjectOptions, this.Logger ) );
 
             this._fileSystemWatcher.Changed += this.OnTouchFileChanged;
             this._fileSystemWatcher.EnableRaisingEvents = true;
@@ -230,6 +255,15 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         ImmutableArray<PortableExecutableReference> metadataReferences )
     {
         var projectServiceProvider = serviceProvider.WithProjectScopedServices( projectOptions, metadataReferences );
+
+        // Open the telemetry context of the project before any work, as the compiler does, and expose it untyped, because it
+        // is a type of Backstage and not a service of the engine. See #2421.
+        var telemetryContext = serviceProvider.GetService<DesignTimeExceptionHandler>().AssertNotNull().OpenProjectTelemetryContext( projectOptions );
+
+        if ( telemetryContext != null )
+        {
+            projectServiceProvider = projectServiceProvider.WithUntypedService( typeof(ITelemetryContext), telemetryContext );
+        }
 
         return projectServiceProvider;
     }
@@ -337,7 +371,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
         catch ( Exception exception )
         {
-            this._exceptionHandler.ReportException( exception, this.ProjectOptions );
+            this._exceptionHandler.ReportException( exception, this.ProjectKey, this.ProjectOptions );
         }
         finally
         {
@@ -459,6 +493,11 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
         base.Dispose( disposing );
         this._fileSystemWatcher?.Dispose();
+
+        if ( this.TelemetryContext != null )
+        {
+            this._exceptionHandler.UnregisterProjectTelemetryContext( this.ProjectKey, this.TelemetryContext );
+        }
 
         // The semaphore is deliberately not disposed. SemaphoreSlim.Dispose is not safe to call while another thread
         // waits on the semaphore, and a cancelled operation may still be waiting. The semaphore holds no unmanaged
@@ -1243,7 +1282,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
         catch ( Exception e )
         {
-            this._exceptionHandler.ReportException( e, this.ProjectOptions );
+            this._exceptionHandler.ReportException( e, this.ProjectKey, this.ProjectOptions );
         }
     }
 

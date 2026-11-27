@@ -107,8 +107,17 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             // The compile-time exception handler is a project-scoped service, so it can resolve the project options and
             // the per-project telemetry context (honoring the repository metalama.json opt-out). See #1701.
             var projectServiceProvider = globalServices
-                .WithProjectScopedServices( projectOptions, context.Compilation )
-                .WithService( sp => new CompileTimeExceptionHandler( sp ) );
+                .WithProjectScopedServices( projectOptions, context.Compilation );
+
+            // The compiler opened the telemetry context of the project before the transformation. It is exposed untyped,
+            // because it is a type of Backstage and not a service of the engine. The exception handler and the reference
+            // indexer report to this context instead of opening a new one. See #2420.
+            if ( context.TelemetryContext != null )
+            {
+                projectServiceProvider = projectServiceProvider.WithUntypedService( typeof(ITelemetryContext), context.TelemetryContext );
+            }
+
+            projectServiceProvider = projectServiceProvider.WithService( sp => new CompileTimeExceptionHandler( sp ) );
 
             try
             {

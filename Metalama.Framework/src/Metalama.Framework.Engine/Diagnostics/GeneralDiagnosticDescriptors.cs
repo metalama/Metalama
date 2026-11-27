@@ -554,8 +554,8 @@ namespace Metalama.Framework.Engine.Diagnostics
 
         // Surfaces a warning produced while resolving the repository-root metalama.json (e.g. a misplaced or malformed
         // file). The {0} text field carries the full explanation computed by the repository-configuration reader in
-        // Metalama.Backstage. See #1701.
-        internal static readonly DiagnosticDefinition<string> InvalidRepositoryConfiguration =
+        // Metalama.Backstage. See #1701. It is public because the design-time analyzer also reports it. See #2421.
+        public static readonly DiagnosticDefinition<string> InvalidRepositoryConfiguration =
             new(
                 "LAMA0075",
                 _category,
