@@ -436,6 +436,10 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 
             var syntaxTree = context.SemanticModel.SyntaxTree;
 
+            // The warnings concern the project and not a syntax tree, but the analyzer is called once for each syntax tree. They
+            // are therefore reported only during the analysis of one syntax tree, so that the user sees each warning once. The
+            // selected tree is the first one that is not generated code, because Roslyn does not call the analyzer for a
+            // generated tree, and a warning reported only on a generated tree would never be shown.
             if ( compilation.SyntaxTrees.FirstOrDefault( t => !GeneratedCodeDetector.IsGeneratedCode( t, compilation, context.CancellationToken ) ) != syntaxTree )
             {
                 return;

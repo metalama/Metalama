@@ -6,6 +6,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Services;
 using SharpCrafters.Backstage.Diagnostics;
@@ -56,8 +57,10 @@ namespace Metalama.Framework.DesignTime.Utilities
         /// </summary>
         /// <remarks>
         /// The service of the service provider is preferred. The service of <see cref="BackstageServiceFactoryInitializer"/> is
-        /// the fallback for a service provider that was created without the Backstage services.
+        /// the fallback for a service provider that was created without the Backstage services. The value is memoized. A
+        /// <see langword="null"/> value is not memoized, so the fallback is resolved again until Backstage is initialized.
         /// </remarks>
+        [Memo]
         private ITelemetryService? TelemetryService
             => this._telemetryService ?? BackstageServiceFactoryInitializer.ServiceProvider.GetBackstageService<ITelemetryService>();
 
