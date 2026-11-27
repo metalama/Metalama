@@ -26,13 +26,18 @@ namespace Metalama.Framework.Tests.UnitTests.Telemetry;
 
 /// <summary>
 /// Tests that a project whose repository disables telemetry in <c>metalama.json</c> sends no usage session and no exception
-/// report, in the compiler and at design time. See #2420 and #2421.
+/// report, in the compiler and at design time, and that the local crash report is still written. See #2420 and #2421.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The tests run the real <see cref="ITelemetryService"/> of Backstage through <see cref="TestTelemetryEnvironment"/>, so the
 /// policy is resolved from a <c>metalama.json</c> file of an in-memory repository as in production. The environment records
 /// what the telemetry contexts allow, instead of sending it.
+/// </para>
+/// <para>
+/// An exception has two outputs. The report for upload is created only when the policy allows telemetry, and
+/// <see cref="TestTelemetryEnvironment.ExceptionCapturer"/> records it. The local crash report is written regardless of the
+/// policy, and <see cref="TestTelemetryEnvironment.GetLocalCrashReports"/> lists it.
 /// </para>
 /// <para>
 /// Each test runs twice: once with the opt-out, and once with a repository that does not disable telemetry. The second run
@@ -76,7 +81,7 @@ public sealed class RepositoryTelemetryOptOutTests : UnitTestClass
 
     /// <summary>
     /// Checks that an exception that Metalama.Compiler reports through the <see cref="IExceptionReporter"/> of the project is not
-    /// captured when the repository disables telemetry.
+    /// captured when the repository disables telemetry, and that its local crash report is written in both cases.
     /// </summary>
     [Theory]
     [InlineData( true )]
@@ -94,12 +99,17 @@ public sealed class RepositoryTelemetryOptOutTests : UnitTestClass
         compilerServices.DisposeServices( _ => { } );
 
         Assert.Equal( isDisabledByRepository ? 0 : 1, environment.ExceptionCapturer.CapturedReports.Count );
+        Assert.Single( environment.GetLocalCrashReports() );
     }
 
     /// <summary>
     /// Checks that an exception of the compile-time pipeline, which <see cref="CompileTimeExceptionHandler"/> reports to the
     /// telemetry context of the compiler, is not captured when the repository disables telemetry.
     /// </summary>
+    /// <remarks>
+    /// The handler writes its own crash report and cites it in the diagnostic, so it asks the telemetry context not to write a
+    /// second one. No local crash report of Backstage is therefore expected, whatever the policy is.
+    /// </remarks>
     [Theory]
     [InlineData( true )]
     [InlineData( false )]
@@ -123,11 +133,12 @@ public sealed class RepositoryTelemetryOptOutTests : UnitTestClass
         compilerServices.DisposeServices( _ => { } );
 
         Assert.Equal( isDisabledByRepository ? 0 : 1, environment.ExceptionCapturer.CapturedReports.Count );
+        Assert.Empty( environment.GetLocalCrashReports() );
     }
 
     /// <summary>
     /// Checks that an exception that <see cref="DesignTimeExceptionHandler"/> reports for a project is not captured when the
-    /// repository of the project disables telemetry.
+    /// repository of the project disables telemetry, and that its local crash report is written in both cases.
     /// </summary>
     [Theory]
     [InlineData( true )]
@@ -148,6 +159,7 @@ public sealed class RepositoryTelemetryOptOutTests : UnitTestClass
         handler.ReportException( new InvalidOperationException(), pipeline.ProjectKey, projectOptions );
 
         Assert.Equal( isDisabledByRepository ? 0 : 1, environment.ExceptionCapturer.CapturedReports.Count );
+        Assert.Single( environment.GetLocalCrashReports() );
     }
 
     /// <summary>
