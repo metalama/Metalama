@@ -180,20 +180,20 @@ public sealed class MemoryCachingBackendRetentionTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When a cached method gets a cache hit on another cached method, the caching frontend adds only the key of the
-    /// called method to the dependencies of the calling method. When the item of the called method is evicted before the
-    /// item of the calling method is stored, no item depends on the evicted item at the time of the eviction. The backend
-    /// therefore keeps no registration for the evicted item, and the outer item is not reachable from the dependency.
+    /// When the item of the called method is evicted before the item of the calling method is stored, no item depends on
+    /// the evicted item at the time of the eviction. The backend therefore keeps no registration for the evicted item, and
+    /// the outer item is not reachable from the dependency through the key of the evicted item. The backend cannot keep the
+    /// dependencies of every evicted item, because the index would then grow with the number of evicted items.
     /// </para>
     /// <para>
-    /// The backend cannot keep the dependencies of every evicted item, because the index would then grow with the number
-    /// of evicted items. A fix needs a design decision, such as a frontend that also adds the dependencies of the called
-    /// method to the calling method when it gets a cache hit.
+    /// For this reason, when a cached method gets a cache hit on another cached method, the caching frontend adds both the
+    /// key and the dependencies of the called method to the dependencies of the calling method. This test stores the outer
+    /// item with the dependencies that the frontend gives it, and verifies that the backend removes it.
+    /// <c>DependencyPropagationTests.TestDependencyPropagationOnCacheHitAfterEviction</c> verifies the same scenario
+    /// through the frontend.
     /// </para>
     /// </remarks>
-    [Fact(
-        Skip =
-            "Not fixed: the backend keeps the dependencies of a removed item only when another item depends on its key at the time of the removal. A fix needs a design decision, such as a frontend that propagates the dependencies of a called method on a cache hit." )]
+    [Fact]
     public async Task InvalidateDependency_OuterItemStoredAfterEvictionOfIntermediateItem_RemovesOuterItem()
     {
         using var fakes = new FakeCachingServices( _origin );
@@ -208,7 +208,7 @@ public sealed class MemoryCachingBackendRetentionTests
 
         Assert.False( backend.ContainsItem( _innerKey ), "Precondition: the intermediate item did not expire." );
 
-        backend.SetItem( _outerKey, new CacheItem( "outer-value", [_innerKey] ) );
+        backend.SetItem( _outerKey, new CacheItem( "outer-value", [_innerKey, _dependency] ) );
         backend.InvalidateDependency( _dependency );
 
         Assert.False(
