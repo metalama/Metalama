@@ -11,8 +11,8 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Testing.UnitTesting;
 using SharpCrafters.Backstage.Application;
 using SharpCrafters.Backstage.Extensibility;
-using SharpCrafters.Backstage.Infrastructure;
 using SharpCrafters.Backstage.ProcessClassification;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Immutable;
 using System.IO;
@@ -64,11 +64,11 @@ public sealed class UserCodeCrashReportTests : UnitTestClass
 
     /// <summary>
     /// Replaces the application information of the test context by one that creates local crash reports, and registers
-    /// the standard directories, which give the directory of the crash reports.
+    /// the local exception reporter of the Backstage service provider of the test process.
     /// </summary>
     /// <remarks>
     /// The application information of the test context does not create local crash reports, and the test context does
-    /// not register the standard directories. The report file would not be written without these two services.
+    /// not register the local exception reporter. The report file would not be written without these two services.
     /// </remarks>
     protected override void ConfigureServices( IAdditionalServiceCollection services )
     {
@@ -78,7 +78,7 @@ public sealed class UserCodeCrashReportTests : UnitTestClass
         backstageServices.Add<IApplicationInfoProvider>( _ => new CrashReportingApplicationInfoProvider(), true );
 
         backstageServices.Add(
-            _ => BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>(),
+            _ => BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<ILocalExceptionReporter>(),
             true );
     }
 
