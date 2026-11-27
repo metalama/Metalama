@@ -16,4 +16,10 @@ internal interface ISemanticModelAnalysisContext
     IProjectOptions ProjectOptions { get; }
 
     void ReportDiagnostic( Diagnostic diagnostic );
+
+    /// <summary>
+    /// Determines whether Roslyn considers a syntax tree of the compilation to be generated code, in which case it does not
+    /// run the analyzer on this tree.
+    /// </summary>
+    bool IsGeneratedCode( SyntaxTree syntaxTree );
 }

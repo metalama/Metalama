@@ -27,4 +27,6 @@ public sealed class TestSemanticModelAnalysisContext : ISemanticModelAnalysisCon
     public void ReportDiagnostic( Diagnostic diagnostic ) => this.ReportedDiagnostics.Add( diagnostic );
 
     public List<Diagnostic> ReportedDiagnostics { get; } = new();
+
+    public bool IsGeneratedCode( SyntaxTree syntaxTree ) => GeneratedCodeDetector.IsGeneratedCode( syntaxTree, null, default );
 }

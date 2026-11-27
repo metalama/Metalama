@@ -419,10 +419,12 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
         /// </summary>
         /// <remarks>
         /// <para>
-        /// The warnings are reported once per project, on the first syntax tree of the compilation, so that the analysis of each
-        /// syntax tree does not report them again. The location is the start of this syntax tree, because the analyzer cannot
-        /// report a diagnostic on the <c>metalama.json</c> file, which is not a syntax tree of the compilation. The path of the
-        /// file is therefore included in the message. The compiler reports the same warnings once per project. See #2421.
+        /// The warnings are reported once per project, on the first syntax tree of the compilation that is not generated code,
+        /// so that the analysis of each syntax tree does not report them again. Generated trees are skipped because Roslyn does
+        /// not run this analyzer on them, and the first tree of a project is often generated, for instance the file of the
+        /// assembly attributes. The location is the start of the selected syntax tree, because the analyzer cannot report a
+        /// diagnostic on the <c>metalama.json</c> file, which is not a syntax tree of the compilation. The path of the file is
+        /// therefore included in the message. The compiler reports the same warnings once per project. See #2421.
         /// </para>
         /// </remarks>
         private static void ReportTelemetryContextWarnings( ISemanticModelAnalysisContext context, Compilation compilation, DesignTimeAspectPipeline pipeline )
@@ -434,7 +436,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 
             var syntaxTree = context.SemanticModel.SyntaxTree;
 
-            if ( compilation.SyntaxTrees.FirstOrDefault() != syntaxTree )
+            if ( compilation.SyntaxTrees.FirstOrDefault( t => !context.IsGeneratedCode( t ) ) != syntaxTree )
             {
                 return;
             }

@@ -27,4 +27,7 @@ internal sealed class SemanticModelAnalysisContextAdapter : ISemanticModelAnalys
 
     // ReSharper disable once PossiblyImpureMethodCallOnReadonlyVariable
     public void ReportDiagnostic( Diagnostic diagnostic ) => this._context.ReportDiagnostic( diagnostic );
+
+    public bool IsGeneratedCode( SyntaxTree syntaxTree )
+        => GeneratedCodeDetector.IsGeneratedCode( syntaxTree, this._context.Options.AnalyzerConfigOptionsProvider, this._context.CancellationToken );
 }
