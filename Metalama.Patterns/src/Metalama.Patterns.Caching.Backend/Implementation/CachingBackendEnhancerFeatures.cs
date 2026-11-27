@@ -41,4 +41,7 @@ internal abstract class CachingBackendEnhancerFeatures : CachingBackendFeatures
 
     /// <inheritdoc />
     public override bool ContainsDependency => this.UnderlyingBackendFeatures.ContainsDependency;
+
+    /// <inheritdoc />
+    public override bool SetItemIfUnmodifiedSince => this.UnderlyingBackendFeatures.SetItemIfUnmodifiedSince;
 }

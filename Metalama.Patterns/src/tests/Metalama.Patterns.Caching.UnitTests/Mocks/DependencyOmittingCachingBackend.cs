@@ -63,6 +63,26 @@ internal sealed class DependencyOmittingCachingBackend : CachingBackendEnhancer
     }
 
     /// <inheritdoc />
+    protected override bool SetItemCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince )
+    {
+        this.LastSetKey = key;
+
+        return base.SetItemCore( key, item, ifUnmodifiedSince );
+    }
+
+    /// <inheritdoc />
+    protected override ValueTask<bool> SetItemAsyncCore(
+        string key,
+        CacheItem item,
+        DateTimeOffset ifUnmodifiedSince,
+        CancellationToken cancellationToken )
+    {
+        this.LastSetKey = key;
+
+        return base.SetItemAsyncCore( key, item, ifUnmodifiedSince, cancellationToken );
+    }
+
+    /// <inheritdoc />
     protected override CacheItem? GetItemCore( string key, bool includeDependencies )
     {
         this._getItemRequests.Enqueue( new GetItemRequest( key, includeDependencies ) );

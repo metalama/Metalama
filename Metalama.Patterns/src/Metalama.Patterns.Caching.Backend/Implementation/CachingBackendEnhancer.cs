@@ -88,6 +88,29 @@ public abstract class CachingBackendEnhancer : CachingBackend
     protected override void SetItemCore( string key, CacheItem item ) => this.UnderlyingBackend.SetItem( key, item );
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The call is forwarded to the conditional <see cref="CachingBackend.SetItem"/> of <see cref="UnderlyingBackend"/>,
+    /// not to <see cref="SetItemCore(string, CacheItem)"/>. An enhancer that intercepts the stores must therefore override
+    /// both overloads of <c>SetItemCore</c> and of <c>SetItemAsyncCore</c>.
+    /// </remarks>
+    protected override bool SetItemCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince )
+        => this.UnderlyingBackend.SetItem( key, item, ifUnmodifiedSince );
+
+    /// <inheritdoc />
+    protected override ValueTask<bool> SetItemAsyncCore(
+        string key,
+        CacheItem item,
+        DateTimeOffset ifUnmodifiedSince,
+        CancellationToken cancellationToken )
+        => this.UnderlyingBackend.SetItemAsync( key, item, ifUnmodifiedSince, cancellationToken );
+
+    /// <summary>
+    /// Returns the <see cref="CachingBackend.Clock"/> of <see cref="UnderlyingBackend"/>, which times the invalidations
+    /// that <see cref="CachingBackend.SetItem"/> compares with the start of the computation.
+    /// </summary>
+    /// <returns>The clock of the underlying backend.</returns>
+    protected override CachingBackendClock CreateClock() => this.UnderlyingBackend.Clock;
+
     protected override bool ContainsItemCore( string key ) => this.UnderlyingBackend.ContainsItem( key );
 
     /// <inheritdoc />
@@ -107,8 +130,8 @@ public abstract class CachingBackendEnhancer : CachingBackend
     protected override void ClearCore( ClearCacheOptions options ) => this.UnderlyingBackend.Clear( options );
 
     /// <inheritdoc />
-    protected override ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
-        => this.UnderlyingBackend.SetItemAsync( key, item, cancellationToken );
+    protected override async ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
+        => await this.UnderlyingBackend.SetItemAsync( key, item, cancellationToken: cancellationToken );
 
     /// <inheritdoc />
     protected override ValueTask<bool> ContainsItemAsyncCore( string key, CancellationToken cancellationToken )

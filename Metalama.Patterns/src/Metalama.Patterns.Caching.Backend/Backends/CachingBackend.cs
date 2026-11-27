@@ -46,6 +46,7 @@ public abstract partial class CachingBackend : IDisposable, IAsyncDisposable
     private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
 
     private CachingBackendFeatures? _features;
+    private CachingBackendClock? _clock;
     private int _status;
     private EventHandler<CacheItemRemovedEventArgs>? _itemRemoved;
     private EventHandler<CacheDependencyInvalidatedEventArgs>? _dependencyInvalidated;
@@ -114,6 +115,20 @@ public abstract partial class CachingBackend : IDisposable, IAsyncDisposable
     /// Gets the set of features supported by the current <see cref="CachingBackend"/>.
     /// </summary>
     public CachingBackendFeatures SupportedFeatures => this._features ??= this.CreateFeatures();
+
+    /// <summary>
+    /// Creates the <see cref="CachingBackendClock"/> of the backend. This method is invoked the first time the
+    /// <see cref="Clock"/> property is evaluated. The result is then cached. The default implementation reads
+    /// <see cref="TimeProvider"/>.
+    /// </summary>
+    /// <returns>A <see cref="CachingBackendClock"/>.</returns>
+    protected virtual CachingBackendClock CreateClock() => CachingBackendClock.FromTimeProvider( this.TimeProvider );
+
+    /// <summary>
+    /// Gets the clock that times the invalidations of the backend. The caching service reads it before it computes the
+    /// value of a cache item, and passes the time to <see cref="SetItem"/> as the <c>ifUnmodifiedSince</c> argument.
+    /// </summary>
+    public CachingBackendClock Clock => this._clock ??= this.CreateClock();
 
     public void Initialize()
     {
@@ -256,11 +271,79 @@ public abstract partial class CachingBackend : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Sets a cache item.
+    /// Sets a cache item unless the key of the item, or one of its dependencies, has been modified since a given time. This
+    /// protected method is part of the implementation API and is meant to be overridden in user code, not invoked. Arguments
+    /// are already validated by the consumer API. The default implementation calls <see cref="SetItemCore(string, CacheItem)"/>
+    /// and returns <c>true</c>. A backend that overrides this method must also return <c>true</c> from
+    /// <see cref="CachingBackendFeatures.SetItemIfUnmodifiedSince"/>.
     /// </summary>
     /// <param name="key">The key of the cache item.</param>
     /// <param name="item">The cache item.</param>
-    public void SetItem( string key, CacheItem item )
+    /// <param name="ifUnmodifiedSince">The time, read from <see cref="Clock"/>, at which the computation of the value of the item started.</param>
+    /// <returns><c>false</c> when the item has not been stored, or has been removed after it was stored.</returns>
+    protected virtual bool SetItemCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince )
+    {
+        this.SetItemCore( key, item );
+
+        return true;
+    }
+
+    /// <summary>
+    /// Asynchronously sets a cache item unless the key of the item, or one of its dependencies, has been modified since a
+    /// given time. This protected method is part of the implementation API and is meant to be overridden in user code, not
+    /// invoked. Arguments are already validated by the consumer API. The default implementation calls
+    /// <see cref="SetItemCore(string, CacheItem, DateTimeOffset)"/>.
+    /// </summary>
+    /// <param name="key">The key of the cache item.</param>
+    /// <param name="item">The cache item.</param>
+    /// <param name="ifUnmodifiedSince">The time, read from <see cref="Clock"/>, at which the computation of the value of the item started.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns><c>false</c> when the item has not been stored, or has been removed after it was stored.</returns>
+    protected virtual ValueTask<bool> SetItemAsyncCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince, CancellationToken cancellationToken )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return new ValueTask<bool>( this.SetItemCore( key, item, ifUnmodifiedSince ) );
+    }
+
+    /// <summary>
+    /// Sets a cache item, optionally only if the key of the item and its dependencies have not been modified since a given
+    /// time.
+    /// </summary>
+    /// <param name="key">The key of the cache item.</param>
+    /// <param name="item">The cache item.</param>
+    /// <param name="ifUnmodifiedSince">
+    /// The time, read from <see cref="Clock"/> before the value of the item was computed, at which the computation started,
+    /// or <see langword="null"/> to store the item unconditionally. See the remarks.
+    /// </param>
+    /// <returns>
+    /// <c>false</c> when the item has not been stored, or has been removed after it was stored, because the precondition
+    /// given by <paramref name="ifUnmodifiedSince"/> did not hold, otherwise <c>true</c>.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// The <paramref name="ifUnmodifiedSince"/> parameter is a precondition, with the semantics of the <c>If-Unmodified-Since</c>
+    /// header of HTTP. The item is stored only when none of the following has happened after <paramref name="ifUnmodifiedSince"/>:
+    /// </para>
+    /// <list type="bullet">
+    /// <item>an invalidation of <paramref name="key"/> or of one of the dependencies of <paramref name="item"/>, which includes
+    /// the removal of the item of the key and of the items on which <paramref name="item"/> depends;</item>
+    /// <item>the storage, for the same key, of an item whose computation started later, as given by its own
+    /// <paramref name="ifUnmodifiedSince"/> argument.</item>
+    /// </list>
+    /// <para>
+    /// Without the precondition, an invalidation that runs while the value of an item is computed finds no item to remove, and
+    /// the value computed from the data that the invalidation made obsolete is stored afterwards and served until it expires.
+    /// Similarly, a value computed from old data can overwrite a value computed from newer data. The backend records the time
+    /// of each invalidation for <see cref="CachingBackendConfiguration.InvalidationTombstoneLifetime"/>. A computation that
+    /// lasted longer than this lifetime is stored without checking the invalidations.
+    /// </para>
+    /// <para>
+    /// When <see cref="CachingBackendFeatures.SetItemIfUnmodifiedSince"/> is <c>false</c>, the precondition is ignored, the
+    /// item is stored unconditionally, and the method returns <c>true</c>.
+    /// </para>
+    /// </remarks>
+    public bool SetItem( string key, CacheItem item, DateTimeOffset? ifUnmodifiedSince = null )
     {
         using ( var activity = this.LogSource.Default.OpenActivity( Formatted( """SetItem( backend = "{Backend}" key = "{Key}" )""", this, key ) ) )
         {
@@ -269,9 +352,21 @@ public abstract partial class CachingBackend : IDisposable, IAsyncDisposable
                 this.CheckStatus();
                 this.Validate( item );
 
-                this.SetItemCore( key, item );
+                bool isStored;
+
+                if ( ifUnmodifiedSince != null )
+                {
+                    isStored = this.SetItemCore( key, item, ifUnmodifiedSince.Value );
+                }
+                else
+                {
+                    this.SetItemCore( key, item );
+                    isStored = true;
+                }
 
                 activity.SetSuccess();
+
+                return isStored;
             }
             catch ( Exception e )
             {
@@ -283,13 +378,25 @@ public abstract partial class CachingBackend : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Asynchronously sets a cache item.
+    /// Asynchronously sets a cache item, optionally only if the key of the item and its dependencies have not been modified
+    /// since a given time. See <see cref="SetItem"/> for details.
     /// </summary>
     /// <param name="key">The key of the cache item.</param>
     /// <param name="item">The cache item.</param>
+    /// <param name="ifUnmodifiedSince">
+    /// The time, read from <see cref="Clock"/> before the value of the item was computed, at which the computation started,
+    /// or <see langword="null"/> to store the item unconditionally.
+    /// </param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns>A <see cref="Task"/>.</returns>
-    public async ValueTask SetItemAsync( string key, CacheItem item, CancellationToken cancellationToken = default )
+    /// <returns>
+    /// <c>false</c> when the item has not been stored, or has been removed after it was stored, because the precondition
+    /// given by <paramref name="ifUnmodifiedSince"/> did not hold, otherwise <c>true</c>.
+    /// </returns>
+    public async ValueTask<bool> SetItemAsync(
+        string key,
+        CacheItem item,
+        DateTimeOffset? ifUnmodifiedSince = null,
+        CancellationToken cancellationToken = default )
     {
         using ( var activity = this.LogSource.Default.OpenAsyncActivity( Formatted( """SetItemAsync( backend = "{Backend}" key = "{Key}" )""", this, key ) ) )
         {
@@ -300,9 +407,21 @@ public abstract partial class CachingBackend : IDisposable, IAsyncDisposable
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await this.SetItemAsyncCore( key, item, cancellationToken );
+                bool isStored;
+
+                if ( ifUnmodifiedSince != null )
+                {
+                    isStored = await this.SetItemAsyncCore( key, item, ifUnmodifiedSince.Value, cancellationToken );
+                }
+                else
+                {
+                    await this.SetItemAsyncCore( key, item, cancellationToken );
+                    isStored = true;
+                }
 
                 activity.SetSuccess();
+
+                return isStored;
             }
             catch ( Exception e )
             {

@@ -26,6 +26,13 @@ namespace Metalama.Patterns.Caching.Backends
             /// without its dependencies. The dependencies of such an entry are not registered in the dependency index.
             /// </summary>
             public bool HasUnknownDependencies { get; init; }
+
+            /// <summary>
+            /// Gets the time, in UTC ticks, at which the computation of the value of the entry started, or zero when it is
+            /// not known. An entry whose computation started later is not replaced by a conditional store. See
+            /// <see cref="CachingBackend.SetItem"/>.
+            /// </summary>
+            public long ComputationStartTicks { get; init; }
         }
     }
 }

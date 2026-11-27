@@ -294,7 +294,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         backend.ItemRemoved += ( _, _ ) => Interlocked.Increment( ref eventRaisedCount );
 
         // Set an item before disposal
-        await backend.SetItemAsync( "key", new CacheItem( "value" ), TestContext.Current.CancellationToken );
+        await backend.SetItemAsync( "key", new CacheItem( "value" ), cancellationToken: TestContext.Current.CancellationToken );
 
         // Start disposal - this should clear event handlers
         await backend.DisposeAsync( TestContext.Current.CancellationToken );

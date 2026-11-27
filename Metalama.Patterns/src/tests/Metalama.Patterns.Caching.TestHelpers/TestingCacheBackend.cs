@@ -108,7 +108,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
         protected override async ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
         {
             ++this._actualSetCount;
-            await this._backend.SetItemAsync( key, item, cancellationToken );
+            await this._backend.SetItemAsync( key, item, cancellationToken: cancellationToken );
             this.LastCachedItem = item;
             this.LastCachedKey = key;
             this.ItemSet?.Invoke( this, new CacheItemSetEventArgs( key, item, null ) );

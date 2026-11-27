@@ -113,7 +113,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache miss: Key=\"{Key}\".", key ) );
 
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                using ( var context = CachingContext.OpenCacheContext( key, GetComputationStartTime( backend ) ) )
                 {
                     value = invokeOriginalMethod( instance, args );
 
@@ -242,7 +242,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache miss: Key=\"{Key}\".", key ) );
 
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                using ( var context = CachingContext.OpenCacheContext( key, await GetComputationStartTimeAsync( backend, cancellationToken ) ) )
                 {
                     var invokeValueProviderTask = invokeOriginalMethod( instance, args, cancellationToken );
 
@@ -375,7 +375,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache miss: Key=\"{Key}\".", key ) );
 
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                using ( var context = CachingContext.OpenCacheContext( key, await GetComputationStartTimeAsync( backend, cancellationToken ) ) )
                 {
                     var invokeValueProviderTask = invokeOriginalMethod( instance, args, cancellationToken );
 
@@ -410,6 +410,24 @@ internal sealed class CachingFrontend
             }
         }
     }
+
+    /// <summary>
+    /// Reads the clock of the backend before the value of an item is computed, so that the item can be stored with the
+    /// <c>ifUnmodifiedSince</c> precondition of <see cref="CachingBackend.SetItem"/>.
+    /// </summary>
+    /// <param name="backend">The backend.</param>
+    /// <returns>The current time of the backend, or <see langword="null"/> when the backend does not support the feature.</returns>
+    internal static DateTimeOffset? GetComputationStartTime( CachingBackend backend )
+        => backend.SupportedFeatures.SetItemIfUnmodifiedSince ? backend.Clock.GetCurrentTime() : null;
+
+    /// <summary>
+    /// Asynchronously reads the clock of the backend before the value of an item is computed. See <see cref="GetComputationStartTime"/>.
+    /// </summary>
+    /// <param name="backend">The backend.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The current time of the backend, or <see langword="null"/> when the backend does not support the feature.</returns>
+    internal static async ValueTask<DateTimeOffset?> GetComputationStartTimeAsync( CachingBackend backend, CancellationToken cancellationToken )
+        => backend.SupportedFeatures.SetItemIfUnmodifiedSince ? await backend.Clock.GetCurrentTimeAsync( cancellationToken ) : null;
 
     /// <summary>
     /// Determines whether a cache hit must add the dependencies of the cached item to the current context, and therefore
@@ -484,7 +502,8 @@ internal sealed class CachingFrontend
 
         var cacheItem = new CacheItem( value, [..context.Dependencies], configuration );
 
-        backend.SetItem( key, cacheItem );
+        // The item is not stored when it has been modified since its computation started.
+        backend.SetItem( key, cacheItem, context.ComputationStartTime );
 
         return exposedValue;
     }
@@ -523,8 +542,8 @@ internal sealed class CachingFrontend
 
         var cacheItem = new CacheItem( value, [..context.Dependencies], configuration );
 
-        var setItemTask = backend.SetItemAsync( key, cacheItem, cancellationToken );
-        await setItemTask;
+        // The item is not stored when it has been modified since its computation started.
+        await backend.SetItemAsync( key, cacheItem, context.ComputationStartTime, cancellationToken );
 
         return exposedValue;
     }

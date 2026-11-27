@@ -89,7 +89,9 @@ internal sealed class AutoReloadManager : IDisposable, IAsyncDisposable
         {
             try
             {
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                // When the backend rejects the value because of an invalidation during the computation, it raises the
+                // ItemRemoved event, which starts another refresh.
+                using ( var context = CachingContext.OpenCacheContext( key, CachingFrontend.GetComputationStartTime( backend ) ) )
                 {
                     var value = subscription.ValueProvider.Invoke();
 
@@ -111,7 +113,10 @@ internal sealed class AutoReloadManager : IDisposable, IAsyncDisposable
         {
             try
             {
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                // See AutoRefreshCore.
+                using ( var context = CachingContext.OpenCacheContext(
+                           key,
+                           await CachingFrontend.GetComputationStartTimeAsync( backend, cancellationToken ) ) )
                 {
                     var invokeValueProviderTask = (Task<object?>?) subscription.ValueProvider.Invoke();
                     var value = invokeValueProviderTask == null ? null : await invokeValueProviderTask;

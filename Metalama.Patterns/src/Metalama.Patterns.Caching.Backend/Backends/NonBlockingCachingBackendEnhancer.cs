@@ -41,7 +41,27 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
 
     /// <inheritdoc />
     protected override void SetItemCore( string key, CacheItem item )
-        => this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, ct ).AsTask() );
+        => this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, cancellationToken: ct ).AsTask() );
+
+    /// <inheritdoc />
+    protected override bool SetItemCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince )
+    {
+        this.SetItemCore( key, item );
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    protected override ValueTask<bool> SetItemAsyncCore(
+        string key,
+        CacheItem item,
+        DateTimeOffset ifUnmodifiedSince,
+        CancellationToken cancellationToken )
+    {
+        this.SetItemCore( key, item );
+
+        return new ValueTask<bool>( true );
+    }
 
     /// <inheritdoc />
     protected override void RemoveItemCore( string key ) => this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.RemoveItemAsync( key, ct ).AsTask() );
@@ -49,7 +69,7 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
     {
-        this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, ct ).AsTask() );
+        this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, cancellationToken: ct ).AsTask() );
 
         return _finishedTask;
     }
@@ -101,5 +121,8 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
         public Features( CachingBackendFeatures underlyingBackendFeatures ) : base( underlyingBackendFeatures ) { }
 
         public override bool Blocking => false;
+
+        // The enhancer stores the items in the background, so it cannot report whether an item has been stored.
+        public override bool SetItemIfUnmodifiedSince => false;
     }
 }

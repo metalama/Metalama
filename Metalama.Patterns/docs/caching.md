@@ -193,6 +193,17 @@ The backend disposes the `IMemoryCache` only when it owns it: when it created it
 
 The replacement value (tombstone) that `LayeredCachingBackendEnhancer` stores in its local layer when the remote layer is not blocking is stored even when the key is absent, with the priority `NeverRemove`, a size of zero, and an expiration converted to a duration with the clock of the backend. An invalidation also stores it for a dependent key whose item is absent, and keeps an existing replacement value.
 
+### Conditional stores (`ifUnmodifiedSince`)
+
+`SetItem` and `SetItemAsync` take an optional `ifUnmodifiedSince` precondition, with the semantics of the HTTP `If-Unmodified-Since` header, and return `false` when the item has not been stored. The frontend reads `CachingBackend.Clock` before it computes a value, and passes that time as the precondition. The auto-reload manager does the same for its refreshes. The item is stored only when, since that time, neither the key nor any dependency of the item has been invalidated, and the key has not received an item whose computation started later. Without the precondition, an invalidation that runs during a computation finds nothing to remove and the obsolete value is stored afterwards, and a value computed from old data can overwrite a value computed from newer data. An ETag (`If-Match`) precondition would not fit, because the dependencies of an item are only known at the end of its computation.
+
+- The backend records the time of each invalidation of a key (an invalidated dependency, a removed item, and every item that an invalidation removes) for `CachingBackendConfiguration.InvalidationTombstoneLifetime`, five minutes by default. `MemoryCachingBackend` keeps these records in `InvalidationTombstoneSet`, and purges the expired records at most once per half lifetime.
+- Each item stored with the precondition keeps the start time of its computation (`EntryState.ComputationStartTicks` in `MemoryCachingBackend`). A conditional store does not replace an item whose computation started later. This check runs under the lock of the key. An item stored without the precondition has no start time and is replaced by any conditional store.
+- An invalidation records the key before it removes the items. A conditional store checks the records, stores the item and registers its dependencies, then checks the records again. When an invalidation has been recorded in the meantime, it records the key of the item as invalidated, so that a computation that has read the rejected item is rejected too, removes the item, only if it has not been replaced, and raises `ItemRemoved`, which starts another refresh of an auto-reloaded item. An invalidation that the second check does not see starts its removal after the item is registered, and removes it. No step needs a lock that covers the key and its dependencies, so the same protocol works with a distributed backend whose keys are on different nodes.
+- A computation that lasts longer than the lifetime of the records is stored without checking the invalidations.
+- `CachingBackendClock.Tolerance` is subtracted from the start time, so that an invalidation timed by a clock that is behind the clock of the computation still counts.
+- `LayeredCachingBackendEnhancer` uses the clock of its remote layer, stores the item in the local layer, and removes the local copy when the remote layer rejects the item. It also reads its timestamps (`MaterializedCacheItem.Timestamp` and the replacement values) from that clock. `NonBlockingCachingBackendEnhancer` does not support the precondition, because it stores the items in the background.
+
 ### Read-through in `LayeredCachingBackendEnhancer`
 
 A read that finds no item in the local layer reads the remote layer and copies the item into the local layer. The following rules prevent the copy of a value that a concurrent removal, invalidation or clearing has removed.
@@ -305,8 +316,9 @@ Determines recovery action: `Continue`, `Retry`, `Abort`
 | `Blocking` | Write operations complete synchronously |
 | `Dependencies` | Dependency-based invalidation supported |
 | `ContainsDependency` | `ContainsDependency()` method supported |
+| `SetItemIfUnmodifiedSince` | `SetItem()` evaluates its `ifUnmodifiedSince` precondition |
 
-Enhancers delegate to underlying backend features (except `NonBlockingCachingBackendEnhancer` which overrides `Blocking` to false).
+Enhancers delegate to underlying backend features (except `NonBlockingCachingBackendEnhancer` which overrides `Blocking` and `SetItemIfUnmodifiedSince` to false).
 
 ## Integration Points
 

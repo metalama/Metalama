@@ -100,7 +100,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
+        await layered.SetItemAsync( key, item, cancellationToken: TestContext.Current.CancellationToken );
 
         // L1 should have the item
         var l1Item = layered.LocalCache.GetItem( key );
@@ -566,7 +566,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
+        await layered.SetItemAsync( key, item, cancellationToken: TestContext.Current.CancellationToken );
         await layered.RemoveItemAsync( key, TestContext.Current.CancellationToken );
 
         var retrieved = await layered.GetItemAsync( key, cancellationToken: TestContext.Current.CancellationToken );
@@ -582,7 +582,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string dependency = "dep1";
         var item = new CacheItem( "test-value", [dependency] );
 
-        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
+        await layered.SetItemAsync( key, item, cancellationToken: TestContext.Current.CancellationToken );
         await layered.InvalidateDependencyAsync( dependency, TestContext.Current.CancellationToken );
 
         var retrieved = await layered.GetItemAsync( key, cancellationToken: TestContext.Current.CancellationToken );
@@ -596,8 +596,8 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
 
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        await layered.SetItemAsync( "key1", new CacheItem( "value1" ), cancellationToken );
-        await layered.SetItemAsync( "key2", new CacheItem( "value2" ), cancellationToken );
+        await layered.SetItemAsync( "key1", new CacheItem( "value1" ), cancellationToken: cancellationToken );
+        await layered.SetItemAsync( "key2", new CacheItem( "value2" ), cancellationToken: cancellationToken );
 
         await layered.ClearAsync( cancellationToken: cancellationToken );
 
@@ -668,7 +668,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
 
         // Set item through layered backend
         var originalItem = new CacheItem( "test-value" );
-        await layered.SetItemAsync( "test-key", originalItem, TestContext.Current.CancellationToken );
+        await layered.SetItemAsync( "test-key", originalItem, cancellationToken: TestContext.Current.CancellationToken );
 
         // Clear L1 only
         await layered.ClearAsync( ClearCacheOptions.Local, TestContext.Current.CancellationToken );
@@ -752,7 +752,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
+        await layered.SetItemAsync( key, item, cancellationToken: TestContext.Current.CancellationToken );
 
         // Clear L1 only using Local option
         await layered.ClearAsync( ClearCacheOptions.Local, TestContext.Current.CancellationToken );
@@ -778,9 +778,10 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        var beforeSet = DateTimeOffset.UtcNow.UtcTicks;
+        // The timestamp is read from the clock of the backend.
+        var beforeSet = layered.Clock.GetCurrentTime().UtcTicks;
         layered.SetItem( key, item );
-        var afterSet = DateTimeOffset.UtcNow.UtcTicks;
+        var afterSet = layered.Clock.GetCurrentTime().UtcTicks;
 
         // Get the MaterializedCacheItem from L2
         var l2Item = layered.UnderlyingBackend.GetItem( key );
