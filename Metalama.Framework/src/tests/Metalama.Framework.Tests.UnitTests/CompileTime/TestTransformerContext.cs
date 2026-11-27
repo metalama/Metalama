@@ -15,11 +15,16 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 
 internal sealed class TestTransformerContext : ITransformerContext
 {
-    public TestTransformerContext( Compilation compilation, IProjectOptions projectOptions, GlobalServiceProvider serviceProvider )
+    public TestTransformerContext(
+        Compilation compilation,
+        IProjectOptions projectOptions,
+        GlobalServiceProvider serviceProvider,
+        ITelemetryContext? telemetryContext = null )
     {
         this.Compilation = compilation;
         this.ProjectOptions = projectOptions;
         this.ServiceProvider = serviceProvider;
+        this.TelemetryContext = telemetryContext;
     }
 
     public DiagnosticFilterCollection ReportedSuppressions { get; } = new();
@@ -32,7 +37,7 @@ internal sealed class TestTransformerContext : ITransformerContext
 
     public IProjectOptions ProjectOptions { get; }
 
-    public ITelemetryContext? TelemetryContext => null;
+    public ITelemetryContext? TelemetryContext { get; }
 
     public ImmutableArray<ManagedResource> Resources => ImmutableArray<ManagedResource>.Empty;
 
