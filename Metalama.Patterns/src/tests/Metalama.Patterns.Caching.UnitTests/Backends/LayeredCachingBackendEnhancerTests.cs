@@ -778,9 +778,10 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        var beforeSet = DateTimeOffset.UtcNow.UtcTicks;
+        // The timestamp is read from the clock of the backend.
+        var beforeSet = layered.Clock.GetCurrentTime().UtcTicks;
         layered.SetItem( key, item );
-        var afterSet = DateTimeOffset.UtcNow.UtcTicks;
+        var afterSet = layered.Clock.GetCurrentTime().UtcTicks;
 
         // Get the MaterializedCacheItem from L2
         var l2Item = layered.UnderlyingBackend.GetItem( key );

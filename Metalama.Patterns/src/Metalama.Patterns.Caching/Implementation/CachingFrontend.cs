@@ -111,7 +111,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache miss: Key=\"{Key}\".", key ) );
 
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                using ( var context = CachingContext.OpenCacheContext( key, GetComputationStartTime( backend ) ) )
                 {
                     value = invokeOriginalMethod( instance, args );
 
@@ -238,7 +238,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache miss: Key=\"{Key}\".", key ) );
 
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                using ( var context = CachingContext.OpenCacheContext( key, await GetComputationStartTimeAsync( backend, cancellationToken ) ) )
                 {
                     var invokeValueProviderTask = invokeOriginalMethod( instance, args, cancellationToken );
 
@@ -369,7 +369,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache miss: Key=\"{Key}\".", key ) );
 
-                using ( var context = CachingContext.OpenCacheContext( key ) )
+                using ( var context = CachingContext.OpenCacheContext( key, await GetComputationStartTimeAsync( backend, cancellationToken ) ) )
                 {
                     var invokeValueProviderTask = invokeOriginalMethod( instance, args, cancellationToken );
 
@@ -405,6 +405,24 @@ internal sealed class CachingFrontend
         }
     }
 
+    /// <summary>
+    /// Reads the clock of the backend before the value of an item is computed, so that the item can be stored with
+    /// <see cref="CachingBackend.SetItemIfNotInvalidated"/>.
+    /// </summary>
+    /// <param name="backend">The backend.</param>
+    /// <returns>The current time of the backend, or <see langword="null"/> when the backend does not support the feature.</returns>
+    internal static DateTimeOffset? GetComputationStartTime( CachingBackend backend )
+        => backend.SupportedFeatures.SetItemIfNotInvalidated ? backend.Clock.GetCurrentTime() : null;
+
+    /// <summary>
+    /// Asynchronously reads the clock of the backend before the value of an item is computed. See <see cref="GetComputationStartTime"/>.
+    /// </summary>
+    /// <param name="backend">The backend.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>The current time of the backend, or <see langword="null"/> when the backend does not support the feature.</returns>
+    internal static async ValueTask<DateTimeOffset?> GetComputationStartTimeAsync( CachingBackend backend, CancellationToken cancellationToken )
+        => backend.SupportedFeatures.SetItemIfNotInvalidated ? await backend.Clock.GetCurrentTimeAsync( cancellationToken ) : null;
+
     private static void AddChildDependency( CachingBackend backend, string key )
     {
         if ( backend.SupportedFeatures.Dependencies )
@@ -436,7 +454,15 @@ internal sealed class CachingFrontend
 
         var cacheItem = new CacheItem( value, [..context.Dependencies], configuration );
 
-        backend.SetItem( key, cacheItem );
+        if ( context.ComputationStartTime is { } computationStartTime )
+        {
+            // The item is not stored when it has been invalidated during its computation.
+            backend.SetItemIfNotInvalidated( key, cacheItem, computationStartTime );
+        }
+        else
+        {
+            backend.SetItem( key, cacheItem );
+        }
 
         return exposedValue;
     }
@@ -475,8 +501,16 @@ internal sealed class CachingFrontend
 
         var cacheItem = new CacheItem( value, [..context.Dependencies], configuration );
 
-        var setItemTask = backend.SetItemAsync( key, cacheItem, cancellationToken );
-        await setItemTask;
+        if ( context.ComputationStartTime is { } computationStartTime )
+        {
+            // The item is not stored when it has been invalidated during its computation.
+            await backend.SetItemIfNotInvalidatedAsync( key, cacheItem, computationStartTime, cancellationToken );
+        }
+        else
+        {
+            var setItemTask = backend.SetItemAsync( key, cacheItem, cancellationToken );
+            await setItemTask;
+        }
 
         return exposedValue;
     }

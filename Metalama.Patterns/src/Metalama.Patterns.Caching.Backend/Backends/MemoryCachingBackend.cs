@@ -15,6 +15,7 @@ using CacheItemPriority = Microsoft.Extensions.Caching.Memory.CacheItemPriority;
 using MemoryCache = Microsoft.Extensions.Caching.Memory.MemoryCache;
 using PSCacheItem = Metalama.Patterns.Caching.Implementation.CacheItem;
 using PSCacheItemPriority = Metalama.Patterns.Caching.Implementation.CacheItemPriority;
+using static Flashtrace.Messages.FormattedMessageBuilder;
 
 namespace Metalama.Patterns.Caching.Backends;
 
@@ -114,6 +115,12 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// </summary>
     private readonly ConcurrentDictionary<string, bool> _keysWithUnknownDependencies = new( StringComparer.Ordinal );
 
+    /// <summary>
+    /// The times at which keys have been invalidated, which <see cref="SetItemIfNotInvalidatedCore"/> compares with the
+    /// start of the computation of an item.
+    /// </summary>
+    private readonly InvalidationTombstoneSet _tombstones;
+
     private volatile bool _isDisposed;
 
     /// <summary>
@@ -184,6 +191,7 @@ internal partial class MemoryCachingBackend : CachingBackend
         }
 
         this._serializer = configuration.Serializer;
+        this._tombstones = new InvalidationTombstoneSet( configuration.InvalidationTombstoneLifetime );
         this._sizeCalculator = this._serializer != null ? item => ((byte[]?) item)?.Length ?? 0 : configuration.SizeCalculator;
 
         var instanceId = Interlocked.Increment( ref _lastInstanceId ).ToString( CultureInfo.InvariantCulture );
@@ -758,6 +766,61 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override void SetItemCore( string key, PSCacheItem item ) => this.SetItemImpl( key, item );
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// The item is not stored when its key or one of its dependencies has been invalidated since
+    /// <paramref name="computationStartTime"/>. Otherwise, it is stored, and the invalidation records are read again. When an
+    /// invalidation has been recorded in the meantime, the item is removed, unless it has already been replaced, and the
+    /// <see cref="CachingBackend.ItemRemoved"/> event is raised.
+    /// </para>
+    /// <para>
+    /// An invalidation records the key before it removes the items, and the item registers its dependencies before it is
+    /// stored. An invalidation that the second reading does not see therefore starts its removal after the item is stored
+    /// and registered, and removes it.
+    /// </para>
+    /// </remarks>
+    protected override bool SetItemIfNotInvalidatedCore( string key, PSCacheItem item, DateTimeOffset computationStartTime )
+    {
+        var elapsed = this.Clock.GetCurrentTime() - computationStartTime;
+
+        if ( elapsed >= this._tombstones.Lifetime )
+        {
+            // The invalidations that happened during the computation may no longer be recorded.
+            this.LogSource.Debug.IfEnabled?.Write(
+                Formatted(
+                    "The computation of the item \"{Key}\" lasted {Elapsed}, which exceeds the lifetime of the invalidation records. The item is stored without checking the invalidations.",
+                    key,
+                    elapsed ) );
+
+            this.SetItemImpl( key, item );
+
+            return true;
+        }
+
+        var since = computationStartTime - this.Clock.Tolerance;
+        var dependencies = item.Dependencies.IsDefault ? null : (IEnumerable<string>) item.Dependencies;
+
+        if ( this._tombstones.IsInvalidatedSince( key, dependencies, since ) )
+        {
+            return false;
+        }
+
+        var storedItem = this.SetItemImpl( key, item );
+
+        if ( storedItem != null && this._tombstones.IsInvalidatedSince( key, dependencies, since ) )
+        {
+            if ( this.RemoveItemImpl( key, expectedItem: storedItem ) )
+            {
+                this.OnItemRemoved( key, CacheItemRemovedReason.Invalidated, this.Id );
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Stores an item.
     /// </summary>
@@ -1053,6 +1116,9 @@ internal partial class MemoryCachingBackend : CachingBackend
     {
         ValidateReplacement( replacementValue, replacementValueExpiration );
 
+        // The key is recorded before the items are removed. See SetItemIfNotInvalidatedCore.
+        this._tombstones.Record( key, this.Clock.GetCurrentTime() );
+
         this.InvalidateDependents( key, replacementValue, replacementValueExpiration, new HashSet<string>( StringComparer.Ordinal ), null );
 
         this.OnDependencyInvalidated( key, this.Id );
@@ -1102,6 +1168,10 @@ internal partial class MemoryCachingBackend : CachingBackend
             {
                 continue;
             }
+
+            // The key of the item is recorded before the item is removed, because the items that depend on it are
+            // invalidated as well. See SetItemIfNotInvalidatedCore.
+            this._tombstones.Record( key, this.Clock.GetCurrentTime() );
 
             var outcome = this.InvalidateItem( key, dependencyKey, replacementValue, replacementValueExpiration );
 
@@ -1560,6 +1630,9 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override void RemoveItemCore( string key )
     {
+        // The key is recorded before the item is removed. See SetItemIfNotInvalidatedCore.
+        this._tombstones.Record( key, this.Clock.GetCurrentTime() );
+
         if ( this.RemoveItemImpl( key ) )
         {
             this.OnItemRemoved( key, CacheItemRemovedReason.Removed, this.Id );

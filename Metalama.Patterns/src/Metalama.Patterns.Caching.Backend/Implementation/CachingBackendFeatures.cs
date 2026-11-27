@@ -33,9 +33,11 @@ public class CachingBackendFeatures
     /// When a backend that returns <c>false</c> is used behind an in-memory L1 cache, added with
     /// <see cref="CachingBackendFactory.WithL1(OutOfProcessCachingBackendBuilder,LayeredCachingBackendConfiguration?)"/>,
     /// the L1 cache cannot know when a removal or an invalidation has reached the backend. It records the removal in memory
-    /// for one minute, with a timestamp taken from the wall clock of the current machine. During that minute, a value read
-    /// from the backend for the same key is returned only if its own timestamp, taken from the wall clock of the machine
+    /// for one minute, with a timestamp taken from the clock of the current machine. During that minute, a value read
+    /// from the backend for the same key is returned only if its own timestamp, taken from the clock of the machine
     /// that wrote the value, is strictly greater than the timestamp of the removal. Otherwise the item is reported as absent.
+    /// The timestamps are read from the <see cref="CachingBackend.Clock"/> of the backend, which is the wall clock of the
+    /// machine unless the backend provides a clock that all machines share.
     /// </para>
     /// <para>
     /// This rule assumes that the clocks of all machines sharing the backend are synchronized. A clock difference does not
@@ -65,4 +67,11 @@ public class CachingBackendFeatures
     /// Gets a value indicating whether the <see cref="CachingBackend.ContainsDependency(string)"/> method is supported.
     /// </summary>
     public virtual bool ContainsDependency => true;
+
+    /// <summary>
+    /// Gets a value indicating whether the <see cref="CachingBackend.SetItemIfNotInvalidated"/> method detects the
+    /// invalidations that happened since a given time. When this property is <c>false</c>, the method stores the item
+    /// unconditionally. The default value is <c>false</c>.
+    /// </summary>
+    public virtual bool SetItemIfNotInvalidated => false;
 }

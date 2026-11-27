@@ -44,6 +44,26 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
         => this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, ct ).AsTask() );
 
     /// <inheritdoc />
+    protected override bool SetItemIfNotInvalidatedCore( string key, CacheItem item, DateTimeOffset computationStartTime )
+    {
+        this.SetItemCore( key, item );
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    protected override ValueTask<bool> SetItemIfNotInvalidatedAsyncCore(
+        string key,
+        CacheItem item,
+        DateTimeOffset computationStartTime,
+        CancellationToken cancellationToken )
+    {
+        this.SetItemCore( key, item );
+
+        return new ValueTask<bool>( true );
+    }
+
+    /// <inheritdoc />
     protected override void RemoveItemCore( string key ) => this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.RemoveItemAsync( key, ct ).AsTask() );
 
     /// <inheritdoc />
@@ -101,5 +121,8 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
         public Features( CachingBackendFeatures underlyingBackendFeatures ) : base( underlyingBackendFeatures ) { }
 
         public override bool Blocking => false;
+
+        // The enhancer stores the items in the background, so it cannot report whether an item has been stored.
+        public override bool SetItemIfNotInvalidated => false;
     }
 }

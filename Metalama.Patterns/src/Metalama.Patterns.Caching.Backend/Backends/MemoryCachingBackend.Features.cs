@@ -19,6 +19,13 @@ namespace Metalama.Patterns.Caching.Backends
             /// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/>.
             /// </summary>
             public override bool Clear => true;
+
+            /// <summary>
+            /// Gets a value indicating whether the backend supports <see cref="CachingBackend.SetItemIfNotInvalidated"/>.
+            /// The backend records the invalidations of its keys in memory, so it detects the invalidations that this
+            /// instance performs.
+            /// </summary>
+            public override bool SetItemIfNotInvalidated => true;
         }
     }
 }

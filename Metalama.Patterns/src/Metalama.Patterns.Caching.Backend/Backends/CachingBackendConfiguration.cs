@@ -23,4 +23,13 @@ public record CachingBackendConfiguration
     /// Gets or sets a debug name for this backend, used for logging and diagnostics.
     /// </summary>
     public string? DebugName { get; set; }
+
+    /// <summary>
+    /// Gets the duration for which the backend records the time of an invalidation, so that
+    /// <see cref="CachingBackend.SetItemIfNotInvalidated"/> does not store a value whose computation started before the
+    /// invalidation. The value of a computation that lasts longer than this duration is stored without this check. The
+    /// default value is five minutes. This property is used only by the backends that support
+    /// <see cref="Implementation.CachingBackendFeatures.SetItemIfNotInvalidated"/>.
+    /// </summary>
+    public TimeSpan InvalidationTombstoneLifetime { get; init; } = TimeSpan.FromMinutes( 5 );
 }

@@ -51,7 +51,19 @@ internal sealed record MaterializedCacheItem : CacheItem, ICacheItemConfiguratio
         this.Configuration = this;
     }
 
-    public MaterializedCacheItem( CacheItem cacheItem, TimeProvider timeProvider ) : base( cacheItem.Value, cacheItem.Dependencies, cacheItem.Configuration )
+    public MaterializedCacheItem( CacheItem cacheItem, TimeProvider timeProvider ) : this( cacheItem, timeProvider, timeProvider.GetUtcNow().UtcTicks ) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MaterializedCacheItem"/> class with a timestamp read from another clock
+    /// than <paramref name="timeProvider"/>.
+    /// </summary>
+    /// <param name="cacheItem">The item.</param>
+    /// <param name="timeProvider">The clock that converts the relative expiration of the item to an absolute expiration.</param>
+    /// <param name="timestamp">The timestamp of the item, in UTC ticks. See <see cref="Timestamp"/>.</param>
+    public MaterializedCacheItem( CacheItem cacheItem, TimeProvider timeProvider, long timestamp ) : base(
+        cacheItem.Value,
+        cacheItem.Dependencies,
+        cacheItem.Configuration )
     {
         this._timeProvider = timeProvider;
 
@@ -64,11 +76,12 @@ internal sealed record MaterializedCacheItem : CacheItem, ICacheItemConfiguratio
 
         this.SlidingExpiration = cacheItem.Configuration?.SlidingExpiration;
         this.Priority = cacheItem.Configuration?.Priority;
-        this.Timestamp = timeProvider.GetUtcNow().UtcTicks;
+        this.Timestamp = timestamp;
     }
 
     /// <summary>
-    /// Gets the wall-clock timestamp, in UTC ticks, taken on the machine that created the item. It is serialized with the item
+    /// Gets the timestamp, in UTC ticks, read from the <see cref="CachingBackend.Clock"/> of the remote backend when the item
+    /// was created. Unless the remote backend has another clock, it is the wall clock of the machine that created the item. It is serialized with the item
     /// and compared by <see cref="LayeredCachingBackendEnhancer"/> with the timestamp of a local removal when the underlying
     /// backend is not blocking. See the remarks of <see cref="CachingBackendFeatures.Blocking"/>.
     /// </summary>

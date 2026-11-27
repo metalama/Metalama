@@ -88,6 +88,25 @@ public abstract class CachingBackendEnhancer : CachingBackend
     protected override void SetItemCore( string key, CacheItem item ) => this.UnderlyingBackend.SetItem( key, item );
 
     /// <inheritdoc />
+    /// <inheritdoc />
+    protected override bool SetItemIfNotInvalidatedCore( string key, CacheItem item, DateTimeOffset computationStartTime )
+        => this.UnderlyingBackend.SetItemIfNotInvalidated( key, item, computationStartTime );
+
+    /// <inheritdoc />
+    protected override ValueTask<bool> SetItemIfNotInvalidatedAsyncCore(
+        string key,
+        CacheItem item,
+        DateTimeOffset computationStartTime,
+        CancellationToken cancellationToken )
+        => this.UnderlyingBackend.SetItemIfNotInvalidatedAsync( key, item, computationStartTime, cancellationToken );
+
+    /// <summary>
+    /// Returns the <see cref="CachingBackend.Clock"/> of <see cref="UnderlyingBackend"/>, which times the invalidations
+    /// that <see cref="CachingBackend.SetItemIfNotInvalidated"/> compares with the start of the computation.
+    /// </summary>
+    /// <returns>The clock of the underlying backend.</returns>
+    protected override CachingBackendClock CreateClock() => this.UnderlyingBackend.Clock;
+
     protected override bool ContainsItemCore( string key ) => this.UnderlyingBackend.ContainsItem( key );
 
     /// <inheritdoc />

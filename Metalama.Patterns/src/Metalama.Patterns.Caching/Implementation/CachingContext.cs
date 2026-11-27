@@ -27,14 +27,22 @@ internal sealed class CachingContext : IDisposable, ICachingContext
     private HashSet<string>? _dependencies;
     private ImmutableHashSet<string>? _immutableDependencies;
 
-    private CachingContext( string key, CachingContextKind options, ICachingContext parent )
+    private CachingContext( string key, CachingContextKind options, ICachingContext parent, DateTimeOffset? computationStartTime = null )
     {
         this._key = key;
         this.Kind = options;
         this.Parent = parent;
+        this.ComputationStartTime = computationStartTime;
     }
 
     public CachingContextKind Kind { get; }
+
+    /// <summary>
+    /// Gets the time, read from the <see cref="CachingBackend.Clock"/> of the backend, at which the computation of the value
+    /// of the item started, or <see langword="null"/> when the backend does not support
+    /// <see cref="Metalama.Patterns.Caching.Implementation.CachingBackendFeatures.SetItemIfNotInvalidated"/>.
+    /// </summary>
+    internal DateTimeOffset? ComputationStartTime { get; }
 
     internal ImmutableHashSet<string> Dependencies
     {
@@ -66,9 +74,9 @@ internal sealed class CachingContext : IDisposable, ICachingContext
         return context;
     }
 
-    internal static CachingContext OpenCacheContext( string key )
+    internal static CachingContext OpenCacheContext( string key, DateTimeOffset? computationStartTime = null )
     {
-        var context = new CachingContext( key, CachingContextKind.Cache, Current );
+        var context = new CachingContext( key, CachingContextKind.Cache, Current, computationStartTime );
         Current = context;
 
         return context;

@@ -183,7 +183,7 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     /// <inheritdoc />
     protected override void SetItemCore( string key, CacheItem item )
     {
-        var newItem = new MaterializedCacheItem( item, this.TimeProvider );
+        var newItem = this.Materialize( item );
 
         this.LocalCache.SetItem( key, item );
         this.UnderlyingBackend.SetItem( key, newItem );
@@ -192,11 +192,64 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     /// <inheritdoc />
     protected override ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
     {
-        var newItem = new MaterializedCacheItem( item, this.TimeProvider );
+        var newItem = this.Materialize( item );
 
         this.LocalCache.SetItem( key, item );
 
         return this.UnderlyingBackend.SetItemAsync( key, newItem, cancellationToken );
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The item is stored in the local cache first, as by <see cref="SetItemCore"/>, then in the remote cache under the
+    /// condition. When the remote cache rejects the item, the local copy is removed, unless it has already been replaced.
+    /// The condition is evaluated by the remote cache only, with its clock, because each invalidation also reaches the
+    /// remote cache. An invalidation whose event reaches this node before the local copy is stored has already been
+    /// recorded by the remote cache, so that the remote cache rejects the item.
+    /// </remarks>
+    protected override bool SetItemIfNotInvalidatedCore( string key, CacheItem item, DateTimeOffset computationStartTime )
+    {
+        var newItem = this.Materialize( item );
+
+        var localItem = this.LocalCache.SetItemImpl( key, item );
+
+        if ( this.UnderlyingBackend.SetItemIfNotInvalidated( key, newItem, computationStartTime ) )
+        {
+            return true;
+        }
+
+        this.RemoveRejectedLocalItem( key, localItem );
+
+        return false;
+    }
+
+    /// <inheritdoc />
+    protected override async ValueTask<bool> SetItemIfNotInvalidatedAsyncCore(
+        string key,
+        CacheItem item,
+        DateTimeOffset computationStartTime,
+        CancellationToken cancellationToken )
+    {
+        var newItem = this.Materialize( item );
+
+        var localItem = this.LocalCache.SetItemImpl( key, item );
+
+        if ( await this.UnderlyingBackend.SetItemIfNotInvalidatedAsync( key, newItem, computationStartTime, cancellationToken ) )
+        {
+            return true;
+        }
+
+        this.RemoveRejectedLocalItem( key, localItem );
+
+        return false;
+    }
+
+    private void RemoveRejectedLocalItem( string key, MemoryCacheItem? localItem )
+    {
+        if ( localItem != null )
+        {
+            this.LocalCache.RemoveItemImpl( key, expectedItem: localItem );
+        }
     }
 
     /// <inheritdoc />
@@ -625,7 +678,15 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     /// timestamp of a <see cref="RemovedValue"/>. The comparison is therefore only meaningful when the clocks of all
     /// machines sharing the remote cache are synchronized.
     /// </summary>
-    internal long GetTimestamp() => this.TimeProvider.GetUtcNow().UtcTicks;
+    /// <summary>
+    /// Gets the timestamp of a new remote item or of a local removal. It is read from <see cref="CachingBackend.Clock"/>,
+    /// which is the clock of the remote backend, so that the timestamps written by different machines are comparable when
+    /// the remote backend uses a shared clock.
+    /// </summary>
+    /// <returns>The current time of the clock, in UTC ticks.</returns>
+    internal long GetTimestamp() => this.Clock.GetCurrentTime().UtcTicks;
+
+    private MaterializedCacheItem Materialize( CacheItem item ) => new( item, this.TimeProvider, this.GetTimestamp() );
 
     private sealed class Features : CachingBackendEnhancerFeatures
     {

@@ -17,10 +17,10 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 /// <para>
 /// After a cache miss, the caching frontend calls the method and then stores the value that the method returned. An
 /// invalidation that runs between these two steps finds neither the cache item nor the registration of the item under
-/// its dependency. It therefore removes nothing, and no component of the caching service records that the invalidation
-/// happened. The value that the method computed from the old data is stored afterwards, and the following calls return
-/// it until the item is invalidated again, removed or expired. The invalidation methods do not acquire the lock of the
-/// locking strategy, so the locking strategy does not prevent this sequence.
+/// its dependency, so it removes nothing. The invalidation methods do not acquire the lock of the locking strategy, so
+/// the locking strategy does not prevent this sequence. The backend therefore records the time of the invalidation, and
+/// the frontend stores the value with <see cref="Metalama.Patterns.Caching.Backends.CachingBackend.SetItemIfNotInvalidated"/>,
+/// which does not store a value whose computation started before the invalidation.
 /// </para>
 /// <para>
 /// Each test blocks a computation of the method after the method has read its data. While the computation is blocked,
@@ -29,8 +29,8 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 /// on the order in which the backend calls the memory cache.
 /// </para>
 /// <para>
-/// The tests assert the behavior that a caller expects. They fail as long as the caching service stores a value that
-/// was computed before an invalidation that ran during the computation.
+/// The tests assert the behavior that a caller expects. They fail when the caching service stores a value that was
+/// computed before an invalidation that ran during the computation.
 /// </para>
 /// </remarks>
 public sealed partial class CachingFrontendInvalidationRaceTests : BaseCachingTests
@@ -92,10 +92,10 @@ public sealed partial class CachingFrontendInvalidationRaceTests : BaseCachingTe
     /// <remarks>
     /// The first computation reads version 1 of the data and blocks. The test changes the data to version 2 and
     /// invalidates the dependency. The first value is not stored yet, so the backend has no registration of the item
-    /// under the dependency, and the invalidation removes nothing. The first call then stores version 1 with its
-    /// dependency, and the second call returns version 1 from the cache.
+    /// under the dependency, and the invalidation removes nothing. The backend must reject version 1 when the first call
+    /// stores it, so that the second call computes version 2.
     /// </remarks>
-    [Fact( Skip = "Not fixed: a value computed before an invalidation can be stored after it, because no layer of the caching stack orders the store after the invalidation. A fix needs a design decision, such as invalidation versions checked by the frontend." )]
+    [Fact]
     public void CachedMethod_DependencyInvalidatedDuringComputation_IsRecomputedOnNextCall()
     {
         this.RunInvalidationDuringSynchronousComputation( _ => CachingService.Default.Invalidate( _dependencyKey ) );
@@ -107,11 +107,11 @@ public sealed partial class CachingFrontendInvalidationRaceTests : BaseCachingTe
     /// </summary>
     /// <remarks>
     /// The invalidation builds the key of the call from the method, the instance and the arguments, and removes the
-    /// cache item under this key. The first value is not stored yet, so the removal finds nothing. The first call then
-    /// stores version 1, and the second call returns version 1 from the cache. The profile uses the default locking
+    /// cache item under this key. The first value is not stored yet, so the removal finds nothing. The backend must reject
+    /// version 1 when the first call stores it, so that the second call computes version 2. The profile uses the default locking
     /// strategy. The invalidation does not acquire the lock of the key with any locking strategy.
     /// </remarks>
-    [Fact( Skip = "Not fixed: a value computed before an invalidation can be stored after it, because no layer of the caching stack orders the store after the invalidation. A fix needs a design decision, such as invalidation versions checked by the frontend." )]
+    [Fact]
     public void CachedMethod_InvalidatedByMethodKeyDuringComputation_IsRecomputedOnNextCall()
     {
         this.RunInvalidationDuringSynchronousComputation( source => CachingService.Default.Invalidate( source.GetVersion ) );
@@ -126,7 +126,7 @@ public sealed partial class CachingFrontendInvalidationRaceTests : BaseCachingTe
     /// The first call runs on a dedicated thread, which waits synchronously for the task of the cached method. The
     /// invalidation and the second call use the asynchronous methods of the caching service.
     /// </remarks>
-    [Fact( Skip = "Not fixed: a value computed before an invalidation can be stored after it, because no layer of the caching stack orders the store after the invalidation. A fix needs a design decision, such as invalidation versions checked by the frontend." )]
+    [Fact]
     public async Task CachedMethodAsync_DependencyInvalidatedDuringComputation_IsRecomputedOnNextCall()
     {
         using var context = this.InitializeTest( _profileName );
@@ -174,15 +174,16 @@ public sealed partial class CachingFrontendInvalidationRaceTests : BaseCachingTe
     /// invalidation removes the cache item, and the automatic reload starts a refresh, which reads version 2 and blocks.
     /// The test changes the data to version 3 and invalidates the dependency again. This second invalidation finds
     /// neither the cache item nor the registration of the item under the dependency, so it removes nothing and starts no
-    /// other refresh. The refresh then stores version 2, and no component of the caching service computes the value
-    /// again.
+    /// other refresh. The backend must reject version 2 when the refresh stores it. The rejection raises the
+    /// <see cref="Metalama.Patterns.Caching.Backends.CachingBackend.ItemRemoved"/> event, which starts a refresh that
+    /// reads version 3.
     /// </para>
     /// <para>
     /// The refresh runs as a work item of <see cref="_workItemDispatcher"/>. The test waits for the completion of all
     /// work items before the second call, so that the second call does not run concurrently with the refresh.
     /// </para>
     /// </remarks>
-    [Fact( Skip = "Not fixed: a value computed before an invalidation can be stored after it, because no layer of the caching stack orders the store after the invalidation. A fix needs a design decision, such as invalidation versions checked by the frontend." )]
+    [Fact]
     public void AutoReloadedMethod_DependencyInvalidatedDuringRefresh_ReturnsNewDataOnNextCall()
     {
         using var context = this.InitializeTest( _profileName );
