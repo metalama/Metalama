@@ -406,13 +406,13 @@ internal sealed class CachingFrontend
     }
 
     /// <summary>
-    /// Reads the clock of the backend before the value of an item is computed, so that the item can be stored with
-    /// <see cref="CachingBackend.SetItemIfNotInvalidated"/>.
+    /// Reads the clock of the backend before the value of an item is computed, so that the item can be stored with the
+    /// <c>ifUnmodifiedSince</c> precondition of <see cref="CachingBackend.SetItem"/>.
     /// </summary>
     /// <param name="backend">The backend.</param>
     /// <returns>The current time of the backend, or <see langword="null"/> when the backend does not support the feature.</returns>
     internal static DateTimeOffset? GetComputationStartTime( CachingBackend backend )
-        => backend.SupportedFeatures.SetItemIfNotInvalidated ? backend.Clock.GetCurrentTime() : null;
+        => backend.SupportedFeatures.SetItemIfUnmodifiedSince ? backend.Clock.GetCurrentTime() : null;
 
     /// <summary>
     /// Asynchronously reads the clock of the backend before the value of an item is computed. See <see cref="GetComputationStartTime"/>.
@@ -421,7 +421,7 @@ internal sealed class CachingFrontend
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The current time of the backend, or <see langword="null"/> when the backend does not support the feature.</returns>
     internal static async ValueTask<DateTimeOffset?> GetComputationStartTimeAsync( CachingBackend backend, CancellationToken cancellationToken )
-        => backend.SupportedFeatures.SetItemIfNotInvalidated ? await backend.Clock.GetCurrentTimeAsync( cancellationToken ) : null;
+        => backend.SupportedFeatures.SetItemIfUnmodifiedSince ? await backend.Clock.GetCurrentTimeAsync( cancellationToken ) : null;
 
     private static void AddChildDependency( CachingBackend backend, string key )
     {
@@ -454,15 +454,8 @@ internal sealed class CachingFrontend
 
         var cacheItem = new CacheItem( value, [..context.Dependencies], configuration );
 
-        if ( context.ComputationStartTime is { } computationStartTime )
-        {
-            // The item is not stored when it has been invalidated during its computation.
-            backend.SetItemIfNotInvalidated( key, cacheItem, computationStartTime );
-        }
-        else
-        {
-            backend.SetItem( key, cacheItem );
-        }
+        // The item is not stored when it has been modified since its computation started.
+        backend.SetItem( key, cacheItem, context.ComputationStartTime );
 
         return exposedValue;
     }
@@ -501,16 +494,8 @@ internal sealed class CachingFrontend
 
         var cacheItem = new CacheItem( value, [..context.Dependencies], configuration );
 
-        if ( context.ComputationStartTime is { } computationStartTime )
-        {
-            // The item is not stored when it has been invalidated during its computation.
-            await backend.SetItemIfNotInvalidatedAsync( key, cacheItem, computationStartTime, cancellationToken );
-        }
-        else
-        {
-            var setItemTask = backend.SetItemAsync( key, cacheItem, cancellationToken );
-            await setItemTask;
-        }
+        // The item is not stored when it has been modified since its computation started.
+        await backend.SetItemAsync( key, cacheItem, context.ComputationStartTime, cancellationToken );
 
         return exposedValue;
     }

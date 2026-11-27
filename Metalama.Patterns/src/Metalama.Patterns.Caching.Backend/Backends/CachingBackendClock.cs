@@ -13,7 +13,7 @@ namespace Metalama.Patterns.Caching.Backends;
 /// <remarks>
 /// <para>
 /// The caching service reads the clock before it computes the value of a cache item, and passes the time to
-/// <see cref="CachingBackend.SetItemIfNotInvalidated"/>. The backend stores the item only when neither its key nor any of
+/// <see cref="CachingBackend.SetItem"/>. The backend stores the item only when neither its key nor any of
 /// its dependencies has been invalidated since that time. The times of the invalidations and of the computations must
 /// therefore be read from the same clock, or from clocks whose offset is at most <see cref="Tolerance"/>.
 /// </para>

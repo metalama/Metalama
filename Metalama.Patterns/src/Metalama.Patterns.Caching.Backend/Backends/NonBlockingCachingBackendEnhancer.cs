@@ -41,10 +41,10 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
 
     /// <inheritdoc />
     protected override void SetItemCore( string key, CacheItem item )
-        => this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, ct ).AsTask() );
+        => this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, cancellationToken: ct ).AsTask() );
 
     /// <inheritdoc />
-    protected override bool SetItemIfNotInvalidatedCore( string key, CacheItem item, DateTimeOffset computationStartTime )
+    protected override bool SetItemCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince )
     {
         this.SetItemCore( key, item );
 
@@ -52,10 +52,10 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
     }
 
     /// <inheritdoc />
-    protected override ValueTask<bool> SetItemIfNotInvalidatedAsyncCore(
+    protected override ValueTask<bool> SetItemAsyncCore(
         string key,
         CacheItem item,
-        DateTimeOffset computationStartTime,
+        DateTimeOffset ifUnmodifiedSince,
         CancellationToken cancellationToken )
     {
         this.SetItemCore( key, item );
@@ -69,7 +69,7 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
     {
-        this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, ct ).AsTask() );
+        this.EnqueueBackgroundTask( ct => this.UnderlyingBackend.SetItemAsync( key, item, cancellationToken: ct ).AsTask() );
 
         return _finishedTask;
     }
@@ -123,6 +123,6 @@ internal class NonBlockingCachingBackendEnhancer : CachingBackendEnhancer
         public override bool Blocking => false;
 
         // The enhancer stores the items in the background, so it cannot report whether an item has been stored.
-        public override bool SetItemIfNotInvalidated => false;
+        public override bool SetItemIfUnmodifiedSince => false;
     }
 }

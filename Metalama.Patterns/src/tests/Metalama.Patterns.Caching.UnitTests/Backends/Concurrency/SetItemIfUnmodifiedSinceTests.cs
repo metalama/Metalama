@@ -10,7 +10,7 @@ using Xunit;
 namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 
 /// <summary>
-/// Tests <see cref="CachingBackend.SetItemIfNotInvalidated"/> with <see cref="MemoryCachingBackend"/> and with
+/// Tests the <c>ifUnmodifiedSince</c> precondition of <see cref="CachingBackend.SetItem"/> with <see cref="MemoryCachingBackend"/> and with
 /// <see cref="LayeredCachingBackendEnhancer"/>.
 /// </summary>
 /// <remarks>
@@ -18,7 +18,7 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 /// computation start time has been read is timed at the same instant as the start, and counts as an invalidation during
 /// the computation.
 /// </remarks>
-public sealed class SetItemIfNotInvalidatedTests
+public sealed class SetItemIfUnmodifiedSinceTests
 {
     private const string _key = "item";
     private const string _dependency = "dependency";
@@ -33,7 +33,7 @@ public sealed class SetItemIfNotInvalidatedTests
         using var fakes = new FakeCachingServices( _origin );
         using var backend = CreateMemoryBackend( fakes );
 
-        Assert.True( backend.SupportedFeatures.SetItemIfNotInvalidated );
+        Assert.True( backend.SupportedFeatures.SetItemIfUnmodifiedSince );
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class SetItemIfNotInvalidatedTests
         var start = backend.Clock.GetCurrentTime();
         backend.InvalidateDependency( _dependency );
 
-        Assert.False( backend.SetItemIfNotInvalidated( _key, new CacheItem( "value", [_dependency] ), start ) );
+        Assert.False( backend.SetItem( _key, new CacheItem( "value", [_dependency] ), start ) );
         Assert.False( backend.ContainsItem( _key ), "The item was stored although its dependency was invalidated during its computation." );
     }
 
@@ -58,7 +58,7 @@ public sealed class SetItemIfNotInvalidatedTests
         var start = await backend.Clock.GetCurrentTimeAsync( TestContext.Current.CancellationToken );
         await backend.InvalidateDependencyAsync( _dependency, TestContext.Current.CancellationToken );
 
-        Assert.False( await backend.SetItemIfNotInvalidatedAsync( _key, new CacheItem( "value", [_dependency] ), start, TestContext.Current.CancellationToken ) );
+        Assert.False( await backend.SetItemAsync( _key, new CacheItem( "value", [_dependency] ), start, TestContext.Current.CancellationToken ) );
         Assert.False( await backend.ContainsItemAsync( _key, TestContext.Current.CancellationToken ), "The item was stored although its dependency was invalidated during its computation." );
     }
 
@@ -71,7 +71,7 @@ public sealed class SetItemIfNotInvalidatedTests
         var start = backend.Clock.GetCurrentTime();
         backend.RemoveItem( _key );
 
-        Assert.False( backend.SetItemIfNotInvalidated( _key, new CacheItem( "value" ), start ) );
+        Assert.False( backend.SetItem( _key, new CacheItem( "value" ), start ) );
         Assert.False( backend.ContainsItem( _key ), "The item was stored although its key was removed during its computation." );
     }
 
@@ -89,7 +89,7 @@ public sealed class SetItemIfNotInvalidatedTests
         var start = backend.Clock.GetCurrentTime();
         backend.InvalidateDependency( _dependency );
 
-        Assert.False( backend.SetItemIfNotInvalidated( _key, new CacheItem( "outer-value", [_innerKey] ), start ) );
+        Assert.False( backend.SetItem( _key, new CacheItem( "outer-value", [_innerKey] ), start ) );
         Assert.False( backend.ContainsItem( _key ), "The outer item was stored although the inner item was invalidated during its computation." );
     }
 
@@ -105,7 +105,7 @@ public sealed class SetItemIfNotInvalidatedTests
 
         var start = backend.Clock.GetCurrentTime();
 
-        Assert.True( backend.SetItemIfNotInvalidated( _key, new CacheItem( "value", [_dependency] ), start ) );
+        Assert.True( backend.SetItem( _key, new CacheItem( "value", [_dependency] ), start ) );
         Assert.True( backend.ContainsItem( _key ) );
     }
 
@@ -118,7 +118,7 @@ public sealed class SetItemIfNotInvalidatedTests
         var start = backend.Clock.GetCurrentTime();
         backend.InvalidateDependency( _otherDependency );
 
-        Assert.True( backend.SetItemIfNotInvalidated( _key, new CacheItem( "value", [_dependency] ), start ) );
+        Assert.True( backend.SetItem( _key, new CacheItem( "value", [_dependency] ), start ) );
         Assert.True( backend.ContainsItem( _key ) );
     }
 
@@ -132,7 +132,7 @@ public sealed class SetItemIfNotInvalidatedTests
         backend.InvalidateDependency( _dependency );
         fakes.TimeProvider.Advance( TimeSpan.FromMinutes( 2 ) );
 
-        Assert.True( backend.SetItemIfNotInvalidated( _key, new CacheItem( "value", [_dependency] ), start ) );
+        Assert.True( backend.SetItem( _key, new CacheItem( "value", [_dependency] ), start ) );
         Assert.True( backend.ContainsItem( _key ) );
     }
 
@@ -147,11 +147,97 @@ public sealed class SetItemIfNotInvalidatedTests
         fakes.TimeProvider.Advance( TimeSpan.FromSeconds( 1 ) );
 
         // A computation that started after the invalidation stores its value.
-        Assert.True( backend.SetItemIfNotInvalidated( _key, new CacheItem( "newer-value", [_dependency] ), backend.Clock.GetCurrentTime() ) );
+        Assert.True( backend.SetItem( _key, new CacheItem( "newer-value", [_dependency] ), backend.Clock.GetCurrentTime() ) );
 
         // The computation that started before the invalidation is rejected and does not remove the newer value.
-        Assert.False( backend.SetItemIfNotInvalidated( _key, new CacheItem( "older-value", [_dependency] ), start ) );
+        Assert.False( backend.SetItem( _key, new CacheItem( "older-value", [_dependency] ), start ) );
         Assert.Equal( "newer-value", backend.GetItem( _key )?.Value );
+    }
+
+    [Fact]
+    public void NewerValueStoredDuringComputation_OlderValueIsNotStored()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var backend = CreateMemoryBackend( fakes );
+
+        var olderStart = backend.Clock.GetCurrentTime();
+        fakes.TimeProvider.Advance( TimeSpan.FromSeconds( 1 ) );
+        var newerStart = backend.Clock.GetCurrentTime();
+
+        // A computation that started later, for example a refresh after a change of the data, stores its value first.
+        Assert.True( backend.SetItem( _key, new CacheItem( "newer-value" ), newerStart ) );
+
+        Assert.False( backend.SetItem( _key, new CacheItem( "older-value" ), olderStart ) );
+        Assert.Equal( "newer-value", backend.GetItem( _key )?.Value );
+    }
+
+    [Fact]
+    public void OlderValueStored_NewerValueIsStored()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var backend = CreateMemoryBackend( fakes );
+
+        Assert.True( backend.SetItem( _key, new CacheItem( "older-value" ), backend.Clock.GetCurrentTime() ) );
+        fakes.TimeProvider.Advance( TimeSpan.FromSeconds( 1 ) );
+
+        Assert.True( backend.SetItem( _key, new CacheItem( "newer-value" ), backend.Clock.GetCurrentTime() ) );
+        Assert.Equal( "newer-value", backend.GetItem( _key )?.Value );
+    }
+
+    [Fact]
+    public void ValueStoredWithSameStart_IsReplaced()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var backend = CreateMemoryBackend( fakes );
+
+        var start = backend.Clock.GetCurrentTime();
+
+        Assert.True( backend.SetItem( _key, new CacheItem( "first-value" ), start ) );
+        Assert.True( backend.SetItem( _key, new CacheItem( "second-value" ), start ) );
+        Assert.Equal( "second-value", backend.GetItem( _key )?.Value );
+    }
+
+    [Fact]
+    public void ValueStoredUnconditionally_IsReplacedByConditionalStore()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var backend = CreateMemoryBackend( fakes );
+
+        var start = backend.Clock.GetCurrentTime();
+        fakes.TimeProvider.Advance( TimeSpan.FromSeconds( 1 ) );
+
+        // An unconditional store has no computation start time, so it does not supersede a conditional one.
+        Assert.True( backend.SetItem( _key, new CacheItem( "unconditional-value" ) ) );
+        Assert.True( backend.SetItem( _key, new CacheItem( "conditional-value" ), start ) );
+        Assert.Equal( "conditional-value", backend.GetItem( _key )?.Value );
+    }
+
+    [Fact]
+    public void UnconditionalStore_ReturnsTrue()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var backend = CreateMemoryBackend( fakes );
+
+        backend.InvalidateDependency( _dependency );
+
+        Assert.True( backend.SetItem( _key, new CacheItem( "value", [_dependency] ) ) );
+        Assert.True( backend.ContainsItem( _key ) );
+    }
+
+    [Fact]
+    public void Layered_NewerValueStoredDuringComputation_OlderValueIsStoredInNoLayer()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var layered = CreateLayeredBackend( fakes, out var remote );
+
+        var olderStart = layered.Clock.GetCurrentTime();
+        fakes.TimeProvider.Advance( TimeSpan.FromSeconds( 1 ) );
+
+        Assert.True( layered.SetItem( _key, new CacheItem( "newer-value" ), layered.Clock.GetCurrentTime() ) );
+
+        Assert.False( layered.SetItem( _key, new CacheItem( "older-value" ), olderStart ) );
+        Assert.Equal( "newer-value", remote.GetItem( _key )?.Value );
+        Assert.Equal( "newer-value", layered.LocalCache.GetItem( _key )?.Value );
     }
 
     [Fact]
@@ -161,7 +247,7 @@ public sealed class SetItemIfNotInvalidatedTests
         using var layered = CreateLayeredBackend( fakes, out var remote );
 
         Assert.Same( remote.Clock, layered.Clock );
-        Assert.True( layered.SupportedFeatures.SetItemIfNotInvalidated );
+        Assert.True( layered.SupportedFeatures.SetItemIfUnmodifiedSince );
     }
 
     [Fact]
@@ -175,7 +261,7 @@ public sealed class SetItemIfNotInvalidatedTests
         // Another node invalidates the dependency in the remote backend.
         remote.InvalidateDependency( _dependency );
 
-        Assert.False( layered.SetItemIfNotInvalidated( _key, new CacheItem( "value", [_dependency] ), start ) );
+        Assert.False( layered.SetItem( _key, new CacheItem( "value", [_dependency] ), start ) );
         Assert.False( remote.ContainsItem( _key ), "The remote backend stored the item." );
         Assert.False( layered.LocalCache.ContainsItem( _key ), "The local cache kept the item that the remote backend rejected." );
     }
@@ -190,7 +276,7 @@ public sealed class SetItemIfNotInvalidatedTests
 
         await remote.InvalidateDependencyAsync( _dependency, TestContext.Current.CancellationToken );
 
-        Assert.False( await layered.SetItemIfNotInvalidatedAsync( _key, new CacheItem( "value", [_dependency] ), start, TestContext.Current.CancellationToken ) );
+        Assert.False( await layered.SetItemAsync( _key, new CacheItem( "value", [_dependency] ), start, TestContext.Current.CancellationToken ) );
         Assert.False( remote.ContainsItem( _key ), "The remote backend stored the item." );
         Assert.False( layered.LocalCache.ContainsItem( _key ), "The local cache kept the item that the remote backend rejected." );
     }
@@ -203,7 +289,7 @@ public sealed class SetItemIfNotInvalidatedTests
 
         var start = layered.Clock.GetCurrentTime();
 
-        Assert.True( layered.SetItemIfNotInvalidated( _key, new CacheItem( "value", [_dependency] ), start ) );
+        Assert.True( layered.SetItem( _key, new CacheItem( "value", [_dependency] ), start ) );
         Assert.True( remote.ContainsItem( _key ) );
         Assert.True( layered.LocalCache.ContainsItem( _key ) );
     }
@@ -215,7 +301,7 @@ public sealed class SetItemIfNotInvalidatedTests
         using var memory = CreateMemoryBackend( fakes );
         using var nonBlocking = new NonBlockingCachingBackendEnhancer( memory );
 
-        Assert.False( nonBlocking.SupportedFeatures.SetItemIfNotInvalidated );
+        Assert.False( nonBlocking.SupportedFeatures.SetItemIfUnmodifiedSince );
     }
 
     [Fact]
@@ -241,7 +327,7 @@ public sealed class SetItemIfNotInvalidatedTests
         fakes.TimeProvider.Advance( TimeSpan.FromMilliseconds( 500 ) );
         var start = backend.Clock.GetCurrentTime();
 
-        Assert.False( backend.SetItemIfNotInvalidated( _key, new CacheItem( "value", [_dependency] ), start ) );
+        Assert.False( backend.SetItem( _key, new CacheItem( "value", [_dependency] ), start ) );
     }
 
     private static MemoryCachingBackend CreateMemoryBackend( FakeCachingServices fakes, TimeSpan? tombstoneLifetime = null )

@@ -70,7 +70,7 @@ public sealed class NonBlockingCachingBackendEnhancerTests : IDisposable
         var item = new CacheItem( _testValue );
 
         // This should return immediately (non-blocking)
-        await enhancer.SetItemAsync( _testKey, item, CancellationToken.None );
+        await enhancer.SetItemAsync( _testKey, item, cancellationToken: CancellationToken.None );
 
         // Wait for background task to complete
         await enhancer.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
@@ -170,7 +170,7 @@ public sealed class NonBlockingCachingBackendEnhancerTests : IDisposable
         await using var _ = enhancer;
 
         // First set the item through the underlying backend directly
-        await underlying.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
+        await underlying.SetItemAsync( _testKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
         underlying.ResetTracking();
 
         // GetItem should be blocking and return result immediately
@@ -189,7 +189,7 @@ public sealed class NonBlockingCachingBackendEnhancerTests : IDisposable
         await using var _ = enhancer;
 
         // First set the item through the underlying backend directly
-        await underlying.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
+        await underlying.SetItemAsync( _testKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
         underlying.ResetTracking();
 
         // GetItemAsync should return result directly (not enqueued)

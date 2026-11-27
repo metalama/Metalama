@@ -19,8 +19,8 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 /// invalidation that runs between these two steps finds neither the cache item nor the registration of the item under
 /// its dependency, so it removes nothing. The invalidation methods do not acquire the lock of the locking strategy, so
 /// the locking strategy does not prevent this sequence. The backend therefore records the time of the invalidation, and
-/// the frontend stores the value with <see cref="Metalama.Patterns.Caching.Backends.CachingBackend.SetItemIfNotInvalidated"/>,
-/// which does not store a value whose computation started before the invalidation.
+/// the frontend stores the value with <see cref="Metalama.Patterns.Caching.Backends.CachingBackend.SetItem"/>
+/// and the <c>ifUnmodifiedSince</c> precondition, which does not store a value whose computation started before the invalidation.
 /// </para>
 /// <para>
 /// Each test blocks a computation of the method after the method has read its data. While the computation is blocked,

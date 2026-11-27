@@ -45,7 +45,7 @@ public sealed class CacheSynchronizerTests : IDisposable
         await using var _ = synchronizer;
 
         // Set an item that we'll try to remove
-        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
+        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
 
         // Construct a valid message with the correct prefix
         var sourceId = Guid.NewGuid(); // Different source ID than the backend
@@ -72,7 +72,7 @@ public sealed class CacheSynchronizerTests : IDisposable
         await using var _ = synchronizer;
 
         // Set an item
-        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
+        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
 
         // Construct a message with wrong prefix
         var sourceId = Guid.NewGuid();
@@ -103,7 +103,7 @@ public sealed class CacheSynchronizerTests : IDisposable
         await using var _ = synchronizer;
 
         const string itemKey = "itemKey";
-        await backend.SetItemAsync( itemKey, new CacheItem( _testValue ), CancellationToken.None );
+        await backend.SetItemAsync( itemKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
 
         var sourceId = Guid.NewGuid();
         var message = $"invalidate:item:{sourceId}:{itemKey}";
@@ -127,7 +127,7 @@ public sealed class CacheSynchronizerTests : IDisposable
 
         // Add an item with a dependency
         const string itemWithDep = "itemWithDep";
-        await backend.SetItemAsync( itemWithDep, new CacheItem( _testValue, [_testDependency] ), CancellationToken.None );
+        await backend.SetItemAsync( itemWithDep, new CacheItem( _testValue, [_testDependency] ), cancellationToken: CancellationToken.None );
 
         // Invalidate the dependency from a different source
         var sourceId = Guid.NewGuid();
@@ -175,7 +175,7 @@ public sealed class CacheSynchronizerTests : IDisposable
         var synchronizer = new TestCacheSynchronizer( backend, new CacheSynchronizerConfiguration() );
         await using var _ = synchronizer;
 
-        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
+        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
 
         // Use the same ID as the underlying backend to simulate own message
         var ownId = backend.Id;
@@ -203,7 +203,7 @@ public sealed class CacheSynchronizerTests : IDisposable
         var synchronizer = new TestCacheSynchronizer( backend, new CacheSynchronizerConfiguration() );
         await using var _ = synchronizer;
 
-        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
+        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
 
         // Invalid GUID
         const string message = $"invalidate:item:not-a-valid-guid:{_testKey}";
@@ -267,7 +267,7 @@ public sealed class CacheSynchronizerTests : IDisposable
         var synchronizer = new TestCacheSynchronizer( backend, new CacheSynchronizerConfiguration() );
         await using var _ = synchronizer;
 
-        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), CancellationToken.None );
+        await backend.SetItemAsync( _testKey, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
 
         await synchronizer.RemoveItemAsync( _testKey, CancellationToken.None );
         await synchronizer.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
@@ -315,7 +315,7 @@ public sealed class CacheSynchronizerTests : IDisposable
 
         // Key with colons
         const string keyWithColons = "namespace:class:method:param1:param2";
-        await backend.SetItemAsync( keyWithColons, new CacheItem( _testValue ), CancellationToken.None );
+        await backend.SetItemAsync( keyWithColons, new CacheItem( _testValue ), cancellationToken: CancellationToken.None );
 
         var sourceId = Guid.NewGuid();
         var message = $"invalidate:item:{sourceId}:{keyWithColons}";

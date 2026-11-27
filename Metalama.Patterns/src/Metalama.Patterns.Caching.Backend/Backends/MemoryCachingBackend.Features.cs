@@ -21,11 +21,11 @@ namespace Metalama.Patterns.Caching.Backends
             public override bool Clear => true;
 
             /// <summary>
-            /// Gets a value indicating whether the backend supports <see cref="CachingBackend.SetItemIfNotInvalidated"/>.
-            /// The backend records the invalidations of its keys in memory, so it detects the invalidations that this
-            /// instance performs.
+            /// Gets a value indicating whether the backend evaluates the <c>ifUnmodifiedSince</c> precondition of
+            /// <see cref="CachingBackend.SetItem"/>. The backend records the invalidations of its keys in memory, so it
+            /// detects the invalidations that this instance performs.
             /// </summary>
-            public override bool SetItemIfNotInvalidated => true;
+            public override bool SetItemIfUnmodifiedSince => true;
         }
     }
 }

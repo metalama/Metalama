@@ -69,9 +69,9 @@ public class CachingBackendFeatures
     public virtual bool ContainsDependency => true;
 
     /// <summary>
-    /// Gets a value indicating whether the <see cref="CachingBackend.SetItemIfNotInvalidated"/> method detects the
-    /// invalidations that happened since a given time. When this property is <c>false</c>, the method stores the item
-    /// unconditionally. The default value is <c>false</c>.
+    /// Gets a value indicating whether the <see cref="CachingBackend.SetItem"/> and <see cref="CachingBackend.SetItemAsync"/>
+    /// methods evaluate their <c>ifUnmodifiedSince</c> precondition. When this property is <c>false</c>, these methods ignore
+    /// the precondition and store the item unconditionally. The default value is <c>false</c>.
     /// </summary>
-    public virtual bool SetItemIfNotInvalidated => false;
+    public virtual bool SetItemIfUnmodifiedSince => false;
 }

@@ -40,7 +40,7 @@ internal sealed class CachingContext : IDisposable, ICachingContext
     /// <summary>
     /// Gets the time, read from the <see cref="CachingBackend.Clock"/> of the backend, at which the computation of the value
     /// of the item started, or <see langword="null"/> when the backend does not support
-    /// <see cref="Metalama.Patterns.Caching.Implementation.CachingBackendFeatures.SetItemIfNotInvalidated"/>.
+    /// <see cref="Metalama.Patterns.Caching.Implementation.CachingBackendFeatures.SetItemIfUnmodifiedSince"/>.
     /// </summary>
     internal DateTimeOffset? ComputationStartTime { get; }
 

@@ -190,30 +190,31 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     }
 
     /// <inheritdoc />
-    protected override ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
+    protected override async ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
     {
         var newItem = this.Materialize( item );
 
         this.LocalCache.SetItem( key, item );
 
-        return this.UnderlyingBackend.SetItemAsync( key, newItem, cancellationToken );
+        await this.UnderlyingBackend.SetItemAsync( key, newItem, cancellationToken: cancellationToken );
     }
 
     /// <inheritdoc />
     /// <remarks>
-    /// The item is stored in the local cache first, as by <see cref="SetItemCore"/>, then in the remote cache under the
-    /// condition. When the remote cache rejects the item, the local copy is removed, unless it has already been replaced.
-    /// The condition is evaluated by the remote cache only, with its clock, because each invalidation also reaches the
-    /// remote cache. An invalidation whose event reaches this node before the local copy is stored has already been
-    /// recorded by the remote cache, so that the remote cache rejects the item.
+    /// The item is stored in the local cache first, as by <see cref="SetItemCore(string, CacheItem)"/>, unless the local
+    /// cache holds an item whose computation started later, then in the remote cache under the precondition. When the
+    /// remote cache rejects the item, the local copy is removed, unless it has already been replaced. The invalidations are
+    /// checked by the remote cache only, with its clock, because each invalidation also reaches the remote cache. An
+    /// invalidation whose event reaches this node before the local copy is stored has already been recorded by the remote
+    /// cache, so that the remote cache rejects the item.
     /// </remarks>
-    protected override bool SetItemIfNotInvalidatedCore( string key, CacheItem item, DateTimeOffset computationStartTime )
+    protected override bool SetItemCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince )
     {
         var newItem = this.Materialize( item );
 
-        var localItem = this.LocalCache.SetItemImpl( key, item );
+        var localItem = this.LocalCache.SetItemImpl( key, item, computationStartTicks: ifUnmodifiedSince.UtcTicks );
 
-        if ( this.UnderlyingBackend.SetItemIfNotInvalidated( key, newItem, computationStartTime ) )
+        if ( this.UnderlyingBackend.SetItem( key, newItem, ifUnmodifiedSince ) )
         {
             return true;
         }
@@ -224,17 +225,17 @@ internal sealed partial class LayeredCachingBackendEnhancer : CachingBackendEnha
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<bool> SetItemIfNotInvalidatedAsyncCore(
+    protected override async ValueTask<bool> SetItemAsyncCore(
         string key,
         CacheItem item,
-        DateTimeOffset computationStartTime,
+        DateTimeOffset ifUnmodifiedSince,
         CancellationToken cancellationToken )
     {
         var newItem = this.Materialize( item );
 
-        var localItem = this.LocalCache.SetItemImpl( key, item );
+        var localItem = this.LocalCache.SetItemImpl( key, item, computationStartTicks: ifUnmodifiedSince.UtcTicks );
 
-        if ( await this.UnderlyingBackend.SetItemIfNotInvalidatedAsync( key, newItem, computationStartTime, cancellationToken ) )
+        if ( await this.UnderlyingBackend.SetItemAsync( key, newItem, ifUnmodifiedSince, cancellationToken ) )
         {
             return true;
         }
