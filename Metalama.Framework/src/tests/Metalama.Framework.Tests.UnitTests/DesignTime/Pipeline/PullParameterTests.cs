@@ -275,7 +275,7 @@ public partial class C
         {
             var errors = result.GetAllDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ).ToArray();
 
-            Assert.True( errors.Length == 0, string.Join( "\n", errors.Select( d => d.ToString() ) ) );
+            Assert.True( errors.Length == 0, string.Join( "\n", errors.SelectAsArray( d => d.ToString() ) ) );
         }
     }
 
