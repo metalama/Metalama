@@ -436,7 +436,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 
             var syntaxTree = context.SemanticModel.SyntaxTree;
 
-            if ( compilation.SyntaxTrees.FirstOrDefault( t => !context.IsGeneratedCode( t ) ) != syntaxTree )
+            if ( compilation.SyntaxTrees.FirstOrDefault( t => !GeneratedCodeDetector.IsGeneratedCode( t, compilation, context.CancellationToken ) ) != syntaxTree )
             {
                 return;
             }
