@@ -39,7 +39,9 @@ internal sealed class CachingFrontend
         {
             if ( (CachingContext.Current.Kind & CachingContextKind.Refresh) == 0 )
             {
-                item = backend.GetItem( key );
+                var includeDependencies = MustPropagateDependencies( backend );
+
+                item = backend.GetItem( key, includeDependencies );
 
                 if ( item == null )
                 {
@@ -56,7 +58,7 @@ internal sealed class CachingFrontend
                         // We had to wait to acquire the lock, so another reader may have put the item in the cache.
                         // Do a second cache lookup.
 
-                        item = backend.GetItem( key );
+                        item = backend.GetItem( key, includeDependencies );
                     }
                     else
                     {
@@ -126,7 +128,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache hit: Key=\"{Key}\".", key ) );
 
-                AddChildDependency( backend, key );
+                AddChildDependencies( backend, key, item );
 
                 value = item.Value;
             }
@@ -165,7 +167,9 @@ internal sealed class CachingFrontend
         {
             if ( (CachingContext.Current.Kind & CachingContextKind.Refresh) == 0 )
             {
-                item = await backend.GetItemAsync( key, cancellationToken: cancellationToken );
+                var includeDependencies = MustPropagateDependencies( backend );
+
+                item = await backend.GetItemAsync( key, includeDependencies, cancellationToken );
 
                 if ( item == null )
                 {
@@ -182,7 +186,7 @@ internal sealed class CachingFrontend
                         // We had to wait to acquire the lock, so another reader may have put the item in the cache.
                         // Do a second cache lookup.
 
-                        item = await backend.GetItemAsync( key, cancellationToken: cancellationToken );
+                        item = await backend.GetItemAsync( key, includeDependencies, cancellationToken );
                     }
                     else
                     {
@@ -257,7 +261,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache hit: Key=\"{Key}\".", key ) );
 
-                AddChildDependency( backend, key );
+                AddChildDependencies( backend, key, item );
 
                 value = item.Value;
             }
@@ -296,7 +300,9 @@ internal sealed class CachingFrontend
         {
             if ( (CachingContext.Current.Kind & CachingContextKind.Refresh) == 0 )
             {
-                item = await backend.GetItemAsync( key, cancellationToken: cancellationToken );
+                var includeDependencies = MustPropagateDependencies( backend );
+
+                item = await backend.GetItemAsync( key, includeDependencies, cancellationToken );
 
                 if ( item == null )
                 {
@@ -313,7 +319,7 @@ internal sealed class CachingFrontend
                         // We had to wait to acquire the lock, so another reader may have put the item in the cache.
                         // Do a second cache lookup.
 
-                        item = await backend.GetItemAsync( key, cancellationToken: cancellationToken );
+                        item = await backend.GetItemAsync( key, includeDependencies, cancellationToken );
                     }
                     else
                     {
@@ -388,7 +394,7 @@ internal sealed class CachingFrontend
 
                 logger.Debug.IfEnabled?.Write( Formatted( "Cache hit: Key=\"{Key}\".", key ) );
 
-                AddChildDependency( backend, key );
+                AddChildDependencies( backend, key, item );
 
                 value = item.Value;
             }
@@ -423,11 +429,53 @@ internal sealed class CachingFrontend
     internal static async ValueTask<DateTimeOffset?> GetComputationStartTimeAsync( CachingBackend backend, CancellationToken cancellationToken )
         => backend.SupportedFeatures.SetItemIfUnmodifiedSince ? await backend.Clock.GetCurrentTimeAsync( cancellationToken ) : null;
 
-    private static void AddChildDependency( CachingBackend backend, string key )
+    /// <summary>
+    /// Determines whether a cache hit must add the dependencies of the cached item to the current context, and therefore
+    /// whether the cache lookup must retrieve these dependencies.
+    /// </summary>
+    /// <param name="backend">The backend of the cached method.</param>
+    /// <returns><c>true</c> if the current context is the context of a cached method being evaluated and if
+    /// <paramref name="backend"/> supports dependencies; otherwise <c>false</c>.</returns>
+    /// <remarks>
+    /// A method that is called outside of the evaluation of another cached method has no context to which dependencies
+    /// can be added. The dependencies are not retrieved in this case, because some backends need an additional request
+    /// to retrieve them.
+    /// </remarks>
+    private static bool MustPropagateDependencies( CachingBackend backend )
+        => backend.SupportedFeatures.Dependencies && (CachingContext.Current.Kind & CachingContextKind.Cache) != 0;
+
+    /// <summary>
+    /// Adds the key of a cached item and the dependencies of this item to the current context after a cache hit.
+    /// </summary>
+    /// <param name="backend">The backend of the cached method.</param>
+    /// <param name="key">The key of the cached item.</param>
+    /// <param name="item">The cached item, retrieved with its dependencies when
+    /// <see cref="MustPropagateDependencies"/> returns <c>true</c>.</param>
+    /// <remarks>
+    /// <para>
+    /// The calling method depends on the called method through its key. The key alone is not sufficient, because the item
+    /// of the called method can be evicted before the item of the calling method is stored. In this case, no item depends
+    /// on the evicted item at the time of the eviction, the backend keeps no registration for its dependencies, and an
+    /// invalidation of these dependencies would not reach the item of the calling method. Adding the dependencies of the
+    /// called method makes the item of the calling method depend on them directly.
+    /// </para>
+    /// <para>
+    /// A cache miss already adds the dependencies of the called method to the calling method, through
+    /// <see cref="CachingContext.AddDependenciesToParent"/>.
+    /// </para>
+    /// </remarks>
+    private static void AddChildDependencies( CachingBackend backend, string key, CacheItem item )
     {
         if ( backend.SupportedFeatures.Dependencies )
         {
-            CachingContext.Current.AddDependency( key );
+            var context = CachingContext.Current;
+
+            if ( (context.Kind & CachingContextKind.Cache) != 0 && !item.Dependencies.IsDefaultOrEmpty )
+            {
+                context.AddDependencies( item.Dependencies );
+            }
+
+            context.AddDependency( key );
         }
     }
 

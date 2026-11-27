@@ -88,7 +88,11 @@ public abstract class CachingBackendEnhancer : CachingBackend
     protected override void SetItemCore( string key, CacheItem item ) => this.UnderlyingBackend.SetItem( key, item );
 
     /// <inheritdoc />
-    /// <inheritdoc />
+    /// <remarks>
+    /// The call is forwarded to the conditional <see cref="CachingBackend.SetItem"/> of <see cref="UnderlyingBackend"/>,
+    /// not to <see cref="SetItemCore(string, CacheItem)"/>. An enhancer that intercepts the stores must therefore override
+    /// both overloads of <c>SetItemCore</c> and of <c>SetItemAsyncCore</c>.
+    /// </remarks>
     protected override bool SetItemCore( string key, CacheItem item, DateTimeOffset ifUnmodifiedSince )
         => this.UnderlyingBackend.SetItem( key, item, ifUnmodifiedSince );
 
