@@ -810,6 +810,9 @@ internal partial class MemoryCachingBackend : CachingBackend
 
         if ( storedItem != null && this._tombstones.IsInvalidatedSince( key, dependencies, since ) )
         {
+            // The key is recorded as invalidated, so that a computation that has read the rejected item is rejected too.
+            this._tombstones.Record( key, this.Clock.GetCurrentTime() );
+
             if ( this.RemoveItemImpl( key, expectedItem: storedItem ) )
             {
                 this.OnItemRemoved( key, CacheItemRemovedReason.Invalidated, this.Id );
