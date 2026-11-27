@@ -121,6 +121,11 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// </summary>
     private readonly InvalidationTombstoneSet _tombstones;
 
+    /// <summary>
+    /// Gets the number of invalidation records of the instance, including the expired records that have not been purged yet.
+    /// </summary>
+    internal int InvalidationTombstoneCount => this._tombstones.Count;
+
     private volatile bool _isDisposed;
 
     /// <summary>

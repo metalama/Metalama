@@ -41,6 +41,11 @@ internal sealed class InvalidationTombstoneSet
     public TimeSpan Lifetime { get; }
 
     /// <summary>
+    /// Gets the number of records, including the expired records that have not been purged yet.
+    /// </summary>
+    internal int Count => this._invalidationTimes.Count;
+
+    /// <summary>
     /// Records that a key has been invalidated. Must be called before the items of the key are removed, so that a
     /// concurrent store that does not see the record has registered its item before the removal looks for it.
     /// </summary>

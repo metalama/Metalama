@@ -305,6 +305,42 @@ public sealed class SetItemIfUnmodifiedSinceTests
     }
 
     [Fact]
+    public void Invalidations_RecordKeys_AndRecordsArePurgedAfterLifetime()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var backend = CreateMemoryBackend( fakes, TimeSpan.FromMinutes( 1 ) );
+
+        backend.SetItem( _innerKey, new CacheItem( "inner-value", [_dependency] ) );
+
+        // The invalidation records the dependency and the key of the inner item, which it removes. The removal records the
+        // removed key.
+        backend.InvalidateDependency( _dependency );
+        backend.RemoveItem( _key );
+
+        Assert.Equal( 3, backend.InvalidationTombstoneCount );
+
+        // The next invalidation after the lifetime purges the expired records and records its own key.
+        fakes.TimeProvider.Advance( TimeSpan.FromMinutes( 2 ) );
+        backend.InvalidateDependency( _otherDependency );
+
+        Assert.Equal( 1, backend.InvalidationTombstoneCount );
+    }
+
+    [Fact]
+    public void StoresWithoutInvalidations_RecordNothing()
+    {
+        using var fakes = new FakeCachingServices( _origin );
+        using var backend = CreateMemoryBackend( fakes );
+
+        for ( var i = 0; i < 100; i++ )
+        {
+            Assert.True( backend.SetItem( _key + i, new CacheItem( "value", [_dependency] ), backend.Clock.GetCurrentTime() ) );
+        }
+
+        Assert.Equal( 0, backend.InvalidationTombstoneCount );
+    }
+
+    [Fact]
     public void ClockFromTimeProvider_ReturnsTimeAndTolerance()
     {
         using var fakes = new FakeCachingServices( _origin );
