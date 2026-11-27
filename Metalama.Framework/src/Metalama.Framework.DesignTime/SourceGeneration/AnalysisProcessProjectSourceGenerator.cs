@@ -63,7 +63,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         this._dirtyProjectQuietPeriodTimer = new QuietPeriodTimer(
             options.QuietPeriodTimerDelay,
             this.Logger,
-            e => this._exceptionHandler.ReportException( e, this.ProjectOptions, this.Logger ) );
+            e => this._exceptionHandler.ReportException( e, this.ProjectKey, this.ProjectOptions, this.Logger ) );
 
         this._dirtyProjectQuietPeriodTimer.Tick += this.OnDirtyProjectDelayed;
         this._pipelineFactory = this.ServiceProvider.GetRequiredService<DesignTimeAspectPipelineFactory>();
@@ -342,7 +342,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         {
             // Give up until the next change of the project, and report the condition once.
             this._consecutiveTouchFileFailures = 0;
-            this._exceptionHandler.ReportException( exception, this.ProjectOptions, this.Logger );
+            this._exceptionHandler.ReportException( exception, this.ProjectKey, this.ProjectOptions, this.Logger );
         }
     }
 

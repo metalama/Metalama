@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Project;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Telemetry;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -38,6 +39,15 @@ internal sealed class TransformerContextAdapter : ITransformerContext
     public Compilation Compilation => this._underlying.Compilation;
 
     public IProjectOptions ProjectOptions { get; }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The context is registered by <see cref="SourceTransformer"/> in the service provider that it returns from
+    /// <see cref="SourceTransformer.InitializeServices"/>, and Metalama.Compiler exposes that service provider through
+    /// <see cref="TransformerContext.Services"/>. The context is resolved untyped, because it is a type of Backstage and not a
+    /// service of the engine.
+    /// </remarks>
+    public ITelemetryContext? TelemetryContext => (ITelemetryContext?) this._underlying.Services?.GetService( typeof(ITelemetryContext) );
 
     public ImmutableArray<ManagedResource> Resources => this._underlying.Resources;
 

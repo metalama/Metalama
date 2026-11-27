@@ -41,6 +41,12 @@ internal sealed class TestTelemetryService : ITelemetryService
 
     public IReadOnlyCollection<ReportedTelemetryException> ReportedExceptions => this._reported;
 
+    /// <summary>
+    /// Gets or sets the warnings of the contexts that <see cref="OpenContext"/> opens after the property is set. A test sets
+    /// it to simulate an invalid <c>metalama.json</c> file. See #2421.
+    /// </summary>
+    public ImmutableArray<TelemetryContextWarning> ContextWarnings { get; set; } = ImmutableArray<TelemetryContextWarning>.Empty;
+
     // Mirrors the real service: an unknown directory disables telemetry, a known directory routes to its repository.
     public ITelemetryPolicy GetPolicy( string? directory )
         => string.IsNullOrEmpty( directory )
@@ -49,10 +55,14 @@ internal sealed class TestTelemetryService : ITelemetryService
 
     public ITelemetryPolicy GetToolingPolicy() => new TestTelemetryPolicy( TelemetryRouting.Tooling, null );
 
-    public ITelemetryContext NullContext => new TestTelemetryContext( this._reported, new TestTelemetryPolicy( TelemetryRouting.Disabled, null ) );
+    public ITelemetryContext NullContext
+        => new TestTelemetryContext( this._reported, new TestTelemetryPolicy( TelemetryRouting.Disabled, null ), ImmutableArray<TelemetryContextWarning>.Empty );
 
     public ITelemetryContext OpenContext( ITelemetryPolicy policy )
-        => new TestTelemetryContext( this._reported, policy as TestTelemetryPolicy ?? new TestTelemetryPolicy( TelemetryRouting.Disabled, null ) );
+        => new TestTelemetryContext(
+            this._reported,
+            policy as TestTelemetryPolicy ?? new TestTelemetryPolicy( TelemetryRouting.Disabled, null ),
+            this.ContextWarnings );
 
     private sealed record TestTelemetryPolicy( TelemetryRouting Routing, string? Directory ) : ITelemetryPolicy
     {
@@ -70,13 +80,17 @@ internal sealed class TestTelemetryService : ITelemetryService
         private readonly ConcurrentBag<ReportedTelemetryException> _reported;
         private readonly TestTelemetryPolicy _policy;
 
-        public TestTelemetryContext( ConcurrentBag<ReportedTelemetryException> reported, TestTelemetryPolicy policy )
+        public TestTelemetryContext(
+            ConcurrentBag<ReportedTelemetryException> reported,
+            TestTelemetryPolicy policy,
+            ImmutableArray<TelemetryContextWarning> warnings )
         {
             this._reported = reported;
             this._policy = policy;
+            this.Warnings = warnings;
         }
 
-        public ImmutableArray<TelemetryContextWarning> Warnings => ImmutableArray<TelemetryContextWarning>.Empty;
+        public ImmutableArray<TelemetryContextWarning> Warnings { get; }
         
         public IUsageSession StartUsageSession( string kind, string? projectName = null ) => NullTestUsageSession.Instance;
 

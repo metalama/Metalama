@@ -10,6 +10,8 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Testing;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -52,6 +54,72 @@ public sealed class SourceTransformerExceptionHandlingTests : UnitTestClass
         Assert.Equal( Path.GetDirectoryName( projectPath ), report.Directory );
     }
 
+    /// <summary>
+    /// Checks that the project-scoped handler reports to the telemetry context that the compiler registered for the project,
+    /// and does not open a new context. See #2420.
+    /// </summary>
+    [Fact]
+    public void Execute_FaultInProjectScope_ReportsToCompilerTelemetryContext()
+    {
+        using var testContext = this.CreateTestContext();
+        testContext.ExpectsReportedExceptions = true;
+
+        var faultInjector = testContext.FaultInjector;
+        faultInjector.ArmFault( FaultInjectionPoints.CompileTimePipeline );
+
+        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        var compilation = testContext.CreateCSharpCompilation( _code );
+        var projectPath = Path.Combine( Path.GetTempPath(), "repo", "proj.csproj" );
+
+        // The context of the compiler is opened for a directory that differs from the project directory, so that the report
+        // identifies the context that received it.
+        var telemetryService = serviceProvider.GetRequiredBackstageService<ITelemetryService>();
+        var compilerContextDirectory = Path.Combine( Path.GetTempPath(), "compiler-context" );
+        var compilerContext = telemetryService.OpenContext( telemetryService.GetPolicy( compilerContextDirectory ) );
+
+        var context = new TestTransformerContext( serviceProvider, compilation, new ProjectOptionsStub( projectPath ), compilerContext );
+
+        SourceTransformer.Execute( context );
+
+        var diagnostic = Assert.Single( context.ReportedDiagnostics );
+        Assert.Equal( GeneralDiagnosticDescriptors.UnhandledException.Id, diagnostic.Id );
+
+        var report = Assert.Single( testContext.ReportedTelemetryExceptions );
+        Assert.Equal( TelemetryRouting.Repository, report.Routing );
+        Assert.Equal( compilerContextDirectory, report.Directory );
+    }
+
+    /// <summary>
+    /// Checks that the global fallback reports through the tooling policy when the compiler registered a telemetry context
+    /// but the project scope could not be established. See #2420.
+    /// </summary>
+    [Fact]
+    public void Execute_FaultBeforeProjectScopeWithCompilerContext_CapturesToolingTelemetry()
+    {
+        using var testContext = this.CreateTestContext();
+        testContext.ExpectsReportedExceptions = true;
+
+        var faultInjector = testContext.FaultInjector;
+        faultInjector.ArmFault( FaultInjectionPoints.SourceTransformerEntry );
+
+        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        var compilation = testContext.CreateCSharpCompilation( _code );
+        var projectPath = Path.Combine( Path.GetTempPath(), "repo", "proj.csproj" );
+
+        var telemetryService = serviceProvider.GetRequiredBackstageService<ITelemetryService>();
+        var compilerContext = telemetryService.OpenContext( telemetryService.GetPolicy( Path.GetDirectoryName( projectPath ) ) );
+
+        var context = new TestTransformerContext( serviceProvider, compilation, new ProjectOptionsStub( projectPath ), compilerContext );
+
+        SourceTransformer.Execute( context );
+
+        var diagnostic = Assert.Single( context.ReportedDiagnostics );
+        Assert.Equal( GeneralDiagnosticDescriptors.UnhandledException.Id, diagnostic.Id );
+
+        var report = Assert.Single( testContext.ReportedTelemetryExceptions );
+        Assert.Equal( TelemetryRouting.Tooling, report.Routing );
+    }
+
     [Fact]
     public void Execute_FaultBeforeProjectScope_EmitsDiagnosticAndCapturesToolingTelemetry()
     {
@@ -82,11 +150,16 @@ public sealed class SourceTransformerExceptionHandlingTests : UnitTestClass
     {
         private readonly List<Diagnostic> _diagnostics = new();
 
-        public TestTransformerContext( GlobalServiceProvider serviceProvider, Compilation compilation, IProjectOptions projectOptions )
+        public TestTransformerContext(
+            GlobalServiceProvider serviceProvider,
+            Compilation compilation,
+            IProjectOptions projectOptions,
+            ITelemetryContext? telemetryContext = null )
         {
             this.ServiceProvider = serviceProvider;
             this.Compilation = compilation;
             this.ProjectOptions = projectOptions;
+            this.TelemetryContext = telemetryContext;
         }
 
         public IReadOnlyList<Diagnostic> ReportedDiagnostics => this._diagnostics;
@@ -96,6 +169,8 @@ public sealed class SourceTransformerExceptionHandlingTests : UnitTestClass
         public Compilation Compilation { get; }
 
         public IProjectOptions ProjectOptions { get; }
+
+        public ITelemetryContext? TelemetryContext { get; }
 
         public ImmutableArray<ManagedResource> Resources => ImmutableArray<ManagedResource>.Empty;
 

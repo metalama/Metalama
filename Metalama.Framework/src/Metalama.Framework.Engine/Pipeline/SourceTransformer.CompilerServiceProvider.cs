@@ -21,7 +21,14 @@ namespace Metalama.Framework.Engine.Pipeline;
 
 public sealed partial class SourceTransformer
 {
-    private sealed class CompilerServiceProvider : IDisposableServiceProvider
+    /// <summary>
+    /// The service provider that <see cref="InitializeServices"/> returns to Metalama.Compiler for a project compilation. It
+    /// opens the telemetry context of the project, starts the usage session on it, and exposes it to the engine.
+    /// </summary>
+    /// <remarks>
+    /// The class is internal, and not private, so that the unit tests can create it with test services.
+    /// </remarks>
+    internal sealed class CompilerServiceProvider : IDisposableServiceProvider
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly Dictionary<Type, object> _services = new();

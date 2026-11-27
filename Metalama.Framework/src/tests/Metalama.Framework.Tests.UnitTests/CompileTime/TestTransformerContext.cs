@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Telemetry;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -14,11 +15,16 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 
 internal sealed class TestTransformerContext : ITransformerContext
 {
-    public TestTransformerContext( Compilation compilation, IProjectOptions projectOptions, GlobalServiceProvider serviceProvider )
+    public TestTransformerContext(
+        Compilation compilation,
+        IProjectOptions projectOptions,
+        GlobalServiceProvider serviceProvider,
+        ITelemetryContext? telemetryContext = null )
     {
         this.Compilation = compilation;
         this.ProjectOptions = projectOptions;
         this.ServiceProvider = serviceProvider;
+        this.TelemetryContext = telemetryContext;
     }
 
     public DiagnosticFilterCollection ReportedSuppressions { get; } = new();
@@ -30,6 +36,8 @@ internal sealed class TestTransformerContext : ITransformerContext
     public Compilation Compilation { get; }
 
     public IProjectOptions ProjectOptions { get; }
+
+    public ITelemetryContext? TelemetryContext { get; }
 
     public ImmutableArray<ManagedResource> Resources => ImmutableArray<ManagedResource>.Empty;
 

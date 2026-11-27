@@ -22,6 +22,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
     internal sealed class CompileTimeExceptionHandler : ICompileTimeExceptionHandler
     {
         private readonly ITelemetryService? _telemetryService;
+        private readonly ITelemetryContext? _projectTelemetryContext;
         private readonly IStandardDirectories? _standardDirectories;
         private readonly IProjectOptions? _projectOptions;
         private readonly ILogger _logger;
@@ -29,6 +30,10 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
         public CompileTimeExceptionHandler( IServiceProvider serviceProvider )
         {
             this._telemetryService = serviceProvider.GetBackstageService<ITelemetryService>();
+
+            // Resolved untyped, because ITelemetryContext is a type of Backstage and not a service of the engine. The compiler
+            // opens the context before the project is processed and registers it. See #2420.
+            this._projectTelemetryContext = (ITelemetryContext?) serviceProvider.GetService( typeof(ITelemetryContext) );
             this._standardDirectories = serviceProvider.GetBackstageService<IStandardDirectories>();
             this._projectOptions = (IProjectOptions?) serviceProvider.GetService( typeof(IProjectOptions) );
             this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeExceptionHandler) );
@@ -67,11 +72,29 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             }
         }
 
-        // Opens the telemetry context for the report. With project options (the normal, project-scoped case), it honors
-        // the project repository's metalama.json opt-out. With no project options (the handler used as a global fallback),
-        // it reports as a tooling exception. The local crash report is written regardless. See #1701.
+        /// <summary>
+        /// Gets the telemetry context to which the exception is reported.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The handler reports to the telemetry context of the project when the host registered one in the service provider. The
+        /// compiler opens this context once per project, before the project is processed, so the policy (the consent of the user,
+        /// the <c>metalama.json</c> opt-out of the repository, and the gates of the process) is not resolved again when an
+        /// exception occurs. See #2420.
+        /// </para>
+        /// <para>
+        /// When no context is registered, the handler opens one. Without project options, which is the case of the global
+        /// fallback of <see cref="SourceTransformer"/>, it uses the tooling policy. With project options, which is the case of a
+        /// host that runs the pipeline without Metalama.Compiler, it uses the policy of the project directory. See #1701.
+        /// </para>
+        /// </remarks>
         private ITelemetryContext? GetTelemetryContext()
         {
+            if ( this._projectTelemetryContext != null )
+            {
+                return this._projectTelemetryContext;
+            }
+
             if ( this._telemetryService == null )
             {
                 return null;

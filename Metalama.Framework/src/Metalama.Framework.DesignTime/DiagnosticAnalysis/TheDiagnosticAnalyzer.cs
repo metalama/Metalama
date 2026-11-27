@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Compiler;
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine;
@@ -92,6 +93,10 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
             Monitor.Enter( @lock, ref lockTaken );
 #endif
 
+            // The key of the project is known once the pipeline is created. It identifies the telemetry context to which an
+            // exception is reported. See #2421.
+            ProjectKey? projectKey = null;
+
             try
             {
                 var compilation = context.SemanticModel.Compilation;
@@ -119,6 +124,10 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 {
                     return;
                 }
+
+                projectKey = pipeline.ProjectKey;
+
+                ReportTelemetryContextWarnings( context, compilation, pipeline );
 
                 var diagnosticCount = 0;
 
@@ -250,7 +259,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
             }
             catch ( Exception e )
             {
-                this._exceptionHandler.ReportException( e, context.ProjectOptions );
+                this._exceptionHandler.ReportException( e, projectKey, context.ProjectOptions );
             }
             finally
             {
@@ -404,6 +413,47 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
         /// trees do not produce two warnings on one file.
         /// </para>
         /// </remarks>
+        /// <summary>
+        /// Reports the warnings of the telemetry context of the project, such as an invalid <c>metalama.json</c> file, as the
+        /// diagnostic LAMA0075.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The warnings are reported once per project, on the first syntax tree of the compilation that is not generated code,
+        /// so that the analysis of each syntax tree does not report them again. Generated trees are skipped because Roslyn does
+        /// not run this analyzer on them, and the first tree of a project is often generated, for instance the file of the
+        /// assembly attributes. The location is the start of the selected syntax tree, because the analyzer cannot report a
+        /// diagnostic on the <c>metalama.json</c> file, which is not a syntax tree of the compilation. The path of the file is
+        /// therefore included in the message. The compiler reports the same warnings once per project. See #2421.
+        /// </para>
+        /// </remarks>
+        private static void ReportTelemetryContextWarnings( ISemanticModelAnalysisContext context, Compilation compilation, DesignTimeAspectPipeline pipeline )
+        {
+            if ( pipeline.TelemetryContext is not { Warnings: { IsEmpty: false } warnings } )
+            {
+                return;
+            }
+
+            var syntaxTree = context.SemanticModel.SyntaxTree;
+
+            // The warnings concern the project and not a syntax tree, but the analyzer is called once for each syntax tree. They
+            // are therefore reported only during the analysis of one syntax tree, so that the user sees each warning once. The
+            // selected tree is the first one that is not generated code, because Roslyn does not call the analyzer for a
+            // generated tree, and a warning reported only on a generated tree would never be shown.
+            if ( compilation.SyntaxTrees.FirstOrDefault( t => !GeneratedCodeDetector.IsGeneratedCode( t, compilation, context.CancellationToken ) ) != syntaxTree )
+            {
+                return;
+            }
+
+            foreach ( var warning in warnings )
+            {
+                var message = warning.FilePath == null ? warning.Message : $"{warning.FilePath}: {warning.Message}";
+
+                context.ReportDiagnostic(
+                    GeneralDiagnosticDescriptors.InvalidRepositoryConfiguration.CreateRoslynDiagnostic( Location.Create( syntaxTree, default ), message ) );
+            }
+        }
+
         private static void ReportDuplicateSyntaxTreePath( ISemanticModelAnalysisContext context, Compilation compilation, string syntaxTreeFilePath )
         {
             var duplicates = compilation.GetDuplicatePathSyntaxTrees();

@@ -26,6 +26,7 @@ using SharpCrafters.Backstage.Extensibility;
 using SharpCrafters.Backstage.Infrastructure;
 using SharpCrafters.Backstage.Maintenance;
 using SharpCrafters.Backstage.ProcessClassification;
+using SharpCrafters.Backstage.Telemetry;
 using SharpCrafters.Backstage.Threading;
 using SharpCrafters.Common.Testing.Hooks;
 using System;
@@ -115,6 +116,16 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
     /// chose (per-project repository directory, tooling, or disabled). See #1701.
     /// </summary>
     public IReadOnlyCollection<ReportedTelemetryException> ReportedTelemetryExceptions => this._telemetryService.ReportedExceptions;
+
+    /// <summary>
+    /// Gets or sets the warnings of the telemetry contexts that are opened in this context after the property is set. A test
+    /// sets it to simulate an invalid <c>metalama.json</c> file. See #2421.
+    /// </summary>
+    internal ImmutableArray<TelemetryContextWarning> TelemetryContextWarnings
+    {
+        get => this._telemetryService.ContextWarnings;
+        set => this._telemetryService.ContextWarnings = value;
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the test deliberately reports exceptions through the telemetry capture
