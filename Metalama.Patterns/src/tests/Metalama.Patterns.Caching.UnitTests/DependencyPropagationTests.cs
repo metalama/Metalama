@@ -3,8 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Patterns.Caching.Aspects;
+using Metalama.Patterns.Caching.Backends;
+using Metalama.Patterns.Caching.Building;
 using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.TestHelpers;
+using Metalama.Patterns.Caching.Tests.Mocks;
 using Xunit;
 
 // ReSharper disable UnusedMethodReturnValue.Local
@@ -425,25 +428,37 @@ namespace Metalama.Patterns.Caching.Tests
         /// hit on the intermediate method and the intermediate item was evicted before the outer item was stored.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// When the intermediate item is evicted, no item depends on it yet, so the backend keeps no registration for its
         /// dependencies. The outer item is invalidated only if the cache hit added the dependencies of the intermediate item
         /// to the outer item.
+        /// </para>
+        /// <para>
+        /// The test runs on a <see cref="DependencyOmittingCachingBackend"/>, which returns the dependencies of an item only
+        /// when the frontend requests them. The test also verifies that the frontend requests them for the cache hit inside
+        /// the outer method and does not request them for the top-level calls.
+        /// </para>
         /// </remarks>
         [Fact]
         public void TestDependencyPropagationOnCacheHitAfterEviction()
         {
-            using var context = this.InitializeTestWithTestingBackend( _testDependencyPropagationOnCacheHitAfterEvictionProfileName );
+            using var context = this.InitializeTest(
+                _testDependencyPropagationOnCacheHitAfterEvictionProfileName,
+                CreateDependencyOmittingBackend( _testDependencyPropagationOnCacheHitAfterEvictionProfileName ) );
 
             var cachingClass = new TestDependencyPropagationOnCacheHitAfterEvictionCachingClass();
 
             cachingClass.GetValueIntermediate();
 
-            var intermediateKey = context.Backend.LastCachedKey;
+            var intermediateKey = context.Backend.LastSetKey;
             Assert.NotNull( intermediateKey );
 
             cachingClass.AfterIntermediateCall = () => context.Backend.RemoveItem( intermediateKey );
+            context.Backend.ClearGetItemRequests();
 
             cachingClass.GetValue();
+
+            AssertDependencyRequests( context.Backend, intermediateKey );
 
             Assert.False( context.Backend.ContainsItem( intermediateKey ), "Precondition: the intermediate item was not evicted." );
 
@@ -534,19 +549,24 @@ namespace Metalama.Patterns.Caching.Tests
         [Fact]
         public async Task TestDependencyPropagationOnCacheHitAfterEvictionAsync()
         {
-            await using var context = this.InitializeTestWithTestingBackend( _testDependencyPropagationOnCacheHitAfterEvictionAsyncProfileName );
+            await using var context = this.InitializeTest(
+                _testDependencyPropagationOnCacheHitAfterEvictionAsyncProfileName,
+                CreateDependencyOmittingBackend( _testDependencyPropagationOnCacheHitAfterEvictionAsyncProfileName ) );
 
             var cancellationToken = TestContext.Current.CancellationToken;
             var cachingClass = new TestDependencyPropagationOnCacheHitAfterEvictionAsyncCachingClass();
 
             await cachingClass.GetValueIntermediateAsync();
 
-            var intermediateKey = context.Backend.LastCachedKey;
+            var intermediateKey = context.Backend.LastSetKey;
             Assert.NotNull( intermediateKey );
 
             cachingClass.AfterIntermediateCall = () => context.Backend.RemoveItemAsync( intermediateKey, cancellationToken ).AsTask();
+            context.Backend.ClearGetItemRequests();
 
             await cachingClass.GetValueAsync();
+
+            AssertDependencyRequests( context.Backend, intermediateKey );
 
             Assert.False(
                 await context.Backend.ContainsItemAsync( intermediateKey, cancellationToken ),
@@ -563,6 +583,42 @@ namespace Metalama.Patterns.Caching.Tests
         }
 
         #endregion
+
+        /// <summary>
+        /// Creates a <see cref="DependencyOmittingCachingBackend"/> on a new <see cref="MemoryCachingBackend"/>.
+        /// </summary>
+        /// <param name="name">The debug name of the memory backend.</param>
+        /// <returns>The new backend.</returns>
+        private DependencyOmittingCachingBackend CreateDependencyOmittingBackend( string name )
+            => new(
+                CachingBackend.Create(
+                    b => b.Memory( new MemoryCachingBackendConfiguration { DebugName = name } ),
+                    this.ServiceProvider ) );
+
+        /// <summary>
+        /// Asserts the cache lookups of a call of an outer cached method that gets a cache hit on an intermediate cached
+        /// method.
+        /// </summary>
+        /// <param name="backend">The backend, whose recorded lookups start with the lookup of the outer method.</param>
+        /// <param name="intermediateKey">The key of the item of the intermediate method.</param>
+        private static void AssertDependencyRequests( DependencyOmittingCachingBackend backend, string intermediateKey )
+        {
+            var requests = backend.GetItemRequests;
+
+            Assert.NotEmpty( requests );
+
+            Assert.False(
+                requests[0].IncludeDependencies,
+                "The lookup of the outer method, which is called outside of any cached method, requested the dependencies." );
+
+            Assert.All(
+                requests.Where( r => r.Key == intermediateKey ),
+                r => Assert.True(
+                    r.IncludeDependencies,
+                    "The lookup of the intermediate method, which is called by the outer method, did not request the dependencies." ) );
+
+            Assert.Contains( requests, r => r.Key == intermediateKey );
+        }
 
         public DependencyPropagationTests( ITestOutputHelper testOutputHelper ) : base( testOutputHelper ) { }
     }
