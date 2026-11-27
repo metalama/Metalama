@@ -15,7 +15,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using SharpCrafters.Backstage.Application;
 using SharpCrafters.Backstage.Diagnostics;
-using SharpCrafters.Backstage.Infrastructure;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -103,19 +103,17 @@ public sealed class UserCodeInvoker : IProjectService, IGlobalService
         }
         else
         {
-            var standardDirectories = context.ServiceProvider.Global.GetBackstageService<IStandardDirectories>();
+            var localExceptionReporter = context.ServiceProvider.Global.GetBackstageService<ILocalExceptionReporter>();
             var applicationInfoProvider = context.ServiceProvider.Global.GetRequiredBackstageService<IApplicationInfoProvider>();
             string reportFile;
 
-            if ( applicationInfoProvider.Application.ShouldCreateLocalCrashReports && standardDirectories != null )
+            if ( applicationInfoProvider.Application.ShouldCreateLocalCrashReports && localExceptionReporter != null )
             {
                 try
                 {
-                    reportFile = Path.Combine(
-                        standardDirectories.CrashReportsDirectory,
-                        $"exception-{Guid.NewGuid()}.txt" );
-
-                    File.WriteAllText( reportFile, e.ToString() );
+                    // The Backstage reporter adds the header, the call stack of the reporting code and the loader exceptions,
+                    // and removes sensitive data. The stack trace of the exception ends at the catch point in this class.
+                    reportFile = localExceptionReporter.WriteReport( e );
                 }
                 catch ( Exception reportException )
                 {
